@@ -1,0 +1,140 @@
+/*
+ * Blood orange color theme for BeerCSS (Material Design 3 variables).
+ * - Light theme only. It is the same for the light and dark OS settings.
+ * - Comes from the Fang T logo gradient: #F97316 (orange) to #BE123C (red).
+ * - Surfaces are white with a little orange. Primary is the red end of the gradient.
+ * Loads after BeerCSS, so these values replace the BeerCSS defaults. Error colors come from BeerCSS.
+ */
+:root,
+body.light,
+body.dark {
+  --primary: #be123c;
+  --on-primary: #ffffff;
+  --primary-container: #f5d9e0;
+  --on-primary-container: #2b1b15;
+  --secondary: #8f0e2d;
+  --on-secondary: #ffffff;
+  --secondary-container: #edd8dd;
+  --on-secondary-container: #8f0e2d;
+  --tertiary: #f97316;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #fee9da;
+  --on-tertiary-container: #2b1b15;
+  --background: #fff9f6;
+  --on-background: #2b1b15;
+  --surface: #fff9f6;
+  --on-surface: #2b1b15;
+  --surface-variant: #fee3d0;
+  --on-surface-variant: #6e5249;
+  --outline: #6e5249;
+  --outline-variant: #fee3d0;
+  --inverse-surface: #2b1b15;
+  --inverse-on-surface: #fff9f6;
+  --inverse-primary: #be123c;
+  --surface-dim: #fff9f6;
+  --surface-bright: #fef2ea;
+  --surface-container-lowest: #fffcfb;
+  --surface-container-low: #fff6f0;
+  --surface-container: #fef2ea;
+  --surface-container-high: #feeadb;
+  --surface-container-highest: #fee3d0;
+}
+
+/* The app name ("Trackula"): Helvetica Neue 600, the same as in the PNG logo (design/logo/make.py).
+   Helvetica Neue is on Apple devices only. Other devices use Helvetica or Arial. */
+:root {
+  --wordmark-font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+header h6 {
+  font-family: var(--wordmark-font);
+  font-weight: 600;
+}
+
+/* Top bar with the logo gradient. */
+header.primary {
+  background-image: linear-gradient(135deg, #f97316, #be123c);
+}
+
+.app-logo {
+  flex: none;
+  inline-size: 2rem;
+  block-size: 2rem;
+}
+
+/* Sign-in page (lib/pages/sign_in.dart): a large logo in the center, the button at the bottom.
+   Sizes use the smaller of the width and the height, so the page fits portrait and landscape screens. */
+main.splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-block-size: 100dvh;
+  margin: 0;
+  padding: 2rem 1.5rem calc(2rem + env(safe-area-inset-bottom));
+  background: radial-gradient(circle at 50% 38%, #fee3d0 0, var(--surface) 65%);
+}
+
+.splash-logo {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 3vmin, 1.5rem);
+  text-align: center;
+}
+
+.splash-logo img {
+  inline-size: min(62vw, 42dvh, 22rem);
+  block-size: auto;
+  filter: drop-shadow(0 1.5rem 2.5rem rgb(190 18 60 / 0.28));
+}
+
+.splash-logo h1 {
+  margin: 0;
+  color: var(--primary);
+  font-family: var(--wordmark-font);
+  font-size: clamp(2.75rem, min(15vw, 11dvh), 7rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.splash-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  inline-size: min(100%, 24rem);
+  text-align: center;
+}
+
+.splash-actions p {
+  margin: 0;
+}
+
+.splash-actions button {
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 3.5rem;
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Short screens, for example phones in landscape: less space, so the page fits without scrolling. */
+@media (max-height: 30rem) {
+  main.splash {
+    padding-block: 1rem calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  .splash-logo {
+    padding-block-end: 1rem;
+  }
+
+  .splash-logo img {
+    inline-size: min(62vw, 34dvh, 22rem);
+  }
+
+  .splash-actions button {
+    block-size: 3rem;
+  }
+}

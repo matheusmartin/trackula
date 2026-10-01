@@ -1,0 +1,260 @@
+import 'day.dart';
+import 'log_entry.dart';
+import 'metric.dart';
+
+/// Required column names of the `metrics` tab, in the order the app creates them.
+const metricsHeader = ['id', 'name', 'kind', 'unit', 'per_day', 'step', 'group', 'active'];
+
+/// Optional column names of the `metrics` tab. Older sheets do not have them. A new tab gets them after [metricsHeader].
+const metricsOptionalHeader = ['icon'];
+
+/// Column names of the old `log` tab format: one row per entry. The app converts it. See [toWideRows].
+const oldLogHeader = ['date', 'metric', 'value'];
+
+/// Valid items and a warning for each invalid row.
+final class Parsed<T> {
+  const Parsed(this.items, this.warnings);
+
+  final List<T> items;
+  final List<String> warnings;
+}
+
+/// Thrown when a header row does not contain a required column.
+final class HeaderException implements Exception {
+  HeaderException(this.tab, this.missing);
+
+  final String tab;
+  final List<String> missing;
+
+  @override
+  String toString() => 'Tab "$tab" has no column(s): ${missing.join(', ')}';
+}
+
+final _idPattern = RegExp(r'^[a-z0-9_-]+$');
+
+/// Parses the `metrics` tab. [rows] includes the header row.
+Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
+  final col = _columns('metrics', rows, metricsHeader);
+  final items = <Metric>[];
+  final warnings = <String>[];
+  final seen = <String>{};
+
+  for (var i = 1; i < rows.length; i++) {
+    final r = _Row(rows[i], col);
+    if (r.isEmpty) continue;
+    final at = 'metrics row ${i + 1}';
+
+    final id = r.text('id');
+    if (id == null || !_idPattern.hasMatch(id)) {
+      warnings.add('$at: invalid id "${id ?? ''}". Use only lowercase letters, digits, "_" and "-".');
+      continue;
+    }
+    if (!seen.add(id)) {
+      warnings.add('$at: duplicate id "$id"');
+      continue;
+    }
+    final name = r.text('name') ?? id;
+    final group = r.text('group');
+    final active = r.boolean('active') ?? true;
+    final icon = r.optionalText('icon');
+    final perDay = switch (r.text('per_day')) {
+      'one' => PerDay.one,
+      'many' => PerDay.many,
+      _ => null,
+    };
+
+    switch (r.text('kind')) {
+      case 'yesno':
+        if (perDay == PerDay.many) warnings.add('$at: yesno metric "$id" must use per_day "one"');
+        items.add(YesNoMetric(id: id, name: name, group: group, active: active, icon: icon));
+      case final kind && ('number' || 'count'):
+        if (perDay == null) {
+          warnings.add('$at: invalid per_day "${r.text('per_day') ?? ''}"');
+          continue;
+        }
+        final step = r.number('step');
+        items.add(
+          NumberMetric(
+            id: id,
+            name: name,
+            perDay: perDay,
+            unit: r.text('unit'),
+            step: step != null && step > 0 ? step : 1,
+            group: group,
+            active: active,
+            isCount: kind == 'count',
+            icon: icon,
+          ),
+        );
+      default:
+        warnings.add('$at: invalid kind "${r.text('kind') ?? ''}"');
+    }
+  }
+  return Parsed(items, warnings);
+}
+
+/// True if [rows] use the old `log` format: header `date`, `metric`, `value`.
+bool isOldLog(List<List<Object?>> rows) =>
+    rows.isNotEmpty &&
+    rows.first.length == oldLogHeader.length &&
+    [for (final c in rows.first) '$c'.trim().toLowerCase()].join(',') == oldLogHeader.join(',');
+
+/// Parses the `log` tab: column A is `date`, the other headers are metric ids. [rows] includes the header row.
+({LogTable table, List<String> warnings}) parseLog(List<List<Object?>> rows, Map<String, Metric> metrics) {
+  final header = rows.isEmpty ? const <Object?>[] : rows.first;
+  if (header.isEmpty || '${header.first}'.trim().toLowerCase() != 'date') throw HeaderException('log', ['date']);
+
+  final warnings = <String>[];
+  final columns = <String, int>{};
+  for (var c = 1; c < header.length; c++) {
+    final id = '${header[c] ?? ''}'.trim();
+    if (id.isEmpty) continue;
+    if (!metrics.containsKey(id)) {
+      warnings.add('log column ${_letter(c)}: unknown metric "$id"');
+    } else if (columns.containsKey(id)) {
+      warnings.add('log column ${_letter(c)}: duplicate column "$id". The app uses the first one.');
+    } else {
+      columns[id] = c;
+    }
+  }
+
+  final entries = <LogEntry>[];
+  final days = <Day, int>{};
+  for (var i = 1; i < rows.length; i++) {
+    final cells = rows[i];
+    if (cells.every(_isEmpty)) continue;
+    final at = 'log row ${i + 1}';
+    final raw = cells.isEmpty ? '' : '${cells.first ?? ''}'.trim();
+    final date = Day.tryParse(raw);
+    if (date == null) {
+      warnings.add('$at: invalid date "$raw"');
+      continue;
+    }
+    if (days.containsKey(date)) warnings.add('$at: $date has more than one row. The app uses the last row.');
+    days[date] = i + 1;
+
+    for (final MapEntry(key: id, value: c) in columns.entries) {
+      final cell = c < cells.length ? cells[c] : null;
+      if (_isEmpty(cell)) continue;
+      final metric = metrics[id]!;
+      final value = switch ((metric, cell)) {
+        (YesNoMetric(), true || 1) => 1,
+        (YesNoMetric(), String s) when s.trim().toUpperCase() == 'TRUE' || s.trim() == '1' => 1,
+        (NumberMetric(), num n) => n,
+        (NumberMetric(), String s) => num.tryParse(s.trim()),
+        _ => null,
+      };
+      if (value == null) {
+        warnings.add(
+          '$at, column ${_letter(c)}: ${metric is YesNoMetric ? 'yesno value must be 1' : 'value is not a number'}',
+        );
+        continue;
+      }
+      entries.add(LogEntry(row: i + 1, date: date, metricId: id, value: value));
+    }
+  }
+  return (table: LogTable(entries: entries, rows: days, columns: columns), warnings: warnings);
+}
+
+/// Parses the old `log` format (one row per entry). Used only to convert it.
+Parsed<LogEntry> parseOldLog(List<List<Object?>> rows, Map<String, Metric> metrics) {
+  final col = _columns('log', rows, oldLogHeader);
+  final items = <LogEntry>[];
+  final warnings = <String>[];
+
+  for (var i = 1; i < rows.length; i++) {
+    final r = _Row(rows[i], col);
+    if (r.isEmpty) continue;
+    final at = 'old log row ${i + 1}';
+
+    final date = Day.tryParse(r.text('date') ?? '');
+    final metric = metrics[r.text('metric')];
+    final value = r.number('value');
+    if (date == null || metric == null || value == null) {
+      warnings.add('$at: skipped (invalid date, metric or value)');
+      continue;
+    }
+    items.add(LogEntry(row: i + 1, date: date, metricId: metric.id, value: value));
+  }
+  return Parsed(items, warnings);
+}
+
+/// Converts old-format entries to the rows of the new `log` tab, header included.
+///
+/// One row per day, sorted by date. A [PerDay.many] metric gets the day total.
+/// A [PerDay.one] metric gets the last value of the day.
+List<List<Object>> toWideRows(List<LogEntry> entries, List<Metric> metrics) {
+  final perDay = {for (final m in metrics) m.id: m.perDay};
+  final values = <Day, Map<String, num>>{};
+  for (final e in entries) {
+    final day = values.putIfAbsent(e.date, () => {});
+    day[e.metricId] = perDay[e.metricId] == PerDay.many ? (day[e.metricId] ?? 0) + e.value : e.value;
+  }
+  return [
+    ['date', for (final m in metrics) m.id],
+    for (final d in values.keys.toList()..sort()) [d.toString(), for (final m in metrics) values[d]![m.id] ?? ''],
+  ];
+}
+
+/// Spreadsheet column letter for a 0-based [index]. Example: 0 → A, 26 → AA.
+String columnLetter(int index) => _letter(index);
+
+String _letter(int index) {
+  var n = index + 1;
+  var s = '';
+  while (n > 0) {
+    final r = (n - 1) % 26;
+    s = String.fromCharCode(65 + r) + s;
+    n = (n - 1) ~/ 26;
+  }
+  return s;
+}
+
+/// Empty checkbox cells return `false`, so `false` counts as empty.
+bool _isEmpty(Object? c) => c == null || c == false || '$c'.trim().isEmpty;
+
+Map<String, int> _columns(String tab, List<List<Object?>> rows, List<String> required) {
+  final header = rows.isEmpty ? const <Object?>[] : rows.first;
+  final col = <String, int>{
+    for (var i = 0; i < header.length; i++) '${header[i]}'.trim().toLowerCase(): i,
+  };
+  final missing = [
+    for (final name in required)
+      if (!col.containsKey(name)) name,
+  ];
+  if (missing.isNotEmpty) throw HeaderException(tab, missing);
+  return col;
+}
+
+/// One sheet row. The Sheets API omits empty cells at the end of a row.
+extension type _Row._((List<Object?>, Map<String, int>) _r) {
+  _Row(List<Object?> cells, Map<String, int> col) : this._((cells, col));
+
+  bool get isEmpty => _r.$1.every(_isEmpty);
+
+  Object? _cell(String name) {
+    final i = _r.$2[name]!;
+    return i < _r.$1.length ? _r.$1[i] : null;
+  }
+
+  String? text(String name) {
+    final s = _cell(name)?.toString().trim();
+    return s == null || s.isEmpty ? null : s;
+  }
+
+  /// Like [text], but returns null if the tab has no column [name].
+  String? optionalText(String name) => _r.$2.containsKey(name) ? text(name) : null;
+
+  num? number(String name) => switch (_cell(name)) {
+    num n => n,
+    String s => num.tryParse(s.trim()),
+    _ => null,
+  };
+
+  bool? boolean(String name) => switch (_cell(name)) {
+    bool b => b,
+    String s when s.trim().toUpperCase() == 'TRUE' => true,
+    String s when s.trim().toUpperCase() == 'FALSE' => false,
+    _ => null,
+  };
+}

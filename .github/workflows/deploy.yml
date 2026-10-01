@@ -1,0 +1,64 @@
+# Builds the app and publishes it to GitHub Pages on each push to main.
+# Setup: repository Settings → Pages → Source: "GitHub Actions".
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. A newer push cancels a waiting deploy.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.13.4
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Test
+        run: dart test
+
+      - name: Install Jaspr CLI
+        run: dart pub global activate jaspr_cli 0.23.5
+
+      # Values for lib/config.dart. Set them in Settings → Secrets and variables → Actions → Secrets.
+      # They are public in the built app. Secrets only keep them out of the repository and the logs.
+      - name: Build
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          if [ -z "$GOOGLE_CLIENT_ID" ] || [ -z "$GOOGLE_API_KEY" ]; then
+            echo "::error::Set the GOOGLE_CLIENT_ID and GOOGLE_API_KEY repository secrets."
+            exit 1
+          fi
+          jaspr build --dart-define=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" --dart-define=GOOGLE_API_KEY="$GOOGLE_API_KEY"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/jaspr
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
