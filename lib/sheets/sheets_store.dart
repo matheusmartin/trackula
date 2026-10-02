@@ -6,9 +6,9 @@ import '../model/parse.dart';
 
 /// Rows for a new `metrics` tab. Edit or delete them in the sheet.
 const exampleMetrics = [
-  ['weight', 'Weight', 'number', 'kg', 0.1, 'body', true, 'monitor_weight'],
-  ['meditate', 'Meditate', 'yesno', '', '', 'habits', true, 'self_improvement'],
-  ['water', 'Water', 'number', 'glasses', 1, 'habits', true, 'water_drop'],
+  ['weight', 'Weight', 'number', 'kg', 0.1, 'body', 'monitor_weight'],
+  ['meditate', 'Meditate', 'yesno', '', '', 'habits', 'self_improvement'],
+  ['water', 'Water', 'number', 'glasses', 1, 'habits', 'water_drop'],
 ];
 
 /// The data of the spreadsheet at one point in time.
@@ -303,7 +303,6 @@ List<Request> _metricsRules(int id, List<String> header) {
 
   return [
     ?at('kind', (_) => _oneOf(['yesno', 'number', 'count'])),
-    ?at('active', (_) => BooleanCondition(type: 'BOOLEAN')),
     // A Material Symbols name, or a short text such as an emoji. Some emojis have up to 11 characters in Sheets.
     ?at('icon', (c) => _formula('=OR(REGEXMATCH($c, "^[a-z0-9_]+\$"), LEN($c) <= 16)')),
   ];

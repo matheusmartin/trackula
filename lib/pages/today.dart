@@ -12,7 +12,7 @@ import '../services/prefs.dart';
 import '../services/session.dart';
 import '../sheets/sheets_store.dart';
 
-/// Shows the active metrics in a HabitKit-style table and records entries.
+/// Shows the metrics in a HabitKit-style table and records entries.
 class TodayPage extends StatefulComponent {
   const TodayPage({required this.session, required this.sheetId, required this.onExpired, super.key});
 
@@ -131,11 +131,8 @@ class _TodayPageState extends State<TodayPage> {
     final data = _data;
     final today = Day.today();
     final days = _range.daysUntil(today, phone: _phone);
-    final active = [
-      for (final m in data?.metrics ?? const <Metric>[])
-        if (m.active) m,
-    ];
-    final groups = {for (final m in active) m.group ?? 'other'}.toList();
+    final metrics = data?.metrics ?? const <Metric>[];
+    final groups = {for (final m in metrics) m.group ?? 'other'}.toList();
     final group = groups.contains(_group) ? _group : null;
 
     return .fragment([
@@ -169,12 +166,12 @@ class _TodayPageState extends State<TodayPage> {
       ]),
       if (_error case final e?) p(classes: 'error-text', [.text(e)]),
       if (data != null) ...[
-        if (active.isEmpty)
-          p(classes: 'secondary-text', [.text('No active metrics. Add rows to the "metrics" tab of the sheet.')])
+        if (metrics.isEmpty)
+          p(classes: 'secondary-text', [.text('No metrics. Add rows to the "metrics" tab of the sheet.')])
         else
           HabitTable(
             metrics: [
-              for (final m in active)
+              for (final m in metrics)
                 if (group == null || (m.group ?? 'other') == group) m,
             ],
             log: data.log,

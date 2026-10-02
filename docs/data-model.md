@@ -20,23 +20,22 @@ One row for each metric. The row order is the display order in the app.
 | `unit`    | text    | No       | any                     | Example: `kg`, `glasses`, `steps`. Empty for `yesno`. |
 | `step`    | number  | No       | > 0                     | Input step for `number` and `count`. Example: `0.1` for weight. Default: `1`. |
 | `group`   | text    | No       | any                     | Groups metrics on the screen. Example: `habits`, `body`. |
-| `active`  | boolean | Yes      | `TRUE`, `FALSE`         | `FALSE` hides the metric in the entry form. Its history stays. |
 | `icon`    | text    | No       | Material Symbols name or emoji | Icon next to the name. A lowercase name (`a-z`, `0-9`, `_`) is a [Material Symbols](https://fonts.google.com/icons) icon, for example `water_drop`. Other text shows as it is, for example `💧`. Empty: the first letter of `name`. Older sheets can omit the column. |
 
 Rules:
 
-- Do not delete a metric that has values in the `log` tab. Set `active` to `FALSE`.
-- The app ignores other columns. Older sheets have a `per_day` column: you can delete it.
+- To hide a metric, delete its row. Its `log` column and values stay in the sheet, and the app ignores them. To show the metric again, add the row again with the same `id`.
+- The app ignores other columns. Older sheets have `per_day` and `active` columns: you can delete them.
 
 Example:
 
-| id       | name     | kind   | unit    | step | group  | active | icon             |
-|----------|----------|--------|---------|------|--------|--------|------------------|
-| weight   | Weight   | number | kg      | 0.1  | body   | TRUE   | monitor_weight   |
-| waist    | Waist    | number | cm      | 0.5  | body   | TRUE   | straighten       |
-| meditate | Meditate | yesno  |         |      | habits | TRUE   | self_improvement |
-| water    | Water    | number | glasses | 1    | habits | TRUE   | 💧               |
-| reading  | Reading  | number | min     | 5    | habits | TRUE   |                  |
+| id       | name     | kind   | unit    | step | group  | icon             |
+|----------|----------|--------|---------|------|--------|------------------|
+| weight   | Weight   | number | kg      | 0.1  | body   | monitor_weight   |
+| waist    | Waist    | number | cm      | 0.5  | body   | straighten       |
+| meditate | Meditate | yesno  |         |      | habits | self_improvement |
+| water    | Water    | number | glasses | 1    | habits | 💧               |
+| reading  | Reading  | number | min     | 5    | habits |                  |
 
 ## Tab `log`
 
@@ -93,7 +92,6 @@ The app adds these rules when it adds a missing tab or a missing `log` column, a
 | `log` `number` or `count` column | Custom formula: `=ISNUMBER(B2)`                                         | Column type           |
 | `log` `yesno` column  | Dropdown: `yes`, `no`                                                              | Enum                  |
 | `metrics` column `kind`    | Dropdown: `yesno`, `number`, `count`                                          | Enum                  |
-| `metrics` column `active`  | Checkbox (`TRUE`, `FALSE`)                                                    | Boolean               |
 | `metrics` column `icon`    | Custom formula: `=OR(REGEXMATCH(I2, "^[a-z0-9_]+$"), LEN(I2) <= 16)`          | Check constraint      |
 
 The `metrics` rules:
@@ -115,13 +113,13 @@ Other setup:
 Limits:
 
 - API writes skip data validation. Sheets accepts the value and marks the cell as invalid. Layer 1 is necessary.
-- No cascade: a changed metric `id` breaks the link to its `log` column. If you must change it, rename the column header too.
+- No cascade: a changed metric `id` breaks the link to its `log` column. If you must change it, rename the column header too. The app does not warn: it does not show the values of the old column.
 - No transactions: "read, then update" is not atomic.
 
 ### Layer 3: app reads
 
 - The app ignores a `log` row with an invalid `date`, and shows a warning.
 - The app ignores a `log` cell that is not a number (or not `yes` or `no` for `yesno`), and shows a warning.
-- The app ignores a `log` column with an unknown metric `id`, and shows a warning.
+- The app ignores a `log` column with no metric, for example of a deleted metric. It shows no warning.
 - If a day has 2 or more rows, the app uses the last row and shows a warning.
 - The app ignores a `metrics` row with a missing or invalid `id` or `kind`, and shows a warning.

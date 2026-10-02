@@ -41,19 +41,18 @@ void main() {
     test('parses the example rows', () {
       final p = parseMetrics([
         metricsHeader,
-        ['weight', 'Weight', 'number', 'kg', 0.1, 'body', true],
-        ['meditate', 'Meditate', 'yesno', '', '', 'habits', 'TRUE'],
-        ['morning-shower', 'Morning shower', 'yesno', '', '', 'habits', true],
-        ['water', 'Water', 'number', 'glasses', 1, 'habits', 'FALSE'],
+        ['weight', 'Weight', 'number', 'kg', 0.1, 'body'],
+        ['meditate', 'Meditate', 'yesno', '', '', 'habits'],
+        ['morning-shower', 'Morning shower', 'yesno', '', '', 'habits'],
+        ['water', 'Water', 'number', 'glasses', 1, 'habits'],
       ]);
       expect(p.warnings, isEmpty);
       expect(p.items.map((m) => m.id), ['weight', 'meditate', 'morning-shower', 'water']);
       expect(p.items[0], isA<NumberMetric>().having((m) => m.step, 'step', 0.1));
       expect(p.items[1], isA<YesNoMetric>());
-      expect(p.items[3].active, isFalse);
     });
 
-    test('finds columns by header name, and ignores other columns such as per_day', () {
+    test('finds columns by header name, and ignores other columns such as per_day and active', () {
       final p = parseMetrics([
         ['kind', 'id', 'per_day', 'name', 'unit', 'step', 'group', 'active'],
         ['yesno', 'read', 'one', 'Read'],
@@ -75,9 +74,9 @@ void main() {
       expect(p.warnings, hasLength(4));
     });
 
-    test('ignores rows that contain only unchecked checkboxes', () {
+    test('ignores rows that contain only unchecked checkboxes, for example of an old active column', () {
       final p = parseMetrics([
-        metricsHeader,
+        [...metricsHeader, 'active'],
         ['c', 'C', 'yesno', '', '', '', true],
         ['', '', '', '', '', '', false],
       ]);
@@ -88,9 +87,9 @@ void main() {
     test('reads the optional icon column', () {
       final p = parseMetrics([
         [...metricsHeader, ...metricsOptionalHeader],
-        ['water', 'Water', 'number', 'glasses', 1, 'habits', true, 'water_drop'],
-        ['read', 'Read', 'yesno', '', '', 'habits', true, '📚'],
-        ['walk', 'Walk', 'yesno', '', '', 'habits', true],
+        ['water', 'Water', 'number', 'glasses', 1, 'habits', 'water_drop'],
+        ['read', 'Read', 'yesno', '', '', 'habits', '📚'],
+        ['walk', 'Walk', 'yesno', '', '', 'habits'],
       ]);
       expect(p.items.map((m) => m.icon), ['water_drop', '📚', null]);
     });
@@ -98,7 +97,7 @@ void main() {
     test('works without the icon column', () {
       final p = parseMetrics([
         metricsHeader,
-        ['walk', 'Walk', 'yesno', '', '', 'habits', true],
+        ['walk', 'Walk', 'yesno', '', '', 'habits'],
       ]);
       expect(p.items.single.icon, isNull);
       expect(p.warnings, isEmpty);
@@ -130,7 +129,7 @@ void main() {
       expect(dayValues(water, p.table.entries), {d29: 8, d30: 5});
     });
 
-    test('warns about invalid cells, unknown columns and duplicate days', () {
+    test('warns about invalid cells and duplicate days, and ignores columns with no metric', () {
       final p = parseLog([
         ['date', 'weight', 'steps', 'meditate'],
         ['30/09/2026', 82.1],
@@ -139,7 +138,8 @@ void main() {
       ], metrics);
       expect(p.table.entries.map((e) => (e.row, e.value)), [(4, 82.0)]);
       expect(p.table.rows[d29], 4);
-      expect(p.warnings, hasLength(5));
+      expect(p.table.columns.keys, isNot(contains('steps')));
+      expect(p.warnings, hasLength(4));
     });
 
     test('reads yes and no in any case, and old yesno values', () {

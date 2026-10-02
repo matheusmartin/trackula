@@ -3,8 +3,8 @@ import 'log_entry.dart';
 import 'metric.dart';
 
 /// Required column names of the `metrics` tab, in the order the app creates them.
-/// The app ignores other columns, for example `per_day` of older sheets.
-const metricsHeader = ['id', 'name', 'kind', 'unit', 'step', 'group', 'active'];
+/// The app ignores other columns, for example `per_day` and `active` of older sheets.
+const metricsHeader = ['id', 'name', 'kind', 'unit', 'step', 'group'];
 
 /// Optional column names of the `metrics` tab. Older sheets do not have them. A new tab gets them after [metricsHeader].
 const metricsOptionalHeader = ['icon'];
@@ -53,12 +53,11 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
     }
     final name = r.text('name') ?? id;
     final group = r.text('group');
-    final active = r.boolean('active') ?? true;
     final icon = r.optionalText('icon');
 
     switch (r.text('kind')) {
       case 'yesno':
-        items.add(YesNoMetric(id: id, name: name, group: group, active: active, icon: icon));
+        items.add(YesNoMetric(id: id, name: name, group: group, icon: icon));
       case final kind && ('number' || 'count'):
         final step = r.number('step');
         items.add(
@@ -68,7 +67,6 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
             unit: r.text('unit'),
             step: step != null && step > 0 ? step : 1,
             group: group,
-            active: active,
             isCount: kind == 'count',
             icon: icon,
           ),
@@ -89,10 +87,9 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
   final columns = <String, int>{};
   for (var c = 1; c < header.length; c++) {
     final id = '${header[c] ?? ''}'.trim();
-    if (id.isEmpty) continue;
-    if (!metrics.containsKey(id)) {
-      warnings.add('log column ${_letter(c)}: unknown metric "$id"');
-    } else if (columns.containsKey(id)) {
+    // A column with no metric, for example of a deleted metric: the app ignores the column and its values.
+    if (id.isEmpty || !metrics.containsKey(id)) continue;
+    if (columns.containsKey(id)) {
       warnings.add('log column ${_letter(c)}: duplicate column "$id". The app uses the first one.');
     } else {
       columns[id] = c;
@@ -225,13 +222,6 @@ extension type _Row._((List<Object?>, Map<String, int>) _r) {
   num? number(String name) => switch (_cell(name)) {
     num n => n,
     String s => num.tryParse(s.trim()),
-    _ => null,
-  };
-
-  bool? boolean(String name) => switch (_cell(name)) {
-    bool b => b,
-    String s when s.trim().toUpperCase() == 'TRUE' => true,
-    String s when s.trim().toUpperCase() == 'FALSE' => false,
     _ => null,
   };
 }
