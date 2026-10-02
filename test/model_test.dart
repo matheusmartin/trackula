@@ -3,8 +3,10 @@ import 'package:trackula/model/chart.dart';
 import 'package:trackula/model/day.dart';
 import 'package:trackula/model/log_entry.dart';
 import 'package:trackula/model/metric.dart';
+import 'package:trackula/model/number_input.dart';
 import 'package:trackula/model/parse.dart';
 import 'package:trackula/model/summary.dart';
+import 'package:trackula/services/double_tap.dart';
 
 void main() {
   const weight = NumberMetric(id: 'weight', name: 'Weight', perDay: PerDay.one, unit: 'kg', step: 0.1);
@@ -223,9 +225,39 @@ void main() {
       expect(planClear(weight, d29, log), isNull);
     });
 
+    test('count: applies the taps to the latest value', () {
+      expect(
+        planCount(water, d30, const [CountStep.add(1), CountStep.add(1)], log),
+        isA<SetCell>().having((w) => (w.row, w.column, w.value), 'cell', (2, 3, 2)),
+      );
+      expect(
+        planCount(water, d29, const [CountStep.add(1)], log),
+        isA<AppendRow>().having((w) => w.toCells(), 'cells', ['2026-09-29', '', '', 1]),
+      );
+      expect(planCount(water, d29, const [CountStep.add(-1)], log), isNull);
+    });
+
     test('throws if the metric has no column', () {
       const steps = NumberMetric(id: 'steps', name: 'Steps', perDay: PerDay.many);
       expect(() => planNumber(steps, d30, 1, log), throwsStateError);
+    });
+  });
+
+  group('applyCountSteps', () {
+    test('adds and subtracts', () {
+      expect(applyCountSteps(null, const [CountStep.add(1)]), 1);
+      expect(applyCountSteps(3, const [CountStep.add(-1)]), 2);
+      expect(applyCountSteps(3, const [CountStep.add(1), CountStep.add(1), CountStep.add(-1)]), 4);
+    });
+
+    test('0 or less is an empty cell, also between steps', () {
+      expect(applyCountSteps(1, const [CountStep.add(-1)]), isNull);
+      expect(applyCountSteps(null, const [CountStep.add(-1)]), isNull);
+      expect(applyCountSteps(null, const [CountStep.add(-1), CountStep.add(1)]), 1);
+    });
+
+    test('removes float noise from decimal steps', () {
+      expect(applyCountSteps(0.2, const [CountStep.add(0.1)]), 0.3);
     });
   });
 
@@ -266,5 +298,97 @@ void main() {
       ['steps', 'Steps', 'count', '', 'many', 100],
     ]);
     expect(p.items.single, isA<NumberMetric>().having((m) => m.isCount, 'isCount', isTrue));
+  });
+  test('nearestDay: the nearest day before, else the nearest day after', () {
+    final days = [d29, const Day(2026, 9, 25), const Day(2026, 10, 3), const Day(2026, 10, 1)];
+    expect(nearestDay(days, d30), d29);
+    expect(nearestDay(days, const Day(2026, 9, 20)), const Day(2026, 9, 25));
+    expect(nearestDay([d30], d30), isNull);
+    expect(nearestDay(const <Day>[], d30), isNull);
+  });
+
+  group('number input', () {
+    test('parseDecimal reads a period or a comma, and rejects other text', () {
+      expect(['81.9', '81,9', ' 82 ', '81.', ',5', '0'].map(parseDecimal), [81.9, 81.9, 82, 81, 0.5, 0]);
+      expect(['', 'abc', '-1', '1.2.3', '8 1'].map(parseDecimal), everyElement(isNull));
+    });
+
+    test('stepDecimals', () {
+      expect([0.1, 0.25, 5, 1.0, 250].map(stepDecimals), [1, 2, 0, 0, 0]);
+    });
+
+    test('roundToStep removes float noise, snaps to the step, and is never below 0', () {
+      expect(roundToStep(81.9 + 0.1, 0.1), 82.0);
+      expect(roundToStep(81.93, 0.1, snap: true), 81.9);
+      expect(roundToStep(1237, 250, snap: true), 1250);
+      expect(roundToStep(-0.3, 0.1), 0);
+    });
+
+    test('formatStep and formatShort', () {
+      expect([formatStep(82, 0.1), formatStep(1250, 250), formatStep(90.5, 0.5)], ['82.0', '1250', '90.5']);
+      expect([formatShort(82.0), formatShort(2.5), formatShort(2500)], ['82', '2.5', '2500']);
+    });
+  });
+
+  group('DoubleTap', () {
+    const wait = Duration(milliseconds: 50);
+    Future<void> pause([int ms = 80]) => Future.delayed(Duration(milliseconds: ms));
+
+    late List<String> events;
+    late DoubleTap<String> taps;
+    void tap(String key) => taps.tap(key, onSingle: () => events.add('$key+'), onDouble: () => events.add('$key-'));
+
+    setUp(() {
+      events = [];
+      taps = DoubleTap(wait: wait);
+    });
+    tearDown(() => taps.dispose());
+
+    test('a single tap runs after the wait', () async {
+      tap('a');
+      expect(events, isEmpty);
+      await pause();
+      expect(events, ['a+']);
+    });
+
+    test('two quick taps are a double-tap, without the single tap', () async {
+      tap('a');
+      tap('a');
+      await pause();
+      expect(events, ['a-']);
+    });
+
+    test('a tap on another key runs the waiting single tap at once', () async {
+      tap('a');
+      tap('b');
+      expect(events, ['a+']);
+      await pause();
+      expect(events, ['a+', 'b+']);
+    });
+
+    test('3 quick taps are a double-tap and a single tap', () async {
+      tap('a');
+      tap('a');
+      tap('a');
+      await pause();
+      expect(events, ['a-', 'a+']);
+    });
+
+    test('slow taps are single taps', () async {
+      tap('a');
+      await pause();
+      tap('a');
+      await pause();
+      expect(events, ['a+', 'a+']);
+    });
+
+    test('flush runs the waiting single tap at once, and only once', () async {
+      tap('a');
+      taps.flush();
+      expect(events, ['a+']);
+      await pause();
+      taps.flush();
+      expect(events, ['a+']);
+    });
   });
 }

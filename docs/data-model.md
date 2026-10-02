@@ -16,9 +16,9 @@ One row for each metric. The row order is the display order in the app.
 |-----------|---------|----------|-------------------------|-------------|
 | `id`      | text    | Yes      | lowercase, `a-z0-9_-`   | Stable key. It is the column header in the `log` tab. Do not change it after first use. |
 | `name`    | text    | Yes      | any                     | Name that the app shows. You can change it at any time. |
-| `kind`    | text    | Yes      | `yesno`, `number`, `count` | `yesno`: done or not done. `number`: a value, with a line chart from the lowest to the highest value. `count`: the same as `number`, but with a bar chart from 0. |
+| `kind`    | text    | Yes      | `yesno`, `number`, `count` | `yesno`: done or not done. `number`: a value, with a line chart from the lowest to the highest value. In the app, a tap on a `number` cell opens an editor with a ruler, a text field and a Save button. Save with an empty field clears the day. `count`: the same as `number`, but with a bar chart from 0. In the app, a click or tap on a `count` cell adds `step`. A right-click (mouse) or a double-tap (touch) subtracts it. A count goes to empty only with subtractions: there is no reset. |
 | `unit`    | text    | No       | any                     | Example: `kg`, `glasses`, `steps`. Empty for `yesno`. |
-| `per_day` | text    | Yes      | `one`, `many`           | `one`: a measurement, for example weight. `many`: a day total, for example glasses of water. Both use one cell per day. `many` cells get a stronger color for higher totals. |
+| `per_day` | text    | Yes      | `one`, `many`           | `one`: a measurement, for example weight. `many`: a day total, for example glasses of water. Both use one cell per day. |
 | `step`    | number  | No       | > 0                     | Input step for `number` and `count`. Example: `0.1` for weight. Default: `1`. |
 | `group`   | text    | No       | any                     | Groups metrics on the screen. Example: `habits`, `body`. |
 | `active`  | boolean | Yes      | `TRUE`, `FALSE`         | `FALSE` hides the metric in the entry form. Its history stays. |

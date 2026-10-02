@@ -1,5 +1,5 @@
 /// `one`: a measurement, such as weight. `many`: a day total, such as glasses of water.
-/// Both use one `log` cell per day. `many` cells get a stronger color for higher totals.
+/// Both use one `log` cell per day.
 enum PerDay { one, many }
 
 /// A row of the `metrics` tab. See docs/data-model.md.

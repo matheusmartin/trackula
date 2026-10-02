@@ -38,5 +38,3 @@ abstract final class SavedSheet {
 
   static set id(String? value) => LocalPrefs.set('spreadsheetId', value);
 }
-
-String spreadsheetUrl(String id) => 'https://docs.google.com/spreadsheets/d/$id/edit';

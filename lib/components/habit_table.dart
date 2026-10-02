@@ -6,20 +6,31 @@ import '../model/day.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/summary.dart';
+import '../services/double_tap.dart';
+import 'number_editor.dart';
 import 'trend_chart.dart';
 
 /// How many past days the table shows. Matches the HabitKit "Last 7 days" and "Last 31 days" modes.
 enum DayRange {
-  week(7, 'Last 7 days'),
-  month(31, 'Last 31 days');
+  week(7, phoneDays: 5),
+  month(31);
 
-  const DayRange(this.days, this.label);
+  const DayRange(this.days, {int? phoneDays}) : phoneDays = phoneDays ?? days;
 
   final int days;
-  final String label;
+
+  /// The number of days on phones. The week table shows fewer days, so the metric icons fit.
+  final int phoneDays;
+
+  int count({required bool phone}) => phone ? phoneDays : days;
+
+  String label({required bool phone}) => 'Last ${count(phone: phone)} days';
 
   /// The days of the range, oldest first, ending on [today].
-  List<Day> daysUntil(Day today) => [for (var i = days - 1; i >= 0; i--) today.addDays(-i)];
+  List<Day> daysUntil(Day today, {required bool phone}) {
+    final n = count(phone: phone);
+    return [for (var i = n - 1; i >= 0; i--) today.addDays(-i)];
+  }
 }
 
 const _weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
@@ -27,16 +38,22 @@ const _weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 /// HabitKit-style input table: one row per metric, one column per day, today on the right.
 ///
 /// - Yes/no: a cell click toggles that day.
-/// - Number: a cell click opens the editor for that metric and day, in a row below the metric.
-///   The editor sets or clears the value. For [PerDay.many] metrics the value is the day total.
+/// - Count: a mouse click adds the step, a right-click subtracts it. A touch tap adds the step after a short wait,
+///   and a double-tap subtracts it instead. Keys on a focused cell: `+` and `-`. A count has no reset: it goes to
+///   empty with subtractions.
+/// - Number: a cell click opens the [NumberEditor] for that metric and day, below the metric: a ruler, a text field
+///   and a Save button. A second click closes it. For [PerDay.many] metrics the value is the day total.
 class HabitTable extends StatefulComponent {
   const HabitTable({
     required this.metrics,
     required this.log,
     required this.today,
     required this.range,
+    required this.phone,
     required this.busy,
     required this.onWrite,
+    required this.pending,
+    required this.onCount,
     super.key,
   });
 
@@ -44,8 +61,15 @@ class HabitTable extends StatefulComponent {
   final LogTable log;
   final Day today;
   final DayRange range;
+
+  /// True on phone screens. See [DayRange.phoneDays].
+  final bool phone;
   final bool busy;
   final void Function(LogWrite? Function(LogTable log) plan) onWrite;
+
+  /// Count taps that are not written yet, per metric id and day. The table shows them at once.
+  final Map<(String, Day), List<CountStep>> pending;
+  final void Function(NumberMetric metric, Day day, CountStep step) onCount;
 
   @override
   State<HabitTable> createState() => _HabitTableState();
@@ -54,31 +78,85 @@ class HabitTable extends StatefulComponent {
 class _HabitTableState extends State<HabitTable> {
   /// The metric and day open in the editor.
   (String, Day)? _editing;
-  String _draft = '';
+
+  /// Touch taps on count cells: a tap waits 300 ms for a second tap on the same cell. Keys are metric id and day.
+  final _taps = DoubleTap<(String, Day)>();
+
+  /// The pointer type of the last press on a count cell: 'mouse', 'touch' or 'pen'. Null after the click, so a
+  /// keyboard click (Enter or Space) works like a mouse click.
+  String? _pressType;
+
+  bool get _touchPress => _pressType == 'touch' || _pressType == 'pen';
+
+  @override
+  void dispose() {
+    _taps.dispose();
+    super.dispose();
+  }
 
   void _click(Metric m, Day d, Map<Day, num> values) => switch (m) {
     YesNoMetric() => component.onWrite((log) => planYesNo(m, d, values[d] == null, log)),
-    NumberMetric() => setState(() {
-      _editing = _editing == (m.id, d) ? null : (m.id, d);
-      _draft = values[d] == null ? '' : _format(values[d]!);
-    }),
+    NumberMetric(isCount: true) => _countClick(m, d),
+    NumberMetric() => setState(() => _editing = _editing == (m.id, d) ? null : (m.id, d)),
   };
 
-  void _save(NumberMetric m, Day d) {
-    final v = num.tryParse(_draft.trim());
-    if (v == null) return;
-    component.onWrite((log) => planNumber(m, d, v, log));
-    setState(() => _editing = null);
+  /// Mouse and keyboard: a click adds the step at once, so two quick clicks add two steps.
+  /// Touch: a tap adds the step after the double-tap wait, and a double-tap subtracts it. See [DoubleTap].
+  void _countClick(NumberMetric m, Day d) {
+    final touch = _touchPress;
+    _pressType = null;
+    if (touch) {
+      _taps.tap(
+        (m.id, d),
+        onSingle: () => component.onCount(m, d, CountStep.add(m.step)),
+        onDouble: () => component.onCount(m, d, CountStep.add(-m.step)),
+      );
+    } else {
+      _addCount(m, d, m.step);
+    }
   }
 
-  void _clear(NumberMetric m, Day d) {
-    component.onWrite((log) => planClear(m, d, log));
-    setState(() => _editing = null);
+  /// Right-click: subtracts the step. A touch long-press also opens the context menu on Android: it does nothing.
+  /// The browser menu never opens on a count cell.
+  void _countMenu(NumberMetric m, Day d, web.Event e) {
+    e.preventDefault();
+    final touch = _touchPress;
+    _pressType = null;
+    if (!touch) _addCount(m, d, -m.step);
+  }
+
+  /// Keys on a focused count cell: `+` adds the step, `-` subtracts it.
+  void _countKey(NumberMetric m, Day d, web.KeyboardEvent e) {
+    final sign = switch (e.key) {
+      '+' || '=' => 1,
+      '-' => -1,
+      _ => 0,
+    };
+    if (sign == 0) return;
+    e.preventDefault();
+    _addCount(m, d, sign * m.step);
+  }
+
+  /// Adds [delta] at once. A waiting touch tap runs first, so the steps keep their order.
+  void _addCount(NumberMetric m, Day d, num delta) {
+    _taps.flush();
+    component.onCount(m, d, CountStep.add(delta));
+  }
+
+  /// The day values of [m], with the count taps that are not written yet.
+  Map<Day, num> _values(Metric m) {
+    final values = dayValues(m, component.log.entries);
+    for (final MapEntry(key: (id, day), value: steps) in component.pending.entries) {
+      if (id != m.id) continue;
+      final v = applyCountSteps(values[day], steps);
+      v == null ? values.remove(day) : values[day] = v;
+    }
+    return values;
   }
 
   @override
   Component build(BuildContext context) {
-    final days = component.range.daysUntil(component.today);
+    final days = component.range.daysUntil(component.today, phone: component.phone);
     if (component.range == DayRange.month) {
       return div(classes: 'calendars', [for (final m in component.metrics) _calendar(m, days)]);
     }
@@ -104,8 +182,7 @@ class _HabitTableState extends State<HabitTable> {
   /// 31-day mode: one small calendar per metric. Columns are Monday to Sunday.
   /// Number metrics also get a line chart of the same days.
   Component _calendar(Metric m, List<Day> days) {
-    final values = dayValues(m, component.log.entries);
-    final max = days.map((d) => values[d] ?? 0).fold<num>(0, (hi, v) => v > hi ? v : hi);
+    final values = _values(m);
     final editing = _editing;
     return article(classes: 'calendar', [
       div(classes: 'calendar-title', [
@@ -116,10 +193,10 @@ class _HabitTableState extends State<HabitTable> {
         for (final w in _weekdays) small([.text(w.substring(0, 1))]),
         // Empty cells, so the first day is in its weekday column.
         for (var i = 1; i < days.first.weekday; i++) span([]),
-        for (final d in days) _cell(m, d, values, max, editing == (m.id, d), label: '${d.day}'),
+        for (final d in days) _cell(m, d, values, editing == (m.id, d), label: '${d.day}'),
       ]),
       if (m is NumberMetric) TrendChart(days: days, values: values, unit: m.unit, bars: m.isCount),
-      if (m is NumberMetric && editing != null && editing.$1 == m.id) _editor(m, editing.$2, values[editing.$2]),
+      if (m is NumberMetric && editing != null && editing.$1 == m.id) _editor(m, editing.$2, values),
     ]);
   }
 
@@ -136,8 +213,7 @@ class _HabitTableState extends State<HabitTable> {
   static final _symbolName = RegExp(r'^[a-z0-9_]+$');
 
   List<Component> _rows(Metric m, List<Day> days) {
-    final values = dayValues(m, component.log.entries);
-    final max = days.map((d) => values[d] ?? 0).fold<num>(0, (hi, v) => v > hi ? v : hi);
+    final values = _values(m);
     final editing = _editing;
     return [
       tr([
@@ -147,78 +223,72 @@ class _HabitTableState extends State<HabitTable> {
             span([.text(m.name)]),
           ]),
         ]),
-        for (final d in days) td([_cell(m, d, values, max, editing == (m.id, d))]),
+        for (final d in days) td([_cell(m, d, values, editing == (m.id, d))]),
       ]),
       if (m is NumberMetric && editing != null && editing.$1 == m.id)
         tr(classes: 'editor-row', [
-          td(colspan: days.length + 1, [_editor(m, editing.$2, values[editing.$2])]),
+          td(colspan: days.length + 1, [_editor(m, editing.$2, values)]),
         ]),
     ];
   }
 
   /// A day button. [label] replaces the default text: the value of number metrics.
-  Component _cell(Metric m, Day d, Map<Day, num> values, num max, bool selected, {String? label}) {
+  /// A day cell. A cell with a value has one fixed color, whatever the value. See .cell.filled in theme.dart.
+  Component _cell(Metric m, Day d, Map<Day, num> values, bool selected, {String? label}) {
     final v = values[d];
     return button(
       classes: [
         'cell',
         if (v != null) 'filled',
-        if (m is NumberMetric && m.perDay == PerDay.many) 'count',
         if (d == component.today) 'today',
         if (selected) 'selected',
       ].join(' '),
-      styles: Styles(raw: {'--i': '${_intensity(m, v, max)}%'}),
       disabled: component.busy && m is YesNoMetric,
-      attributes: {'title': '${m.name}, $d${_valueText(m, v)}', 'aria-pressed': '${v != null}'},
+      attributes: {'title': '${m.name}, $d${_valueText(m, v)}${_hint(m)}', 'aria-pressed': '${v != null}'},
       onClick: () => _click(m, d, values),
+      events: {
+        // Count cells are not disabled during a write: taps queue and show at once. See TodayPage.
+        if (m case NumberMetric(isCount: true)) ...{
+          'pointerdown': (e) => _pressType = (e as web.PointerEvent).pointerType,
+          'contextmenu': (e) => _countMenu(m, d, e),
+          'keydown': (e) => _countKey(m, d, e as web.KeyboardEvent),
+        },
+      },
       [
         if (label != null) .text(label) else if (m is NumberMetric && v != null) .text(_compact(v)),
       ],
     );
   }
 
-  Component _editor(NumberMetric m, Day d, num? current) {
-    return div(classes: 'editor', [
-      span([
-        .text(
-          '${m.name}${m.perDay == PerDay.many ? ' (day total)' : ''} · ${d == component.today ? 'today' : '$d'}',
-        ),
-      ]),
-      div(classes: 'field border small${m.unit == null ? '' : ' suffix'}', [
-        input(
-          type: .number,
-          value: _draft,
-          attributes: {'step': '${m.step}', 'inputmode': 'decimal', 'aria-label': 'Value'},
-          events: {
-            'input': (e) => _draft = (e.target as web.HTMLInputElement).value,
-            'keydown': (e) {
-              if ((e as web.KeyboardEvent).key == 'Enter') _save(m, d);
-            },
-          },
-        ),
-        if (m.unit case final unit?) span(classes: 'unit small-text', [.text(unit)]),
-      ]),
-      button(disabled: component.busy, onClick: () => _save(m, d), [.text('Set')]),
-      if (current != null)
-        button(classes: 'border', disabled: component.busy, onClick: () => _clear(m, d), [.text('Clear')]),
-      button(
-        classes: 'circle transparent',
-        attributes: {'title': 'Close'},
-        onClick: () => setState(() => _editing = null),
-        [
-          i([.text('close')]),
-        ],
-      ),
-    ]);
+  /// The editor of a `number` metric. An empty day starts at the latest earlier value, else at the first later
+  /// value. See [NumberEditor].
+  Component _editor(NumberMetric m, Day d, Map<Day, num> values) {
+    final near = nearestDay(values.keys, d);
+    return NumberEditor(
+      key: ValueKey('${m.id} $d'),
+      metric: m,
+      label: '${m.name}${m.perDay == PerDay.many ? ' (day total)' : ''} · ${d == component.today ? 'today' : '$d'}',
+      current: values[d],
+      start: near == null ? null : values[near],
+      busy: component.busy,
+      onSave: (v) {
+        component.onWrite((log) => planNumber(m, d, v, log));
+        setState(() => _editing = null);
+      },
+      onClear: () {
+        component.onWrite((log) => planClear(m, d, log));
+        setState(() => _editing = null);
+      },
+      onClose: () => setState(() => _editing = null),
+    );
   }
 
-  /// Color strength in percent: 0 if empty, 100 if done or measured,
-  /// 35–100 for counts relative to the highest day in the range.
-  static int _intensity(Metric m, num? v, num max) {
-    if (v == null) return 0;
-    if (m is! NumberMetric || m.perDay == PerDay.one || max <= 0) return 100;
-    return (35 + 65 * (v / max).clamp(0, 1)).round();
-  }
+  /// The input help in the cell tooltip of count metrics.
+  static String _hint(Metric m) => switch (m) {
+    NumberMetric(isCount: true, :final step) =>
+      ' · Click or tap: +${_format(step)}. Right-click or double-tap: −${_format(step)}.',
+    _ => '',
+  };
 
   static String _valueText(Metric m, num? v) => switch ((m, v)) {
     (_, null) => '',

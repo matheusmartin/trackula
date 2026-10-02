@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'day.dart';
 import 'metric.dart';
 
@@ -69,6 +71,32 @@ LogWrite? planNumber(NumberMetric metric, Day date, num value, LogTable log) => 
 
 /// Returns the change that clears the value of [metric] on [date].
 LogWrite? planClear(Metric metric, Day date, LogTable log) => _plan(metric, date, null, log);
+
+/// One input on a count cell: add [delta]. A negative [delta] subtracts.
+final class CountStep {
+  const CountStep.add(this.delta);
+
+  final num delta;
+}
+
+/// Applies [steps] in order to the day value [current]. Null is an empty cell.
+///
+/// A count never goes below 0, also between steps, and 0 is an empty cell.
+/// Example: an empty cell, then -1, then +1, gives 1.
+num? applyCountSteps(num? current, Iterable<CountStep> steps) {
+  num v = current ?? 0;
+  for (final s in steps) {
+    v = math.max(0, v + s.delta);
+  }
+  // Removes float noise from decimal steps, for example 0.30000000000000004.
+  return v > 0 ? (v is int ? v : double.parse(v.toStringAsFixed(6))) : null;
+}
+
+/// Returns the change that applies [steps] to the current value of [metric] on [date] in [log].
+///
+/// [log] must be the latest data, so taps made during an earlier write add to its result.
+LogWrite? planCount(NumberMetric metric, Day date, List<CountStep> steps, LogTable log) =>
+    _plan(metric, date, applyCountSteps(log.valueAt(metric.id, date), steps), log);
 
 /// Returns null if the cell already has [value].
 LogWrite? _plan(Metric metric, Day date, num? value, LogTable log) {

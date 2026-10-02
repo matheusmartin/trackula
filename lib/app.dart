@@ -46,7 +46,6 @@ class _AppState extends State<App> {
     // Header and main are direct children of <body>, as the BeerCSS main layout expects.
     return .fragment([
       Header(
-        sheetId: session == null ? null : sheetId,
         onSignOut: session == null ? null : _signOut,
         onDisconnect: session == null || sheetId == null ? null : _disconnect,
       ),
