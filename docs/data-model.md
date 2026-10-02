@@ -43,7 +43,7 @@ One row for each day, one column for each metric. Rows are not sorted. The app s
 
 | Column          | Type   | Required | Values        | Description |
 |-----------------|--------|----------|---------------|-------------|
-| A: `date`       | text   | Yes      | `YYYY-MM-DD`  | The day. Maximum one row for each day. Can be a past day. |
+| A: `date`       | date   | Yes      | a date, shown as `YYYY-MM-DD` | The day. Maximum one row for each day. Can be a past day. |
 | B, C, …: metric `id` | number, or `yes` / `no` | No | number, `yes`, `no` | The value of the metric on that day. Empty means no value. For `yesno`: `yes` or `no`. |
 
 Rules:
@@ -84,11 +84,11 @@ Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses
 
 ### Layer 2: sheet data validation
 
-The app adds these rules when it adds a missing tab or a missing `log` column, and sets the `metrics` and `log` metric column rules again each time it opens the sheet:
+The app adds these rules when it adds a missing tab or a missing `log` column, and sets the `metrics` and `log` rules again each time it opens the sheet:
 
 | Range                 | Rule                                                                               | Similar DB constraint |
 |-----------------------|------------------------------------------------------------------------------------|-----------------------|
-| `log!A2:A`            | Custom formula: `=AND(REGEXMATCH(A2, "^\d{4}-\d{2}-\d{2}$"), COUNTIF($A$2:$A, A2) = 1)` | Column type + unique key |
+| `log!A2:A`            | Valid date. Sheets also shows a date picker.                                       | Column type           |
 | `log` `number` or `count` column | Custom formula: `=ISNUMBER(B2)`                                         | Column type           |
 | `log` `yesno` column  | Dropdown: `yes`, `no`                                                              | Enum                  |
 | `metrics` column `kind`    | Dropdown: `yesno`, `number`, `count`                                          | Enum                  |
@@ -108,7 +108,8 @@ The `log` rules:
 Other setup:
 
 - Freeze row 1 in both tabs.
-- Set `log!A:A` to plain text format. This stops Google Sheets from changing the date format.
+- Format `log!A2:A` as a date with the pattern `yyyy-mm-dd`. So the dates show the same in every locale.
+- Older app versions stored the dates as text. When the app opens the sheet, it changes them to real dates once.
 
 Limits:
 
@@ -121,5 +122,5 @@ Limits:
 - The app ignores a `log` row with an invalid `date`, and shows a warning.
 - The app ignores a `log` cell that is not a number (or not `yes` or `no` for `yesno`), and shows a warning.
 - The app ignores a `log` column with no metric, for example of a deleted metric. It shows no warning.
-- If a day has 2 or more rows, the app uses the last row and shows a warning.
+- If a day has 2 or more rows, the app uses the last row and shows a warning. Sheets does not block a second row for the same day: a cell can have only one rule, and the date column uses the valid-date rule.
 - The app ignores a `metrics` row with a missing or invalid `id` or `kind`, and shows a warning.

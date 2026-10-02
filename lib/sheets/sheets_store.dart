@@ -1,5 +1,6 @@
 import 'package:googleapis/sheets/v4.dart';
 
+import '../model/day.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/parse.dart';
@@ -27,6 +28,9 @@ final class SheetsStore {
 
   final SheetsApi _api;
   final String spreadsheetId;
+
+  /// True until [load] tried once to change text dates to real dates. Once is enough: the parser reads both.
+  bool _convertDates = true;
 
   /// Adds the `metrics` and `log` tabs to the spreadsheet if they are missing.
   ///
@@ -96,7 +100,8 @@ final class SheetsStore {
   ///
   /// - `metrics`: the rules go to the columns with the matching header names, so moved columns keep their rules.
   ///   First it removes all validation rules below row 1, so a moved column leaves no old rule behind.
-  /// - `log`: each metric column gets the rule of its metric kind, so a kind change also changes the rule.
+  /// - `log`: the date column gets its date format and rule. Each metric column gets the rule of its metric kind,
+  ///   so a kind change also changes the rule.
   ///
   /// It changes only validation rules, not data.
   Future<void> refreshRules() async {
@@ -128,6 +133,7 @@ final class SheetsStore {
         requests: [
           clear,
           ..._metricsRules(metricsTab.id, header),
+          if (logTab != null) ..._dateRules(logTab.id),
           if (logTab != null)
             for (var c = 1; c < logHeader.length; c++)
               if (byId['${logHeader[c] ?? ''}'.trim()] case final m?) _valueRule(logTab.id, c, m),
@@ -139,8 +145,8 @@ final class SheetsStore {
 
   /// Reads both tabs and validates each row.
   ///
-  /// Before it parses the `log` tab, it adds a column for each metric without one, and changes yesno values of
-  /// old app versions (`1`) to `yes`. See [legacyYesNoCells].
+  /// Before it parses the `log` tab, it adds a column for each metric without one, and changes values of old app
+  /// versions: text dates to real dates (see [textDateRows]), and yesno `1` to `yes` (see [legacyYesNoCells]).
   Future<Snapshot> load() async {
     final (metricRows, logRows) = await _read();
     final metrics = parseMetrics(metricRows);
@@ -154,6 +160,33 @@ final class SheetsStore {
     ];
     if (missing.isNotEmpty) {
       await _addColumns(missing, header.length);
+      return load();
+    }
+
+    final textDates = _convertDates ? textDateRows(logRows) : const <({int row, Day date})>[];
+    if (textDates.isNotEmpty) {
+      _convertDates = false;
+      final tab = (await _tabs(_api, spreadsheetId))['log']!;
+      await _api.spreadsheets.batchUpdate(
+        BatchUpdateSpreadsheetRequest(requests: [_dateFormat(tab.id)]),
+        spreadsheetId,
+      );
+      // USER_ENTERED: Sheets reads the YYYY-MM-DD text as a real date, as when you type it.
+      await _api.spreadsheets.values.batchUpdate(
+        BatchUpdateValuesRequest(
+          valueInputOption: 'USER_ENTERED',
+          data: [
+            for (final r in textDates)
+              ValueRange(
+                range: 'log!A${r.row}',
+                values: [
+                  [r.date.toString()],
+                ],
+              ),
+          ],
+        ),
+        spreadsheetId,
+      );
       return load();
     }
 
@@ -210,7 +243,9 @@ final class SheetsStore {
           ValueRange(values: [w.toCells()]),
           spreadsheetId,
           'log!A1',
-          valueInputOption: 'RAW',
+          // USER_ENTERED: Sheets reads the YYYY-MM-DD text as a real date, as when you type it.
+          // The other cells are numbers, or `yes` and `no`, which stay as they are.
+          valueInputOption: 'USER_ENTERED',
           insertDataOption: 'INSERT_ROWS',
         );
       case SetCell(value: null):
@@ -308,20 +343,27 @@ List<Request> _metricsRules(int id, List<String> header) {
   ];
 }
 
+/// The `date` column: a real date, shown as YYYY-MM-DD in every locale, and a valid-date rule.
+///
+/// The rule also gives a date picker in Sheets. A cell has only one rule, so Sheets does not block a second row
+/// for the same day: the app warns about it.
 List<Request> _dateRules(int id) => [
-  // log.date: plain text, so Sheets does not convert it to a date.
-  Request(
-    repeatCell: RepeatCellRequest(
-      range: GridRange(sheetId: id, startColumnIndex: 0, endColumnIndex: 1),
-      cell: CellData(
-        userEnteredFormat: CellFormat(numberFormat: NumberFormat(type: 'TEXT')),
-      ),
-      fields: 'userEnteredFormat.numberFormat',
-    ),
-  ),
-  // log.date: YYYY-MM-DD, one row per day.
-  _rule(_col(id, 0), _formula(r'=AND(REGEXMATCH(A2, "^\d{4}-\d{2}-\d{2}$"), COUNTIF($A$2:$A, A2) = 1)')),
+  _dateFormat(id),
+  _rule(_col(id, 0), BooleanCondition(type: 'DATE_IS_VALID')),
 ];
+
+/// Formats `log!A2:A` as a date with the pattern YYYY-MM-DD. The header row stays text.
+Request _dateFormat(int id) => Request(
+  repeatCell: RepeatCellRequest(
+    range: GridRange(sheetId: id, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1),
+    cell: CellData(
+      userEnteredFormat: CellFormat(
+        numberFormat: NumberFormat(type: 'DATE', pattern: 'yyyy-mm-dd'),
+      ),
+    ),
+    fields: 'userEnteredFormat.numberFormat',
+  ),
+);
 
 /// The rule for a metric column: a `yes` / `no` dropdown for yesno, a number for number metrics.
 ///

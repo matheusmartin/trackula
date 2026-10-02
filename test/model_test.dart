@@ -30,6 +30,18 @@ void main() {
       expect(d30.weekday, DateTime.wednesday);
     });
 
+    test('converts Google Sheets date serial numbers', () {
+      expect(const Day(2026, 10, 2).serial, 46297);
+      expect(const Day(1900, 3, 1).serial, 61);
+      expect(Day.fromSerial(46297), const Day(2026, 10, 2));
+      // The fraction is the time of day.
+      expect(Day.fromSerial(46297.75), const Day(2026, 10, 2));
+      expect(Day.fromSerial(0), isNull);
+      for (final d in [const Day(2024, 2, 29), const Day(2026, 3, 29), const Day(2026, 12, 31)]) {
+        expect(Day.fromSerial(d.serial), d);
+      }
+    });
+
     test('rejects invalid dates', () {
       expect(Day.tryParse('2026-02-30'), isNull);
       expect(Day.tryParse('30/09/2026'), isNull);
@@ -140,6 +152,31 @@ void main() {
       expect(p.table.rows[d29], 4);
       expect(p.table.columns.keys, isNot(contains('steps')));
       expect(p.warnings, hasLength(4));
+    });
+
+    test('reads real dates (serial numbers) and old text dates', () {
+      final p = parseLog([
+        ['date', 'weight'],
+        [46296, 81.9],
+        ['2026-10-02', 82],
+        [0, 83],
+      ], metrics);
+      expect(p.table.rows, {const Day(2026, 10, 1): 2, const Day(2026, 10, 2): 3});
+      expect(p.warnings.single, contains('invalid date "0"'));
+    });
+
+    test('textDateRows finds dates stored as text only', () {
+      expect(
+        textDateRows([
+          ['date', 'weight'],
+          ['2026-10-01', 1],
+          [46297, 2],
+          ['01/10/2026', 3],
+          [],
+          ['2026-10-03'],
+        ]),
+        [(row: 2, date: const Day(2026, 10, 1)), (row: 6, date: const Day(2026, 10, 3))],
+      );
     });
 
     test('reads yes and no in any case, and old yesno values', () {

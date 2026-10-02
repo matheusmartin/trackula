@@ -15,6 +15,17 @@ final class Day implements Comparable<Day> {
 
   Day addDays(int n) => Day.fromDateTime(DateTime(year, month, day + n));
 
+  /// Day 0 of the Google Sheets date count. Sheets stores a date as the number of days since this day.
+  static final _sheetsEpoch = DateTime.utc(1899, 12, 30);
+
+  /// The day of a Google Sheets date serial number. A fraction (the time of day) is ignored.
+  /// Returns null for a serial number below 1. Example: 46297 → 2026-10-02.
+  static Day? fromSerial(num serial) =>
+      serial < 1 ? null : Day.fromDateTime(_sheetsEpoch.add(Duration(days: serial.floor())));
+
+  /// The Google Sheets date serial number of this day. Example: 2026-10-02 → 46297.
+  int get serial => DateTime.utc(year, month, day).difference(_sheetsEpoch).inDays;
+
   static final _pattern = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$');
 
   /// Returns null if [s] is not a valid `YYYY-MM-DD` date.

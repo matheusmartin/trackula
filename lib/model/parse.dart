@@ -102,10 +102,15 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
     final cells = rows[i];
     if (cells.every(_isEmpty)) continue;
     final at = 'log row ${i + 1}';
-    final raw = cells.isEmpty ? '' : '${cells.first ?? ''}'.trim();
-    final date = Day.tryParse(raw);
+    final first = cells.isEmpty ? null : cells.first;
+    // A real date is a serial number. Older app versions wrote the date as text: YYYY-MM-DD.
+    final date = switch (first) {
+      num n => Day.fromSerial(n),
+      String s => Day.tryParse(s),
+      _ => null,
+    };
     if (date == null) {
-      warnings.add('$at: invalid date "$raw"');
+      warnings.add('$at: invalid date "${'${first ?? ''}'.trim()}"');
       continue;
     }
     if (days.containsKey(date)) warnings.add('$at: $date has more than one row. The app uses the last row.');
@@ -132,6 +137,16 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
   }
   return (table: LogTable(entries: entries, rows: days, columns: columns), warnings: warnings);
 }
+
+/// The `log` rows with a date stored as text (`YYYY-MM-DD`), as older app versions wrote it, and that date.
+///
+/// The app changes these cells to real dates. Real dates (serial numbers) and invalid text do not change.
+/// [rows] includes the header row. The row is 1-based.
+List<({int row, Day date})> textDateRows(List<List<Object?>> rows) => [
+  for (var i = 1; i < rows.length; i++)
+    if (rows[i].isNotEmpty && rows[i].first is String)
+      if (Day.tryParse(rows[i].first as String) case final d?) (row: i + 1, date: d),
+];
 
 /// Reads a yesno cell: `yes` is 1, `no` is 0. Case and spaces do not matter.
 ///
