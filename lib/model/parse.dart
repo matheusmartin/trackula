@@ -3,13 +3,11 @@ import 'log_entry.dart';
 import 'metric.dart';
 
 /// Required column names of the `metrics` tab, in the order the app creates them.
-const metricsHeader = ['id', 'name', 'kind', 'unit', 'per_day', 'step', 'group', 'active'];
+/// The app ignores other columns, for example `per_day` of older sheets.
+const metricsHeader = ['id', 'name', 'kind', 'unit', 'step', 'group', 'active'];
 
 /// Optional column names of the `metrics` tab. Older sheets do not have them. A new tab gets them after [metricsHeader].
 const metricsOptionalHeader = ['icon'];
-
-/// Column names of the old `log` tab format: one row per entry. The app converts it. See [toWideRows].
-const oldLogHeader = ['date', 'metric', 'value'];
 
 /// Valid items and a warning for each invalid row.
 final class Parsed<T> {
@@ -57,27 +55,16 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
     final group = r.text('group');
     final active = r.boolean('active') ?? true;
     final icon = r.optionalText('icon');
-    final perDay = switch (r.text('per_day')) {
-      'one' => PerDay.one,
-      'many' => PerDay.many,
-      _ => null,
-    };
 
     switch (r.text('kind')) {
       case 'yesno':
-        if (perDay == PerDay.many) warnings.add('$at: yesno metric "$id" must use per_day "one"');
         items.add(YesNoMetric(id: id, name: name, group: group, active: active, icon: icon));
       case final kind && ('number' || 'count'):
-        if (perDay == null) {
-          warnings.add('$at: invalid per_day "${r.text('per_day') ?? ''}"');
-          continue;
-        }
         final step = r.number('step');
         items.add(
           NumberMetric(
             id: id,
             name: name,
-            perDay: perDay,
             unit: r.text('unit'),
             step: step != null && step > 0 ? step : 1,
             group: group,
@@ -92,12 +79,6 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
   }
   return Parsed(items, warnings);
 }
-
-/// True if [rows] use the old `log` format: header `date`, `metric`, `value`.
-bool isOldLog(List<List<Object?>> rows) =>
-    rows.isNotEmpty &&
-    rows.first.length == oldLogHeader.length &&
-    [for (final c in rows.first) '$c'.trim().toLowerCase()].join(',') == oldLogHeader.join(',');
 
 /// Parses the `log` tab: column A is `date`, the other headers are metric ids. [rows] includes the header row.
 ({LogTable table, List<String> warnings}) parseLog(List<List<Object?>> rows, Map<String, Metric> metrics) {
@@ -138,15 +119,14 @@ bool isOldLog(List<List<Object?>> rows) =>
       if (_isEmpty(cell)) continue;
       final metric = metrics[id]!;
       final value = switch ((metric, cell)) {
-        (YesNoMetric(), true || 1) => 1,
-        (YesNoMetric(), String s) when s.trim().toUpperCase() == 'TRUE' || s.trim() == '1' => 1,
+        (YesNoMetric(), _) => _yesNoValue(cell),
         (NumberMetric(), num n) => n,
         (NumberMetric(), String s) => num.tryParse(s.trim()),
         _ => null,
       };
       if (value == null) {
         warnings.add(
-          '$at, column ${_letter(c)}: ${metric is YesNoMetric ? 'yesno value must be 1' : 'value is not a number'}',
+          '$at, column ${_letter(c)}: ${metric is YesNoMetric ? 'yesno value must be yes or no' : 'value is not a number'}',
         );
         continue;
       }
@@ -156,43 +136,40 @@ bool isOldLog(List<List<Object?>> rows) =>
   return (table: LogTable(entries: entries, rows: days, columns: columns), warnings: warnings);
 }
 
-/// Parses the old `log` format (one row per entry). Used only to convert it.
-Parsed<LogEntry> parseOldLog(List<List<Object?>> rows, Map<String, Metric> metrics) {
-  final col = _columns('log', rows, oldLogHeader);
-  final items = <LogEntry>[];
-  final warnings = <String>[];
-
-  for (var i = 1; i < rows.length; i++) {
-    final r = _Row(rows[i], col);
-    if (r.isEmpty) continue;
-    final at = 'old log row ${i + 1}';
-
-    final date = Day.tryParse(r.text('date') ?? '');
-    final metric = metrics[r.text('metric')];
-    final value = r.number('value');
-    if (date == null || metric == null || value == null) {
-      warnings.add('$at: skipped (invalid date, metric or value)');
-      continue;
-    }
-    items.add(LogEntry(row: i + 1, date: date, metricId: metric.id, value: value));
-  }
-  return Parsed(items, warnings);
-}
-
-/// Converts old-format entries to the rows of the new `log` tab, header included.
+/// Reads a yesno cell: `yes` is 1, `no` is 0. Case and spaces do not matter.
 ///
-/// One row per day, sorted by date. A [PerDay.many] metric gets the day total.
-/// A [PerDay.one] metric gets the last value of the day.
-List<List<Object>> toWideRows(List<LogEntry> entries, List<Metric> metrics) {
-  final perDay = {for (final m in metrics) m.id: m.perDay};
-  final values = <Day, Map<String, num>>{};
-  for (final e in entries) {
-    final day = values.putIfAbsent(e.date, () => {});
-    day[e.metricId] = perDay[e.metricId] == PerDay.many ? (day[e.metricId] ?? 0) + e.value : e.value;
+/// Old app versions wrote `1` for yes, and a checked checkbox is `TRUE`: both are yes. `0` and `FALSE` are no.
+/// Returns null for other values.
+num? _yesNoValue(Object? cell) => switch (cell) {
+  true || 1 => 1,
+  0 => 0,
+  String s => switch (s.trim().toLowerCase()) {
+    'yes' || 'true' || '1' => 1,
+    'no' || 'false' || '0' => 0,
+    _ => null,
+  },
+  _ => null,
+};
+
+/// The `log` cells of yesno metrics that have a value of an old app version, and the new value of each cell.
+///
+/// Old versions wrote `1` for yes. `1`, `TRUE` and `0`, also as text, become `yes` or `no`. Cells with `yes` or
+/// `no`, empty cells and invalid values do not change. [rows] includes the header row. The row is 1-based,
+/// the column 0-based.
+List<({int row, int column, String value})> legacyYesNoCells(List<List<Object?>> rows, Map<String, Metric> metrics) {
+  if (rows.isEmpty) return const [];
+  final columns = <int>[];
+  final seen = <String>{};
+  for (var c = 1; c < rows.first.length; c++) {
+    final id = '${rows.first[c] ?? ''}'.trim();
+    if (metrics[id] is YesNoMetric && seen.add(id)) columns.add(c);
   }
+  bool isNew(Object? cell) => cell is String && const {'yes', 'no'}.contains(cell.trim().toLowerCase());
   return [
-    ['date', for (final m in metrics) m.id],
-    for (final d in values.keys.toList()..sort()) [d.toString(), for (final m in metrics) values[d]![m.id] ?? ''],
+    for (var i = 1; i < rows.length; i++)
+      for (final c in columns)
+        if (c < rows[i].length && !_isEmpty(rows[i][c]) && !isNew(rows[i][c]))
+          if (_yesNoValue(rows[i][c]) case final v?) (row: i + 1, column: c, value: v == 1 ? 'yes' : 'no'),
   ];
 }
 

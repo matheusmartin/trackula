@@ -11,6 +11,8 @@ final class LogEntry {
   final int row;
   final Day date;
   final String metricId;
+
+  /// The value. For yesno metrics: 1 is `yes`, 0 is `no`.
   final num value;
 }
 
@@ -48,7 +50,9 @@ final class AppendRow extends LogWrite {
 
   final Day date;
   final int column;
-  final num value;
+
+  /// The cell value: a number, or `yes` or `no`. See [cellValue].
+  final Object value;
 
   /// The row cells, from column A to [column].
   List<Object> toCells() => [date.toString(), for (var c = 1; c < column; c++) '', value];
@@ -60,13 +64,24 @@ final class SetCell extends LogWrite {
 
   final int row;
   final int column;
-  final num? value;
+
+  /// The cell value: a number, or `yes` or `no`. See [cellValue].
+  final Object? value;
 }
 
-/// Returns the change that sets [metric] to done or not done on [date].
-LogWrite? planYesNo(YesNoMetric metric, Day date, bool done, LogTable log) => _plan(metric, date, done ? 1 : null, log);
+/// The `log` cell for a [value]: `yes` (1) or `no` (0) for yesno metrics, the number for number metrics.
+/// Null is an empty cell.
+Object? cellValue(Metric metric, num? value) => value == null
+    ? null
+    : switch (metric) {
+        YesNoMetric() => value == 1 ? 'yes' : 'no',
+        NumberMetric() => value,
+      };
 
-/// Returns the change that sets the day value (the day total for [PerDay.many]) of [metric] on [date].
+/// Returns the change that sets [metric] to `yes` or `no` on [date].
+LogWrite? planYesNo(YesNoMetric metric, Day date, bool done, LogTable log) => _plan(metric, date, done ? 1 : 0, log);
+
+/// Returns the change that sets the value of [metric] on [date]. For amounts, it is the day total.
 LogWrite? planNumber(NumberMetric metric, Day date, num value, LogTable log) => _plan(metric, date, value, log);
 
 /// Returns the change that clears the value of [metric] on [date].
@@ -98,12 +113,13 @@ num? applyCountSteps(num? current, Iterable<CountStep> steps) {
 LogWrite? planCount(NumberMetric metric, Day date, List<CountStep> steps, LogTable log) =>
     _plan(metric, date, applyCountSteps(log.valueAt(metric.id, date), steps), log);
 
-/// Returns null if the cell already has [value].
+/// Returns null if the cell already has [value]. The app compares the value, not the text: `yes` and 1 are equal.
 LogWrite? _plan(Metric metric, Day date, num? value, LogTable log) {
   final column = log.columns[metric.id];
   if (column == null) throw StateError('The log tab has no column "${metric.id}".');
   if (log.valueAt(metric.id, date) == value) return null;
   final row = log.rows[date];
-  if (row != null) return SetCell(row, column, value);
-  return value == null ? null : AppendRow(date, column, value);
+  final cell = cellValue(metric, value);
+  if (row != null) return SetCell(row, column, cell);
+  return cell == null ? null : AppendRow(date, column, cell);
 }

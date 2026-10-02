@@ -6,9 +6,9 @@ import '../model/parse.dart';
 
 /// Rows for a new `metrics` tab. Edit or delete them in the sheet.
 const exampleMetrics = [
-  ['weight', 'Weight', 'number', 'kg', 'one', 0.1, 'body', true, 'monitor_weight'],
-  ['meditate', 'Meditate', 'yesno', '', 'one', '', 'habits', true, 'self_improvement'],
-  ['water', 'Water', 'number', 'glasses', 'many', 1, 'habits', true, 'water_drop'],
+  ['weight', 'Weight', 'number', 'kg', 0.1, 'body', true, 'monitor_weight'],
+  ['meditate', 'Meditate', 'yesno', '', '', 'habits', true, 'self_improvement'],
+  ['water', 'Water', 'number', 'glasses', 1, 'habits', true, 'water_drop'],
 ];
 
 /// The data of the spreadsheet at one point in time.
@@ -62,7 +62,13 @@ final class SheetsStore {
         valueInputOption: 'RAW',
         data: [
           if (newIds.containsKey('metrics'))
-            ValueRange(range: 'metrics!A1', values: [[...metricsHeader, ...metricsOptionalHeader], ...exampleMetrics]),
+            ValueRange(
+              range: 'metrics!A1',
+              values: [
+                [...metricsHeader, ...metricsOptionalHeader],
+                ...exampleMetrics,
+              ],
+            ),
           if (newIds.containsKey('log'))
             ValueRange(
               range: 'log!A1',
@@ -85,36 +91,60 @@ final class SheetsStore {
     );
   }
 
-  /// Sets the data validation rules of the `metrics` tab again, so sheets made by an older app version
-  /// accept new values, for example kind `count`, and get rules for new columns, for example `icon`.
+  /// Sets the data validation rules of both tabs again, from the current headers and metric kinds. So sheets made
+  /// by an older app version accept new values, for example kind `count` or `yes`, and new columns get their rule.
   ///
-  /// The rules go to the columns with the matching header names, so moved columns keep their rules.
-  /// First it removes all validation rules below row 1, so a moved column leaves no old rule behind.
+  /// - `metrics`: the rules go to the columns with the matching header names, so moved columns keep their rules.
+  ///   First it removes all validation rules below row 1, so a moved column leaves no old rule behind.
+  /// - `log`: each metric column gets the rule of its metric kind, so a kind change also changes the rule.
+  ///
   /// It changes only validation rules, not data.
   Future<void> refreshRules() async {
-    final tab = (await _tabs(_api, spreadsheetId))['metrics'];
-    if (tab == null) return;
-    final res = await _api.spreadsheets.values.get(spreadsheetId, 'metrics!1:1');
-    final header = [for (final c in res.values?.firstOrNull ?? const <Object?>[]) '$c'.trim().toLowerCase()];
-    final clear = Request(setDataValidation: SetDataValidationRequest(range: GridRange(sheetId: tab.id, startRowIndex: 1)));
+    final tabs = await _tabs(_api, spreadsheetId);
+    final metricsTab = tabs['metrics'];
+    if (metricsTab == null) return;
+    final logTab = tabs['log'];
+    final res = await _api.spreadsheets.values.batchGet(
+      spreadsheetId,
+      ranges: ['metrics', if (logTab != null) 'log!1:1'],
+      valueRenderOption: 'UNFORMATTED_VALUE',
+    );
+    final metricRows = res.valueRanges![0].values ?? const <List<Object?>>[];
+    final header = [for (final c in metricRows.firstOrNull ?? const <Object?>[]) '$c'.trim().toLowerCase()];
+    final logHeader = logTab == null ? const <Object?>[] : res.valueRanges![1].values?.firstOrNull ?? const <Object?>[];
+    final byId = <String, Metric>{};
+    try {
+      for (final m in parseMetrics(metricRows).items) {
+        byId[m.id] = m;
+      }
+    } on HeaderException {
+      // The metrics tab misses a column: load() shows the error. The log rules wait until the tab is valid.
+    }
+    final clear = Request(
+      setDataValidation: SetDataValidationRequest(range: GridRange(sheetId: metricsTab.id, startRowIndex: 1)),
+    );
     await _api.spreadsheets.batchUpdate(
-      BatchUpdateSpreadsheetRequest(requests: [clear, ..._metricsRules(tab.id, header)]),
+      BatchUpdateSpreadsheetRequest(
+        requests: [
+          clear,
+          ..._metricsRules(metricsTab.id, header),
+          if (logTab != null)
+            for (var c = 1; c < logHeader.length; c++)
+              if (byId['${logHeader[c] ?? ''}'.trim()] case final m?) _valueRule(logTab.id, c, m),
+        ],
+      ),
       spreadsheetId,
     );
   }
 
   /// Reads both tabs and validates each row.
   ///
-  /// Before it parses the `log` tab, it converts the old format and adds a column for each metric without one.
+  /// Before it parses the `log` tab, it adds a column for each metric without one, and changes yesno values of
+  /// old app versions (`1`) to `yes`. See [legacyYesNoCells].
   Future<Snapshot> load() async {
     final (metricRows, logRows) = await _read();
     final metrics = parseMetrics(metricRows);
     final byId = {for (final m in metrics.items) m.id: m};
-
-    if (isOldLog(logRows)) {
-      await _convertOldLog(logRows, metrics.items, byId);
-      return load();
-    }
 
     final header = logRows.isEmpty ? const <Object?>[] : logRows.first;
     final present = {for (final c in header) '${c ?? ''}'.trim()};
@@ -124,6 +154,26 @@ final class SheetsStore {
     ];
     if (missing.isNotEmpty) {
       await _addColumns(missing, header.length);
+      return load();
+    }
+
+    final legacy = legacyYesNoCells(logRows, byId);
+    if (legacy.isNotEmpty) {
+      await _api.spreadsheets.values.batchUpdate(
+        BatchUpdateValuesRequest(
+          valueInputOption: 'RAW',
+          data: [
+            for (final c in legacy)
+              ValueRange(
+                range: _cell(c.row, c.column),
+                values: [
+                  [c.value],
+                ],
+              ),
+          ],
+        ),
+        spreadsheetId,
+      );
       return load();
     }
 
@@ -209,45 +259,6 @@ final class SheetsStore {
     );
   }
 
-  /// Copies the old `log` tab to `log_old`, then rewrites `log` in the new format.
-  Future<void> _convertOldLog(List<List<Object?>> rows, List<Metric> metrics, Map<String, Metric> byId) async {
-    final tabs = await _tabs(_api, spreadsheetId);
-    final log = tabs['log']!;
-    var backup = 'log_old';
-    for (var n = 2; tabs.containsKey(backup); n++) {
-      backup = 'log_old_$n';
-    }
-    final wide = toWideRows(parseOldLog(rows, byId).items, metrics);
-    final needed = wide.first.length - log.columnCount;
-
-    await _api.spreadsheets.batchUpdate(
-      BatchUpdateSpreadsheetRequest(
-        requests: [
-          Request(
-            duplicateSheet: DuplicateSheetRequest(
-              sourceSheetId: log.id,
-              newSheetName: backup,
-              insertSheetIndex: tabs.length,
-            ),
-          ),
-          // Remove the old validation rules from the whole tab.
-          Request(
-            setDataValidation: SetDataValidationRequest(range: GridRange(sheetId: log.id)),
-          ),
-          if (needed > 0)
-            Request(
-              appendDimension: AppendDimensionRequest(sheetId: log.id, dimension: 'COLUMNS', length: needed),
-            ),
-          ..._dateRules(log.id),
-          for (final (i, m) in metrics.indexed) _valueRule(log.id, i + 1, m),
-        ],
-      ),
-      spreadsheetId,
-    );
-    await _api.spreadsheets.values.clear(ClearValuesRequest(), spreadsheetId, 'log');
-    await _api.spreadsheets.values.update(ValueRange(values: wide), spreadsheetId, 'log!A1', valueInputOption: 'RAW');
-  }
-
   static String _cell(int row, int column) => 'log!${columnLetter(column)}$row';
 
   static Future<Map<String, ({int id, int columnCount})>> _tabs(SheetsApi api, String spreadsheetId) async {
@@ -292,7 +303,6 @@ List<Request> _metricsRules(int id, List<String> header) {
 
   return [
     ?at('kind', (_) => _oneOf(['yesno', 'number', 'count'])),
-    ?at('per_day', (_) => _oneOf(['one', 'many'])),
     ?at('active', (_) => BooleanCondition(type: 'BOOLEAN')),
     // A Material Symbols name, or a short text such as an emoji. Some emojis have up to 11 characters in Sheets.
     ?at('icon', (c) => _formula('=OR(REGEXMATCH($c, "^[a-z0-9_]+\$"), LEN($c) <= 16)')),
@@ -314,17 +324,13 @@ List<Request> _dateRules(int id) => [
   _rule(_col(id, 0), _formula(r'=AND(REGEXMATCH(A2, "^\d{4}-\d{2}-\d{2}$"), COUNTIF($A$2:$A, A2) = 1)')),
 ];
 
-/// The rule for a metric column: 1 for yesno, a number for number metrics.
+/// The rule for a metric column: a `yes` / `no` dropdown for yesno, a number for number metrics.
 ///
-/// The rule uses the metric kind at the time the app adds the column. If you change the kind later,
-/// change the rule by hand.
-Request _valueRule(int id, int column, Metric metric) {
-  final cell = '${columnLetter(column)}2';
-  return _rule(
-    _col(id, column),
-    _formula(switch (metric) {
-      YesNoMetric() => '=$cell = 1',
-      NumberMetric() => '=ISNUMBER($cell)',
-    }),
-  );
-}
+/// [SheetsStore.refreshRules] sets it again each time the app opens the sheet, so it follows kind changes.
+Request _valueRule(int id, int column, Metric metric) => _rule(
+  _col(id, column),
+  switch (metric) {
+    YesNoMetric() => _oneOf(['yes', 'no']),
+    NumberMetric() => _formula('=ISNUMBER(${columnLetter(column)}2)'),
+  },
+);

@@ -37,12 +37,12 @@ const _weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
 /// HabitKit-style input table: one row per metric, one column per day, today on the right.
 ///
-/// - Yes/no: a cell click toggles that day.
+/// - Yes/no: a cell click writes `yes`, or `no` if the day is `yes`. A `no` day shows like an empty day.
 /// - Count: a mouse click adds the step, a right-click subtracts it. A touch tap adds the step after a short wait,
 ///   and a double-tap subtracts it instead. Keys on a focused cell: `+` and `-`. A count has no reset: it goes to
 ///   empty with subtractions.
 /// - Number: a cell click opens the [NumberEditor] for that metric and day, below the metric: a ruler, a text field
-///   and a Save button. A second click closes it. For [PerDay.many] metrics the value is the day total.
+///   and a Save button. A second click closes it.
 class HabitTable extends StatefulComponent {
   const HabitTable({
     required this.metrics,
@@ -267,7 +267,7 @@ class _HabitTableState extends State<HabitTable> {
     return NumberEditor(
       key: ValueKey('${m.id} $d'),
       metric: m,
-      label: '${m.name}${m.perDay == PerDay.many ? ' (day total)' : ''} · ${d == component.today ? 'today' : '$d'}',
+      label: '${m.name} · ${d == component.today ? 'today' : '$d'}',
       current: values[d],
       start: near == null ? null : values[near],
       busy: component.busy,
@@ -292,7 +292,7 @@ class _HabitTableState extends State<HabitTable> {
 
   static String _valueText(Metric m, num? v) => switch ((m, v)) {
     (_, null) => '',
-    (YesNoMetric(), _) => ': done',
+    (YesNoMetric(), _) => ': yes',
     (NumberMetric(unit: final unit), final v?) => ': ${_format(v)} ${unit ?? ''}'.trimRight(),
   };
 

@@ -9,8 +9,8 @@ import 'package:trackula/model/summary.dart';
 import 'package:trackula/services/double_tap.dart';
 
 void main() {
-  const weight = NumberMetric(id: 'weight', name: 'Weight', perDay: PerDay.one, unit: 'kg', step: 0.1);
-  const water = NumberMetric(id: 'water', name: 'Water', perDay: PerDay.many, unit: 'glasses');
+  const weight = NumberMetric(id: 'weight', name: 'Weight', unit: 'kg', step: 0.1);
+  const water = NumberMetric(id: 'water', name: 'Water', unit: 'glasses');
   const meditate = YesNoMetric(id: 'meditate', name: 'Meditate');
   final metrics = {
     for (final m in <Metric>[weight, water, meditate]) m.id: m,
@@ -41,10 +41,10 @@ void main() {
     test('parses the example rows', () {
       final p = parseMetrics([
         metricsHeader,
-        ['weight', 'Weight', 'number', 'kg', 'one', 0.1, 'body', true],
-        ['meditate', 'Meditate', 'yesno', '', 'one', '', 'habits', 'TRUE'],
-        ['morning-shower', 'Morning shower', 'yesno', '', 'one', '', 'habits', true],
-        ['water', 'Water', 'number', 'glasses', 'many', 1, 'habits', 'FALSE'],
+        ['weight', 'Weight', 'number', 'kg', 0.1, 'body', true],
+        ['meditate', 'Meditate', 'yesno', '', '', 'habits', 'TRUE'],
+        ['morning-shower', 'Morning shower', 'yesno', '', '', 'habits', true],
+        ['water', 'Water', 'number', 'glasses', 1, 'habits', 'FALSE'],
       ]);
       expect(p.warnings, isEmpty);
       expect(p.items.map((m) => m.id), ['weight', 'meditate', 'morning-shower', 'water']);
@@ -53,7 +53,7 @@ void main() {
       expect(p.items[3].active, isFalse);
     });
 
-    test('finds columns by header name', () {
+    test('finds columns by header name, and ignores other columns such as per_day', () {
       final p = parseMetrics([
         ['kind', 'id', 'per_day', 'name', 'unit', 'step', 'group', 'active'],
         ['yesno', 'read', 'one', 'Read'],
@@ -64,11 +64,11 @@ void main() {
     test('skips invalid rows with a warning', () {
       final p = parseMetrics([
         metricsHeader,
-        ['Bad Id', 'x', 'number', '', 'one'],
-        ['a', 'A', 'text', '', 'one'],
-        ['b', 'B', 'number', '', 'sometimes'],
-        ['c', 'C', 'yesno', '', 'one'],
-        ['c', 'C', 'yesno', '', 'one'],
+        ['Bad Id', 'x', 'number'],
+        ['a', 'A', 'text'],
+        ['', 'B', 'number'],
+        ['c', 'C', 'yesno'],
+        ['c', 'C', 'yesno'],
         [],
       ]);
       expect(p.items.map((m) => m.id), ['c']);
@@ -78,8 +78,8 @@ void main() {
     test('ignores rows that contain only unchecked checkboxes', () {
       final p = parseMetrics([
         metricsHeader,
-        ['c', 'C', 'yesno', '', 'one', '', '', true],
-        ['', '', '', '', '', '', '', false],
+        ['c', 'C', 'yesno', '', '', '', true],
+        ['', '', '', '', '', '', false],
       ]);
       expect(p.items.map((m) => m.id), ['c']);
       expect(p.warnings, isEmpty);
@@ -88,9 +88,9 @@ void main() {
     test('reads the optional icon column', () {
       final p = parseMetrics([
         [...metricsHeader, ...metricsOptionalHeader],
-        ['water', 'Water', 'number', 'glasses', 'many', 1, 'habits', true, 'water_drop'],
-        ['read', 'Read', 'yesno', '', 'one', '', 'habits', true, '📚'],
-        ['walk', 'Walk', 'yesno', '', 'one', '', 'habits', true],
+        ['water', 'Water', 'number', 'glasses', 1, 'habits', true, 'water_drop'],
+        ['read', 'Read', 'yesno', '', '', 'habits', true, '📚'],
+        ['walk', 'Walk', 'yesno', '', '', 'habits', true],
       ]);
       expect(p.items.map((m) => m.icon), ['water_drop', '📚', null]);
     });
@@ -98,7 +98,7 @@ void main() {
     test('works without the icon column', () {
       final p = parseMetrics([
         metricsHeader,
-        ['walk', 'Walk', 'yesno', '', 'one', '', 'habits', true],
+        ['walk', 'Walk', 'yesno', '', '', 'habits', true],
       ]);
       expect(p.items.single.icon, isNull);
       expect(p.warnings, isEmpty);
@@ -142,6 +142,53 @@ void main() {
       expect(p.warnings, hasLength(5));
     });
 
+    test('reads yes and no in any case, and old yesno values', () {
+      const d28 = Day(2026, 9, 28);
+      final p = parseLog([
+        ['date', 'meditate'],
+        ['2026-09-27', 'YES'],
+        ['2026-09-28', 'yes'],
+        ['2026-09-29', ' No '],
+        ['2026-09-30', 1],
+      ], metrics);
+      expect(p.warnings, isEmpty);
+      expect(
+        [
+          for (final d in [d28, d29, d30]) p.table.valueAt('meditate', d),
+        ],
+        [1, 0, 1],
+      );
+      // A no day shows like a day without a value.
+      expect(dayValues(meditate, p.table.entries).keys, [const Day(2026, 9, 27), d28, d30]);
+    });
+
+    test('warns about invalid yesno values', () {
+      final p = parseLog([
+        ['date', 'meditate'],
+        ['2026-09-30', 'maybe'],
+      ], metrics);
+      expect(p.table.entries, isEmpty);
+      expect(p.warnings.single, contains('yes or no'));
+    });
+
+    test('legacyYesNoCells finds old yesno values only', () {
+      final cells = legacyYesNoCells([
+        ['date', 'weight', 'meditate'],
+        ['2026-09-27', 1, 1],
+        ['2026-09-28', 82, 'yes'],
+        ['2026-09-29', 82, 'TRUE'],
+        ['2026-09-30', 82, 0],
+        ['2026-10-01', 82, ''],
+        ['2026-10-02', 82, 'maybe'],
+        ['2026-10-03', 82],
+      ], metrics);
+      expect(cells, [
+        (row: 2, column: 2, value: 'yes'),
+        (row: 4, column: 2, value: 'yes'),
+        (row: 5, column: 2, value: 'no'),
+      ]);
+    });
+
     test('throws if column A is not date', () {
       expect(
         () => parseLog([
@@ -149,37 +196,6 @@ void main() {
         ], metrics),
         throwsA(isA<HeaderException>()),
       );
-    });
-  });
-
-  group('old log format', () {
-    final old = [
-      oldLogHeader,
-      ['2026-09-29', 'weight', 82.4],
-      ['2026-09-30', 'weight', 82.3],
-      ['2026-09-30', 'weight', 82.1],
-      ['2026-09-30', 'water', 2],
-      ['2026-09-30', 'water', 3],
-      ['2026-09-30', 'meditate', 1],
-    ];
-
-    test('is detected', () {
-      expect(isOldLog(old), isTrue);
-      expect(
-        isOldLog([
-          ['date', 'weight'],
-        ]),
-        isFalse,
-      );
-    });
-
-    test('converts to one row per day, with day totals for many-per-day metrics', () {
-      final entries = parseOldLog(old, metrics).items;
-      expect(toWideRows(entries, [weight, water, meditate]), [
-        ['date', 'weight', 'water', 'meditate'],
-        ['2026-09-29', 82.4, '', ''],
-        ['2026-09-30', 82.1, 5, 1],
-      ]);
     });
   });
 
@@ -193,18 +209,29 @@ void main() {
       ['2026-09-30', 82.1, 1],
     ], metrics).table;
 
-    test('yesno: check sets 1, uncheck clears, no change returns null', () {
+    test('yesno: check writes yes, uncheck writes no, no change returns null', () {
       expect(
         planYesNo(meditate, d30, false, log),
-        isA<SetCell>().having((w) => (w.row, w.column, w.value), 'cell', (2, 2, null)),
+        isA<SetCell>().having((w) => (w.row, w.column, w.value), 'cell', (2, 2, 'no')),
       );
+      // The log has the old value 1 on 2026-09-30. It is yes, so a check changes nothing.
       expect(planYesNo(meditate, d30, true, log), isNull);
-      expect(planYesNo(meditate, d29, false, log), isNull);
     });
 
     test('a day without a row gets a new row', () {
-      final w = planYesNo(meditate, d29, true, log);
-      expect(w, isA<AppendRow>().having((w) => w.toCells(), 'cells', ['2026-09-29', '', 1]));
+      expect(
+        planYesNo(meditate, d29, true, log),
+        isA<AppendRow>().having((w) => w.toCells(), 'cells', ['2026-09-29', '', 'yes']),
+      );
+      expect(
+        planYesNo(meditate, d29, false, log),
+        isA<AppendRow>().having((w) => w.toCells(), 'cells', ['2026-09-29', '', 'no']),
+      );
+    });
+
+    test('cellValue: yes and no for yesno, the number for number metrics', () {
+      expect([cellValue(meditate, 1), cellValue(meditate, 0), cellValue(meditate, null)], ['yes', 'no', null]);
+      expect([cellValue(weight, 81.9), cellValue(water, null)], [81.9, null]);
     });
 
     test('number: sets the cell of the day row', () {
@@ -238,7 +265,7 @@ void main() {
     });
 
     test('throws if the metric has no column', () {
-      const steps = NumberMetric(id: 'steps', name: 'Steps', perDay: PerDay.many);
+      const steps = NumberMetric(id: 'steps', name: 'Steps');
       expect(() => planNumber(steps, d30, 1, log), throwsStateError);
     });
   });
@@ -295,10 +322,11 @@ void main() {
   test('parseMetrics reads kind count as a number metric with bars', () {
     final p = parseMetrics([
       metricsHeader,
-      ['steps', 'Steps', 'count', '', 'many', 100],
+      ['steps', 'Steps', 'count', '', 100],
     ]);
     expect(p.items.single, isA<NumberMetric>().having((m) => m.isCount, 'isCount', isTrue));
   });
+
   test('nearestDay: the nearest day before, else the nearest day after', () {
     final days = [d29, const Day(2026, 9, 25), const Day(2026, 10, 3), const Day(2026, 10, 1)];
     expect(nearestDay(days, d30), d29);

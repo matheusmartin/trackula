@@ -4,12 +4,13 @@ import 'metric.dart';
 
 /// Returns the value of [metric] for each day that has an entry.
 ///
-/// - [YesNoMetric]: 1 if done.
-/// - Number: the value of the cell. For [PerDay.many] it is the day total.
+/// - [YesNoMetric]: 1 for `yes`. Days with `no` are left out, like days without a value: both show as not done.
+/// - Number: the value of the cell.
 Map<Day, num> dayValues(Metric metric, List<LogEntry> log) {
   final values = <Day, num>{};
   for (final e in log) {
     if (e.metricId != metric.id) continue;
+    if (metric is YesNoMetric && e.value != 1) continue;
     values[e.date] = e.value;
   }
   return values;
