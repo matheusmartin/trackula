@@ -202,10 +202,10 @@ List<StyleRule> get styles => [
     ),
   ]),
 
-  // habit_table.dart: 31-day calendars. As many columns as fit, each at least 15rem wide.
+  // habit_table.dart: 31-day calendars. As many columns as fit, each at least 17.5rem wide.
   css('.calendars').styles(
     display: .grid,
-    raw: {'grid-template-columns': 'repeat(auto-fill, minmax(15rem, 1fr))', 'gap': '0.75rem'},
+    raw: {'grid-template-columns': 'repeat(auto-fill, minmax(17.5rem, 1fr))', 'gap': '0.75rem'},
   ),
   css('article.calendar', [
     // BeerCSS adds a top margin to each card after the first. In a grid, that breaks the row alignment.
@@ -218,10 +218,19 @@ List<StyleRule> get styles => [
     ),
     css('.month').styles(
       display: .grid,
-      raw: {'grid-template-columns': 'repeat(7, 1fr)', 'gap': '4px', 'justify-items': 'center'},
+      raw: {
+        'grid-template-columns': 'auto repeat(7, 1fr)',
+        'gap': '4px',
+        'justify-items': 'center',
+        'align-items': 'center',
+      },
     ),
     css('.month small').styles(fontSize: 0.7.rem, raw: {'color': 'var(--on-surface-variant)'}),
-    css('.cell').styles(raw: {'inline-size': '1.8rem', 'block-size': '1.8rem'}),
+    css('.month small.week').styles(
+      padding: .only(right: 0.25.rem),
+      raw: {'justify-self': 'end', 'white-space': 'nowrap'},
+    ),
+    css('.cell').styles(raw: {'inline-size': '1.6rem', 'block-size': '1.6rem'}),
     css('.editor').styles(margin: .only(top: 0.75.rem)),
   ]),
 

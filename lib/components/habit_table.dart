@@ -27,6 +27,7 @@ enum DayRange {
 }
 
 const _weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /// HabitKit-style input table: one row per metric, one column per day, today on the right.
 ///
@@ -174,20 +175,48 @@ class _HabitTableState extends State<HabitTable> {
   Component _calendar(Metric m, List<Day> days) {
     final values = _values(m);
     final editing = _editing;
+    final weeks = _weeks(days);
+    final labels = _weekLabels(weeks);
     return article(classes: 'calendar', [
       div(classes: 'calendar-title', [
         _icon(m),
         span([.text(m.name)]),
       ]),
+      // Cells show values, as in the short table. Dates are on the edges: weekdays on top, and the first day of
+      // each week row on the left, with the month when it changes.
       div(classes: 'month', [
+        span([]),
         for (final w in _weekdays) small([.text(w.substring(0, 1))]),
-        // Empty cells, so the first day is in its weekday column.
-        for (var i = 1; i < days.first.weekday; i++) span([]),
-        for (final d in days) _cell(m, d, values, editing == (m.id, d), label: '${d.day}'),
+        for (final (i, week) in weeks.indexed) ...[
+          small(classes: 'week', [.text(labels[i])]),
+          for (final d in week) d == null ? span([]) : _cell(m, d, values, editing == (m.id, d)),
+        ],
       ]),
       if (m is NumberMetric) TrendChart(days: days, values: values, unit: m.unit, bars: m.isCount),
       if (m is NumberMetric && editing != null && editing.$1 == m.id) _editor(m, editing.$2, values),
     ]);
+  }
+
+  /// [days] in week rows, Monday to Sunday. Null fills the days before the first day and after the last day.
+  static List<List<Day?>> _weeks(List<Day> days) {
+    final slots = <Day?>[for (var i = 1; i < days.first.weekday; i++) null, ...days];
+    while (slots.length % 7 != 0) {
+      slots.add(null);
+    }
+    return [for (var i = 0; i < slots.length; i += 7) slots.sublist(i, i + 7)];
+  }
+
+  /// The labels of the week rows: the first day of each row, with the month on the first row and when the month
+  /// changes. Example: "Sep 2", "7", "14", "21", "28", "Oct 5".
+  static List<String> _weekLabels(List<List<Day?>> weeks) {
+    int? month;
+    return [
+      for (final week in weeks)
+        switch (week.whereType<Day>().first) {
+          final d when d.month != month => '${_months[(month = d.month) - 1]} ${d.day}',
+          final d => '${d.day}',
+        },
+    ];
   }
 
   /// The metric icon: a Material Symbol for a lowercase name such as `water_drop`, else the text, such as an emoji.
@@ -222,9 +251,8 @@ class _HabitTableState extends State<HabitTable> {
     ];
   }
 
-  /// A day button. [label] replaces the default text: the value of number metrics.
   /// A day cell. A cell with a value has one fixed color, whatever the value. See .cell.filled in theme.dart.
-  Component _cell(Metric m, Day d, Map<Day, num> values, bool selected, {String? label}) {
+  Component _cell(Metric m, Day d, Map<Day, num> values, bool selected) {
     final v = values[d];
     return button(
       classes: [
@@ -245,7 +273,7 @@ class _HabitTableState extends State<HabitTable> {
         },
       },
       [
-        if (label != null) .text(label) else if (m is NumberMetric && v != null) .text(_compact(v)),
+        if (m is NumberMetric && v != null) .text(_compact(v)),
       ],
     );
   }
