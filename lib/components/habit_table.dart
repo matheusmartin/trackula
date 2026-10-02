@@ -10,27 +10,20 @@ import '../services/double_tap.dart';
 import 'number_editor.dart';
 import 'trend_chart.dart';
 
-/// How many past days the table shows. Matches the HabitKit "Last 7 days" and "Last 31 days" modes.
+/// How many past days the app shows: a table of the last 5 days on all screens, or one small calendar per metric
+/// for the last 31 days.
 enum DayRange {
-  week(7, phoneDays: 5),
+  short(5),
   month(31);
 
-  const DayRange(this.days, {int? phoneDays}) : phoneDays = phoneDays ?? days;
+  const DayRange(this.days);
 
   final int days;
 
-  /// The number of days on phones. The week table shows fewer days, so the metric icons fit.
-  final int phoneDays;
-
-  int count({required bool phone}) => phone ? phoneDays : days;
-
-  String label({required bool phone}) => 'Last ${count(phone: phone)} days';
+  String get label => 'Last $days days';
 
   /// The days of the range, oldest first, ending on [today].
-  List<Day> daysUntil(Day today, {required bool phone}) {
-    final n = count(phone: phone);
-    return [for (var i = n - 1; i >= 0; i--) today.addDays(-i)];
-  }
+  List<Day> daysUntil(Day today) => [for (var i = days - 1; i >= 0; i--) today.addDays(-i)];
 }
 
 const _weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
@@ -49,7 +42,6 @@ class HabitTable extends StatefulComponent {
     required this.log,
     required this.today,
     required this.range,
-    required this.phone,
     required this.busy,
     required this.onWrite,
     required this.pending,
@@ -62,8 +54,6 @@ class HabitTable extends StatefulComponent {
   final Day today;
   final DayRange range;
 
-  /// True on phone screens. See [DayRange.phoneDays].
-  final bool phone;
   final bool busy;
   final void Function(LogWrite? Function(LogTable log) plan) onWrite;
 
@@ -156,7 +146,7 @@ class _HabitTableState extends State<HabitTable> {
 
   @override
   Component build(BuildContext context) {
-    final days = component.range.daysUntil(component.today, phone: component.phone);
+    final days = component.range.daysUntil(component.today);
     if (component.range == DayRange.month) {
       return div(classes: 'calendars', [for (final m in component.metrics) _calendar(m, days)]);
     }

@@ -1,8 +1,5 @@
-import 'dart:js_interop';
-
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
-import 'package:web/web.dart' as web;
 
 import '../components/habit_table.dart';
 import '../model/day.dart';
@@ -29,7 +26,9 @@ class _TodayPageState extends State<TodayPage> {
   Snapshot? _data;
   bool _busy = false;
   String? _error;
-  DayRange _range = DayRange.values.asNameMap()[LocalPrefs.get('range')] ?? DayRange.week;
+
+  /// The saved range. An old saved value, such as `week`, gives the default: the last 5 days.
+  DayRange _range = DayRange.values.asNameMap()[LocalPrefs.get('range')] ?? DayRange.short;
 
   /// The selected group, or null for all groups.
   String? _group = LocalPrefs.get('group');
@@ -40,13 +39,8 @@ class _TodayPageState extends State<TodayPage> {
   /// Count taps in the write that runs now. The table shows them until the new data arrives.
   final _sending = <(String, Day), List<CountStep>>{};
 
-  /// Phone screens: the same width as the phone rules in lib/constants/theme.dart.
-  final _phoneQuery = web.window.matchMedia('(max-width: 480px)');
-  late bool _phone = _phoneQuery.matches;
-  late final JSFunction _onPhoneChange = ((web.Event _) => setState(() => _phone = _phoneQuery.matches)).toJS;
-
   void _toggleRange() => setState(() {
-    _range = _range == DayRange.week ? DayRange.month : DayRange.week;
+    _range = _range == DayRange.short ? DayRange.month : DayRange.short;
     LocalPrefs.set('range', _range.name);
   });
 
@@ -58,17 +52,10 @@ class _TodayPageState extends State<TodayPage> {
   @override
   void initState() {
     super.initState();
-    _phoneQuery.addEventListener('change', _onPhoneChange);
     _run(() async {
       await _store.refreshRules();
       return _store.load();
     });
-  }
-
-  @override
-  void dispose() {
-    _phoneQuery.removeEventListener('change', _onPhoneChange);
-    super.dispose();
   }
 
   /// Runs [task] and shows its data. [done] runs in the same update as the new data or the error.
@@ -130,7 +117,7 @@ class _TodayPageState extends State<TodayPage> {
   Component build(BuildContext context) {
     final data = _data;
     final today = Day.today();
-    final days = _range.daysUntil(today, phone: _phone);
+    final days = _range.daysUntil(today);
     final metrics = data?.metrics ?? const <Metric>[];
     final groups = {for (final m in metrics) m.group ?? 'other'}.toList();
     final group = groups.contains(_group) ? _group : null;
@@ -148,7 +135,7 @@ class _TodayPageState extends State<TodayPage> {
       nav(classes: 'toolbar-row', [
         button(classes: 'chip', onClick: _toggleRange, [
           i([.text('date_range')]),
-          span([.text(_range.label(phone: _phone))]),
+          span([.text(_range.label)]),
         ]),
         span(classes: 'max small-text secondary-text range', [
           .text('${_short(days.first)} — ${_short(days.last)}'),
@@ -177,7 +164,6 @@ class _TodayPageState extends State<TodayPage> {
             log: data.log,
             today: today,
             range: _range,
-            phone: _phone,
             busy: _busy,
             onWrite: _write,
             pending: {

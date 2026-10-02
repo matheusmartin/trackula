@@ -227,8 +227,7 @@ List<StyleRule> get styles => [
 
   // trend_chart.dart uses inline styles.
 
-  // Phones: the week table shows 5 days (DayRange.phoneDays) with smaller cells, so the icons fit without scrolling.
-  // The width must match the phone media query in lib/pages/today.dart.
+  // Phones: smaller cells and less name padding, so the 5 days and the metric icons fit without scrolling.
   css.media(MediaQuery.screen(maxWidth: 480.px), [
     css('table.habits .cell').styles(raw: {'inline-size': '1.9rem', 'block-size': '1.9rem'}),
     css('table.habits th.name').styles(padding: .only(left: 0.75.rem)),
