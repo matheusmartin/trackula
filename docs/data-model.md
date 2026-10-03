@@ -20,12 +20,13 @@ One row for each metric. The row order is the display order in the app.
 | `unit`    | text    | No       | any                     | Example: `kg`, `glasses`, `steps`. Empty for `yesno`. |
 | `step`    | number  | No       | > 0                     | Input step for `number` and `count`. Example: `0.1` for weight. Default: `1`. |
 | `group`   | text    | No       | any                     | Groups metrics on the screen. Example: `habits`, `body`. |
-| `icon`    | text    | No       | Material Symbols name or emoji | Icon next to the name. A lowercase name (`a-z`, `0-9`, `_`) is a [Material Symbols](https://fonts.google.com/icons) icon, for example `water_drop`. Other text shows as it is, for example `💧`. Empty: the first letter of `name`. Older sheets can omit the column. |
+| `icon`    | text    | Yes      | Material Symbols name or emoji | Icon next to the name, and in the title of the detail screen. A lowercase name (`a-z`, `0-9`, `_`) is a [Material Symbols](https://fonts.google.com/icons) icon, for example `water_drop`. Other text shows as it is, for example `💧`. A row without icon is invalid: the app shows a warning and does not show the metric. |
 
 Rules:
 
 - To hide a metric, delete its row. Its `log` column and values stay in the sheet, and the app ignores them. To show the metric again, add the row again with the same `id`.
 - The app ignores other columns. Older sheets have `per_day` and `active` columns: you can delete them.
+- Older sheets can have no `icon` column. Then the app shows an error. Add the column with an icon in each row.
 
 Example:
 
@@ -35,7 +36,7 @@ Example:
 | waist    | Waist    | number | cm      | 0.5  | body   | straighten       |
 | meditate | Meditate | yesno  |         |      | habits | self_improvement |
 | water    | Water    | number | glasses | 1    | habits | 💧               |
-| reading  | Reading  | number | min     | 5    | habits |                  |
+| reading  | Reading  | number | min     | 5    | habits | menu_book        |
 
 ## Tab `log`
 

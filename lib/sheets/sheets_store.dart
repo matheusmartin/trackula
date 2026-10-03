@@ -69,7 +69,7 @@ final class SheetsStore {
             ValueRange(
               range: 'metrics!A1',
               values: [
-                [...metricsHeader, ...metricsOptionalHeader],
+                metricsHeader,
                 ...exampleMetrics,
               ],
             ),
@@ -87,7 +87,7 @@ final class SheetsStore {
     await api.spreadsheets.batchUpdate(
       BatchUpdateSpreadsheetRequest(
         requests: [
-          if (newIds['metrics'] case final id?) ..._metricsRules(id, [...metricsHeader, ...metricsOptionalHeader]),
+          if (newIds['metrics'] case final id?) ..._metricsRules(id, metricsHeader),
           if (newIds['log'] case final id?) ..._dateRules(id),
         ],
       ),

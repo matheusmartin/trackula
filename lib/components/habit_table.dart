@@ -7,6 +7,7 @@ import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/summary.dart';
 import '../services/double_tap.dart';
+import 'metric_icon.dart';
 import 'number_editor.dart';
 import 'trend_chart.dart';
 
@@ -221,7 +222,7 @@ class _HabitTableState extends State<HabitTable> {
   List<Component> _name(Metric m) {
     final open = component.onOpen;
     final content = [
-      _icon(m),
+      metricIcon(m),
       span([.text(m.name)]),
     ];
     if (open == null) return content;
@@ -262,18 +263,6 @@ class _HabitTableState extends State<HabitTable> {
         },
     ];
   }
-
-  /// The metric icon: a Material Symbol for a lowercase name such as `water_drop`, else the text, such as an emoji.
-  /// Without an icon: the first letter of the name. [String.runes] keeps an emoji at the start in one piece.
-  static Component _icon(Metric m) => span(classes: 'icon', [
-    switch (m.icon) {
-      final icon? when _symbolName.hasMatch(icon) => i([.text(icon)]),
-      final icon? => .text(icon),
-      null => .text(m.name.isEmpty ? '?' : String.fromCharCode(m.name.runes.first).toUpperCase()),
-    },
-  ]);
-
-  static final _symbolName = RegExp(r'^[a-z0-9_]+$');
 
   List<Component> _rows(Metric m, List<Day> days) {
     final values = _values(m);

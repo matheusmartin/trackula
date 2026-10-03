@@ -9,9 +9,9 @@ import 'package:trackula/model/summary.dart';
 import 'package:trackula/services/double_tap.dart';
 
 void main() {
-  const weight = NumberMetric(id: 'weight', name: 'Weight', unit: 'kg', step: 0.1);
-  const water = NumberMetric(id: 'water', name: 'Water', unit: 'glasses');
-  const meditate = YesNoMetric(id: 'meditate', name: 'Meditate');
+  const weight = NumberMetric(id: 'weight', name: 'Weight', icon: 'monitor_weight', unit: 'kg', step: 0.1);
+  const water = NumberMetric(id: 'water', name: 'Water', icon: 'water_drop', unit: 'glasses');
+  const meditate = YesNoMetric(id: 'meditate', name: 'Meditate', icon: 'self_improvement');
   final metrics = {
     for (final m in <Metric>[weight, water, meditate]) m.id: m,
   };
@@ -53,10 +53,10 @@ void main() {
     test('parses the example rows', () {
       final p = parseMetrics([
         metricsHeader,
-        ['weight', 'Weight', 'number', 'kg', 0.1, 'body'],
-        ['meditate', 'Meditate', 'yesno', '', '', 'habits'],
-        ['morning-shower', 'Morning shower', 'yesno', '', '', 'habits'],
-        ['water', 'Water', 'number', 'glasses', 1, 'habits'],
+        ['weight', 'Weight', 'number', 'kg', 0.1, 'body', 'monitor_weight'],
+        ['meditate', 'Meditate', 'yesno', '', '', 'habits', 'self_improvement'],
+        ['morning-shower', 'Morning shower', 'yesno', '', '', 'habits', '🚿'],
+        ['water', 'Water', 'number', 'glasses', 1, 'habits', 'water_drop'],
       ]);
       expect(p.warnings, isEmpty);
       expect(p.items.map((m) => m.id), ['weight', 'meditate', 'morning-shower', 'water']);
@@ -66,8 +66,8 @@ void main() {
 
     test('finds columns by header name, and ignores other columns such as per_day and active', () {
       final p = parseMetrics([
-        ['kind', 'id', 'per_day', 'name', 'unit', 'step', 'group', 'active'],
-        ['yesno', 'read', 'one', 'Read'],
+        ['kind', 'id', 'per_day', 'name', 'unit', 'step', 'group', 'active', 'icon'],
+        ['yesno', 'read', 'one', 'Read', '', '', '', false, '📖'],
       ]);
       expect(p.items.single.id, 'read');
     });
@@ -78,8 +78,8 @@ void main() {
         ['Bad Id', 'x', 'number'],
         ['a', 'A', 'text'],
         ['', 'B', 'number'],
-        ['c', 'C', 'yesno'],
-        ['c', 'C', 'yesno'],
+        ['c', 'C', 'yesno', '', '', '', 'check'],
+        ['c', 'C', 'yesno', '', '', '', 'check'],
         [],
       ]);
       expect(p.items.map((m) => m.id), ['c']);
@@ -89,30 +89,31 @@ void main() {
     test('ignores rows that contain only unchecked checkboxes, for example of an old active column', () {
       final p = parseMetrics([
         [...metricsHeader, 'active'],
-        ['c', 'C', 'yesno', '', '', '', true],
-        ['', '', '', '', '', '', false],
+        ['c', 'C', 'yesno', '', '', '', 'check', true],
+        ['', '', '', '', '', '', '', false],
       ]);
       expect(p.items.map((m) => m.id), ['c']);
       expect(p.warnings, isEmpty);
     });
 
-    test('reads the optional icon column', () {
+    test('reads the icon, and skips a row without icon with a warning', () {
       final p = parseMetrics([
-        [...metricsHeader, ...metricsOptionalHeader],
+        metricsHeader,
         ['water', 'Water', 'number', 'glasses', 1, 'habits', 'water_drop'],
         ['read', 'Read', 'yesno', '', '', 'habits', '📚'],
         ['walk', 'Walk', 'yesno', '', '', 'habits'],
       ]);
-      expect(p.items.map((m) => m.icon), ['water_drop', '📚', null]);
+      expect(p.items.map((m) => m.icon), ['water_drop', '📚']);
+      expect(p.warnings.single, contains('no icon'));
     });
 
-    test('works without the icon column', () {
-      final p = parseMetrics([
-        metricsHeader,
-        ['walk', 'Walk', 'yesno', '', '', 'habits'],
-      ]);
-      expect(p.items.single.icon, isNull);
-      expect(p.warnings, isEmpty);
+    test('throws without the icon column', () {
+      expect(
+        () => parseMetrics([
+          ['id', 'name', 'kind', 'unit', 'step', 'group'],
+        ]),
+        throwsA(isA<HeaderException>().having((e) => e.missing, 'missing', ['icon'])),
+      );
     });
 
     test('throws if a column is missing', () {
@@ -302,7 +303,7 @@ void main() {
     });
 
     test('throws if the metric has no column', () {
-      const steps = NumberMetric(id: 'steps', name: 'Steps');
+      const steps = NumberMetric(id: 'steps', name: 'Steps', icon: 'footprint');
       expect(() => planNumber(steps, d30, 1, log), throwsStateError);
     });
   });
@@ -359,7 +360,7 @@ void main() {
   test('parseMetrics reads kind count as a number metric with bars', () {
     final p = parseMetrics([
       metricsHeader,
-      ['steps', 'Steps', 'count', '', 100],
+      ['steps', 'Steps', 'count', '', 100, '', 'footprint'],
     ]);
     expect(p.items.single, isA<NumberMetric>().having((m) => m.isCount, 'isCount', isTrue));
   });

@@ -63,6 +63,9 @@ List<StyleRule> get styles => [
     },
   ),
   css('.icon i').styles(fontSize: 1.25.rem),
+  // The title of the detail screen: a larger chip.
+  css('.icon.large').styles(width: 2.75.rem, height: 2.75.rem, fontSize: 1.5.rem, radius: .circular(10.px)),
+  css('.icon.large i').styles(fontSize: 1.75.rem),
   // Day cells. Empty cells use the strongest container color. Cells with a value use one fixed color.
   // BeerCSS styles every <button>, so reset its size and padding here.
   css('.cell').styles(

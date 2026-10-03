@@ -4,10 +4,7 @@ import 'metric.dart';
 
 /// Required column names of the `metrics` tab, in the order the app creates them.
 /// The app ignores other columns, for example `per_day` and `active` of older sheets.
-const metricsHeader = ['id', 'name', 'kind', 'unit', 'step', 'group'];
-
-/// Optional column names of the `metrics` tab. Older sheets do not have them. A new tab gets them after [metricsHeader].
-const metricsOptionalHeader = ['icon'];
+const metricsHeader = ['id', 'name', 'kind', 'unit', 'step', 'group', 'icon'];
 
 /// Valid items and a warning for each invalid row.
 final class Parsed<T> {
@@ -53,7 +50,11 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
     }
     final name = r.text('name') ?? id;
     final group = r.text('group');
-    final icon = r.optionalText('icon');
+    final icon = r.text('icon');
+    if (icon == null) {
+      warnings.add('$at: no icon. Use a Material Symbols name, such as "water_drop", or an emoji.');
+      continue;
+    }
 
     switch (r.text('kind')) {
       case 'yesno':
@@ -230,9 +231,6 @@ extension type _Row._((List<Object?>, Map<String, int>) _r) {
     final s = _cell(name)?.toString().trim();
     return s == null || s.isEmpty ? null : s;
   }
-
-  /// Like [text], but returns null if the tab has no column [name].
-  String? optionalText(String name) => _r.$2.containsKey(name) ? text(name) : null;
 
   num? number(String name) => switch (_cell(name)) {
     num n => n,
