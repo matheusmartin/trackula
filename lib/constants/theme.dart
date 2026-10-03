@@ -248,7 +248,6 @@ List<StyleRule> get styles => [
     gap: .all(0.6.rem),
     raw: {'color': 'inherit', 'text-decoration': 'none'},
   ),
-  css('a.metric-link:hover span').styles(raw: {'text-decoration': 'underline'}),
 
   // metric_detail.dart: sections of the detail screen. charts.dart uses inline styles.
   // Wide screens: at most 60rem wide and centered, so that the cards keep their shape.
