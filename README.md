@@ -5,6 +5,8 @@
 ## Overview
 
 - Web app to track habits and body measurements.
+- Detail screen: tap a metric name to see all its data. It has numbers and charts for a period (week, month, year or all), a month calendar to edit any day and a year heatmap.
+- Charts over time have zoom buttons: 1 month to 5 years. Short spans show weeks, middle spans months, long spans quarters. A small chart below shows all data. Drag or use the mouse wheel to move.
 - Storage: one Google Sheet in your Google Drive. You pick it with the Google Picker. You can edit the data by hand.
 - If the picked sheet has no `metrics` and `log` tabs, the app adds them.
 - Frontend only. No backend. The browser signs in with Google and calls the Sheets API.
@@ -45,7 +47,7 @@
 - `lib/model/`: data model, parsing, validation and write planning. Pure Dart, no browser code.
 - `lib/sheets/`: Google Sheets access.
 - `lib/services/`: Google sign-in and browser storage.
-- `lib/pages/`, `lib/components/`: UI.
+- `lib/pages/`, `lib/components/`: UI. `lib/model/stats.dart` and `lib/model/zoom.dart`: the numbers and zoom bars of the detail screen.
 - `lib/constants/theme.dart`: app CSS (`@css`) on top of BeerCSS. Only the habit table and editor. Use Material theme variables (`var(--primary)`…) for colors.
   - Do not put `@css` in files that import browser-only code (`package:web`, `googleapis_auth/auth_browser`). Jaspr runs `@css` code on the Dart VM to create `main.css`, and browser-only imports make it fail.
 - `lib/config.dart`: reads the OAuth client ID and the Picker API key from the build defines.

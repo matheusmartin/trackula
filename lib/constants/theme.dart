@@ -96,6 +96,13 @@ List<StyleRule> get styles => [
     raw: {'box-shadow': 'inset 0 0 0 2px color-mix(in srgb, var(--on-surface) 40%, transparent)'},
   ),
   css('.cell.selected').styles(raw: {'outline': '2px solid var(--tertiary)', 'outline-offset': '1px'}),
+  // Days after today: shown in full months, but faded and not editable.
+  css('.cell.future').styles(
+    raw: {
+      'background-color': 'color-mix(in srgb, var(--surface-container-highest) 40%, transparent)',
+      'cursor': 'default',
+    },
+  ),
   css('.editor').styles(
     display: .flex,
     flexWrap: .wrap,
@@ -234,10 +241,61 @@ List<StyleRule> get styles => [
     css('.editor').styles(margin: .only(top: 0.75.rem)),
   ]),
 
+  // habit_table.dart: a metric name that opens the detail screen.
+  css('a.metric-link').styles(
+    display: .flex,
+    alignItems: .center,
+    gap: .all(0.6.rem),
+    raw: {'color': 'inherit', 'text-decoration': 'none'},
+  ),
+  css('a.metric-link:hover span').styles(raw: {'text-decoration': 'underline'}),
+
+  // metric_detail.dart: sections of the detail screen. charts.dart uses inline styles.
+  // Wide screens: at most 60rem wide and centered, so that the cards keep their shape.
+  css('.metric-detail', [
+    css('&').styles(
+      display: .flex,
+      flexDirection: .column,
+      gap: .all(1.rem),
+      raw: {'max-width': '60rem', 'width': '100%', 'margin-inline': 'auto'},
+    ),
+    css('.detail-head').styles(gap: .all(0.5.rem)),
+    css('.detail-head h5').styles(margin: .zero),
+    // Charts: 1 column on phones, 2 on wider screens. Line charts and charts that scroll take the full width.
+    // Dense: a small card fills the gap before a wide card.
+    css('.detail-charts').styles(
+      display: .grid,
+      raw: {'grid-template-columns': 'minmax(0, 1fr)', 'grid-auto-flow': 'row dense', 'gap': '0.75rem'},
+    ),
+    css('.detail-section').styles(display: .flex, flexDirection: .column, gap: .all(0.5.rem)),
+    css('.detail-section h6').styles(margin: .zero),
+    css('.month-nav').styles(gap: .all(0.25.rem)),
+    // Swipes on the calendar and the heatmap: vertical scroll stays, side moves go to the page code.
+    css('.swipe').styles(raw: {'touch-action': 'pan-y', 'user-select': 'none', '-webkit-user-select': 'none'}),
+    // The calendars fill the width, as the chart cards above, with larger cells than on the Today page.
+    css('.calendars').styles(raw: {'grid-template-columns': 'minmax(0, 1fr)'}),
+    css('article.calendar .cell').styles(raw: {'inline-size': '2.1rem', 'block-size': '2.1rem'}),
+    // Phones: one month. Wider screens: the month before on the left, and a title with both months. The same
+    // 2 columns and gap as the charts.
+    css('.month-pair').styles(display: .grid, raw: {'grid-template-columns': 'minmax(0, 1fr)', 'gap': '0.75rem'}),
+    css('.previous-month, .two-months').styles(display: .none),
+  ]),
+  css.media(MediaQuery.screen(minWidth: 640.px), [
+    css('.metric-detail .month-pair').styles(raw: {'grid-template-columns': 'repeat(2, minmax(0, 1fr))'}),
+    css('.metric-detail .previous-month').styles(display: .block),
+    css('.metric-detail .two-months').styles(display: .inline),
+    css('.metric-detail .single-month').styles(display: .none),
+    css('.metric-detail .detail-charts').styles(raw: {'grid-template-columns': 'repeat(2, minmax(0, 1fr))'}),
+    css('.metric-detail .chart-wide').styles(raw: {'grid-column': '1 / -1'}),
+  ]),
+
   // trend_chart.dart uses inline styles.
 
   // Phones: smaller cells and less name padding, so the 5 days and the metric icons fit without scrolling.
   css.media(MediaQuery.screen(maxWidth: 480.px), [
+    // charts.dart: more than 8 values above the bars, for example 13 weeks, fit without touching.
+    // !important: the values have an inline font size.
+    css('.bar-values.dense small').styles(raw: {'font-size': '0.6rem !important', 'letter-spacing': '-0.02em'}),
     css('table.habits .cell').styles(raw: {'inline-size': '1.9rem', 'block-size': '1.9rem'}),
     css('table.habits th.name').styles(padding: .only(left: 0.75.rem)),
   ]),

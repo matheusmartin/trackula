@@ -26,6 +26,15 @@ enum DayRange {
   List<Day> daysUntil(Day today) => [for (var i = days - 1; i >= 0; i--) today.addDays(-i)];
 }
 
+/// How [HabitTable] shows its days.
+enum DayLayout {
+  /// One row per metric, one column per day.
+  table,
+
+  /// One small calendar per metric, Monday to Sunday.
+  calendars,
+}
+
 const _weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -42,18 +51,24 @@ class HabitTable extends StatefulComponent {
     required this.metrics,
     required this.log,
     required this.today,
-    required this.range,
+    required this.days,
+    required this.layout,
     required this.busy,
     required this.onWrite,
     required this.pending,
     required this.onCount,
+    this.onOpen,
+    this.bare = false,
     super.key,
   });
 
   final List<Metric> metrics;
   final LogTable log;
   final Day today;
-  final DayRange range;
+
+  /// The days to show.
+  final List<Day> days;
+  final DayLayout layout;
 
   final bool busy;
   final void Function(LogWrite? Function(LogTable log) plan) onWrite;
@@ -61,6 +76,12 @@ class HabitTable extends StatefulComponent {
   /// Count taps that are not written yet, per metric id and day. The table shows them at once.
   final Map<(String, Day), List<CountStep>> pending;
   final void Function(NumberMetric metric, Day day, CountStep step) onCount;
+
+  /// Opens the detail screen of a metric. Null: the metric names are not links.
+  final void Function(Metric metric)? onOpen;
+
+  /// No metric title and no chart in [DayLayout.calendars]: the detail screen shows them itself.
+  final bool bare;
 
   @override
   State<HabitTable> createState() => _HabitTableState();
@@ -147,9 +168,11 @@ class _HabitTableState extends State<HabitTable> {
 
   @override
   Component build(BuildContext context) {
-    final days = component.range.daysUntil(component.today);
-    if (component.range == DayRange.month) {
-      return div(classes: 'calendars', [for (final m in component.metrics) _calendar(m, days)]);
+    final days = component.days;
+    switch (component.layout) {
+      case DayLayout.calendars:
+        return div(classes: 'calendars', [for (final m in component.metrics) _calendar(m, days)]);
+      case DayLayout.table:
     }
     return article(classes: 'no-padding table-wrap', [
       table(classes: 'habits', [
@@ -178,10 +201,7 @@ class _HabitTableState extends State<HabitTable> {
     final weeks = _weeks(days);
     final labels = _weekLabels(weeks);
     return article(classes: 'calendar', [
-      div(classes: 'calendar-title', [
-        _icon(m),
-        span([.text(m.name)]),
-      ]),
+      if (!component.bare) div(classes: 'calendar-title', _name(m)),
       // Cells show values, as in the short table. Dates are on the edges: weekdays on top, and the first day of
       // each week row on the left, with the month when it changes.
       div(classes: 'month', [
@@ -192,9 +212,33 @@ class _HabitTableState extends State<HabitTable> {
           for (final d in week) d == null ? span([]) : _cell(m, d, values, editing == (m.id, d)),
         ],
       ]),
-      if (m is NumberMetric) TrendChart(days: days, values: values, unit: m.unit, bars: m.isCount),
+      if (m is NumberMetric && !component.bare) TrendChart(days: days, values: values, unit: m.unit, bars: m.isCount),
       if (m is NumberMetric && editing != null && editing.$1 == m.id) _editor(m, editing.$2, values),
     ]);
+  }
+
+  /// The icon and the name of a metric. With [HabitTable.onOpen], a link to its detail screen.
+  List<Component> _name(Metric m) {
+    final open = component.onOpen;
+    final content = [
+      _icon(m),
+      span([.text(m.name)]),
+    ];
+    if (open == null) return content;
+    return [
+      a(
+        href: '#',
+        classes: 'metric-link',
+        attributes: {'title': 'Show all data of ${m.name}'},
+        events: {
+          'click': (e) {
+            e.preventDefault();
+            open(m);
+          },
+        },
+        content,
+      ),
+    ];
   }
 
   /// [days] in week rows, Monday to Sunday. Null fills the days before the first day and after the last day.
@@ -237,10 +281,7 @@ class _HabitTableState extends State<HabitTable> {
     return [
       tr([
         th(scope: 'row', classes: 'name', [
-          div([
-            _icon(m),
-            span([.text(m.name)]),
-          ]),
+          div(_name(m)),
         ]),
         for (final d in days) td([_cell(m, d, values, editing == (m.id, d))]),
       ]),
@@ -252,7 +293,11 @@ class _HabitTableState extends State<HabitTable> {
   }
 
   /// A day cell. A cell with a value has one fixed color, whatever the value. See .cell.filled in theme.dart.
+  /// A day after today is a faded cell that does nothing. See .cell.future.
   Component _cell(Metric m, Day d, Map<Day, num> values, bool selected) {
+    if (d.compareTo(component.today) > 0) {
+      return button(classes: 'cell future', disabled: true, attributes: {'title': '$d'}, []);
+    }
     final v = values[d];
     return button(
       classes: [

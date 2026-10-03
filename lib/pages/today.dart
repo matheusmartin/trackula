@@ -8,6 +8,7 @@ import '../model/metric.dart';
 import '../services/prefs.dart';
 import '../services/session.dart';
 import '../sheets/sheets_store.dart';
+import 'metric_detail.dart';
 
 /// Shows the metrics in a HabitKit-style table and records entries.
 class TodayPage extends StatefulComponent {
@@ -32,6 +33,9 @@ class _TodayPageState extends State<TodayPage> {
 
   /// The selected group, or null for all groups.
   String? _group = LocalPrefs.get('group');
+
+  /// The id of the metric with the open detail screen. Null shows the table.
+  String? _detail;
 
   /// Count taps that wait for a write, per metric id and day, in tap order.
   final _queued = <(String, Day), List<CountStep>>{};
@@ -121,6 +125,27 @@ class _TodayPageState extends State<TodayPage> {
     final metrics = data?.metrics ?? const <Metric>[];
     final groups = {for (final m in metrics) m.group ?? 'other'}.toList();
     final group = groups.contains(_group) ? _group : null;
+    final pending = {
+      for (final key in {..._sending.keys, ..._queued.keys}) key: [...?_sending[key], ...?_queued[key]],
+    };
+
+    // The detail screen of one metric. If the metric is gone from the sheet, the table shows again.
+    if ((data, metrics.where((m) => m.id == _detail).firstOrNull) case (final data?, final metric?)) {
+      return .fragment([
+        MetricDetail(
+          key: ValueKey(metric.id),
+          metric: metric,
+          log: data.log,
+          today: today,
+          busy: _busy,
+          onWrite: _write,
+          pending: pending,
+          onCount: _count,
+          onBack: () => setState(() => _detail = null),
+        ),
+        if (_error case final e?) p(classes: 'error-text', [.text(e)]),
+      ]);
+    }
 
     return .fragment([
       if (groups.length > 1)
@@ -163,13 +188,13 @@ class _TodayPageState extends State<TodayPage> {
             ],
             log: data.log,
             today: today,
-            range: _range,
+            days: days,
+            layout: _range == DayRange.month ? DayLayout.calendars : DayLayout.table,
             busy: _busy,
             onWrite: _write,
-            pending: {
-              for (final key in {..._sending.keys, ..._queued.keys}) key: [...?_sending[key], ...?_queued[key]],
-            },
+            pending: pending,
             onCount: _count,
+            onOpen: (m) => setState(() => _detail = m.id),
           ),
         if (data.warnings.isNotEmpty)
           article(classes: 'border warnings', [
