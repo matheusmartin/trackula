@@ -9,15 +9,6 @@ void main() {
   Day day(int i) => mon.addDays(i);
   List<Day> range(int n) => [for (var i = 0; i < n; i++) day(i)];
 
-  group('Period', () {
-    test('ends today, and All starts at the first value', () {
-      final today = day(6);
-      expect(Period.week.days(today, null), range(7));
-      expect(Period.all.days(today, day(4)), [day(4), day(5), day(6)]);
-      expect(Period.all.days(today, null), [today]);
-    });
-  });
-
   group('yesNoStats', () {
     // Mo yes, Tu yes, We no, Th (none), Fr yes, Sa yes, Su yes.
     final states = {day(0): true, day(1): true, day(2): false, day(4): true, day(5): true, day(6): true};

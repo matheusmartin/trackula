@@ -28,9 +28,6 @@ const _filled = 'color-mix(in srgb, var(--primary) 70%, var(--surface-container-
 const _empty = 'var(--surface-container-highest)';
 const _second = 'var(--tertiary)';
 
-/// Days after today: the empty color, faded. As .cell.future in theme.dart.
-const _future = 'color-mix(in srgb, var(--surface-container-highest) 40%, transparent)';
-
 const _textStyle = Styles(raw: {'font-size': '0.7rem', 'line-height': '1.2', 'color': 'var(--on-surface-variant)'});
 
 /// A chart card: a title, a one-sentence description, the chart, and labels below it. A [wide] card takes the full
@@ -93,7 +90,7 @@ const _scrollBars = 12;
 const _columnWidth = 2.6;
 
 /// The largest width of one bar column. A wide card with few bars shows them centered, not stretched.
-const _maxColumnWidth = 5;
+const _maxColumnWidth = 3.5;
 
 /// Labels under a chart: all labels in equal columns if there are few or [all], else the first and the last.
 Component _labels(List<String> labels, {bool all = false}) {
@@ -109,6 +106,12 @@ Component _labels(List<String> labels, {bool all = false}) {
     ],
   );
 }
+
+/// [children] at most [columns] × [_maxColumnWidth] wide, centered. They never scroll.
+Component _centered(int columns, List<Component> children) => div(
+  styles: Styles(raw: {'max-width': '${columns * _maxColumnWidth}rem', 'margin-inline': 'auto'}),
+  children,
+);
 
 /// [children] at most [columns] × [_maxColumnWidth] wide, centered. With more than [_scrollBars] columns, also at
 /// least [columns] × [_columnWidth] wide. If that is wider than the card, the chart scrolls to the side: with a
@@ -393,7 +396,10 @@ class LineChart extends StatelessComponent {
               ),
         ]),
         span([]),
-        _labels([shortDay(days.first), shortDay(days.last)]),
+        div(styles: const Styles(raw: {'display': 'flex', 'justify-content': 'space-between'}), [
+          small(styles: _textStyle, [.text(shortDay(days.first))]),
+          small(styles: _textStyle, [.text(shortDay(days.last))]),
+        ]),
       ]),
     ], wide: true);
   }
@@ -485,46 +491,41 @@ class DonutChart extends StatelessComponent {
   }
 }
 
-/// Bars over time with zoom: from the first value ([first]) to [today]. The zoom buttons change the span in view and
-/// the size of a bar (see [ZoomStep]): weeks, months or quarters. The small chart below shows all data, with a box
-/// on the bars in view. Move with a drag on either chart, or with the mouse wheel.
+/// Bars over time: one bar for each week, month or quarter of the time window. See [ZoomWindow].
 ///
-/// - Rates and sums use one scale for all bars of a zoom step, so that it does not change while the chart moves.
-///   Averages, changes and ranges use the bars in view.
+/// - [min] and [max] fix the scale, for example to all bars of rates and sums, so that the scale does not change
+///   while the window moves. Null: the bars in view.
 /// - Values show above the bars when 13 bars or fewer are in view.
 /// - With [range], each bar goes from the lowest to the highest value, and a dot shows the average.
-class ZoomChart extends StatefulComponent {
-  const ZoomChart({
+class TimeBars extends StatelessComponent {
+  const TimeBars({
     required this.title,
     required this.description,
-    required this.values,
-    required this.aggregate,
-    required this.first,
-    required this.today,
+    required this.bars,
+    required this.barUnit,
     this.format = formatNumber,
+    this.min,
     this.max,
-    this.signed = false,
     this.fromLowest = false,
     this.range = false,
     this.unit,
     super.key,
   });
 
+  /// Up to this number of bars, the values show above the bars.
+  static const _valueBars = 13;
+
   final String title;
   final String description;
 
-  /// The value of each day. For [Aggregate.rate]: 1 for `yes`, 0 for `no`.
-  final Map<Day, num> values;
-  final Aggregate aggregate;
-  final Day first;
-  final Day today;
+  /// The bars in view, oldest first.
+  final List<ZoomBar> bars;
+  final BarUnit barUnit;
 
   /// The text of the value above a bar and in its tooltip.
   final String Function(num v) format;
-
-  /// A fixed top of the scale, for example 1 for rates. Null: the highest value.
+  final num? min;
   final num? max;
-  final bool signed;
   final bool fromLowest;
   final bool range;
 
@@ -532,255 +533,58 @@ class ZoomChart extends StatefulComponent {
   final String? unit;
 
   @override
-  State<ZoomChart> createState() => _ZoomChartState();
-}
-
-class _ZoomChartState extends State<ZoomChart> {
-  /// Up to this number of bars, the values show above the bars.
-  static const _valueBars = 13;
-
-  /// The mouse wheel moves one bar for each this many pixels of scroll.
-  static const _wheelStep = 40.0;
-
-  /// The index in [zoomSteps]. Null: 3 months, or the largest step if there are fewer.
-  int? _step;
-
-  /// A day in the newest bar in view. Null: the newest bar of all. A day, not an index, so that a zoom keeps the
-  /// same time in view.
-  Day? _end;
-
-  /// A drag on the large chart: the start `pageX` and the end index at the start. `pageX`, not `clientX`: package:web
-  /// declares `clientX` as an int, and real pointers give fractional values.
-  (double, int)? _drag;
-  bool _miniDrag = false;
-  double _wheel = 0;
-
-  @override
   Component build(BuildContext context) {
-    final c = component;
-    final steps = zoomSteps(c.first, c.today);
-    final stepIndex = math.min(_step ?? 1, steps.length - 1);
-    final step = steps[stepIndex];
-    final starts = barStarts(c.first, c.today, step.unit);
-    final bars = zoomBars(c.values, c.aggregate, starts, step.unit, first: c.first, today: c.today);
-    final count = math.min(step.bars, starts.length);
-    final endDay = _end;
-    final end = endDay == null
-        ? starts.length
-        : (starts.indexOf(barStart(endDay, step.unit)) + 1).clamp(count, starts.length);
-    final view = bars.sublist(end - count, end);
-
-    void moveTo(int newEnd) {
-      final e = newEnd.clamp(count, starts.length);
-      setState(() => _end = e == starts.length ? null : starts[e - 1]);
-    }
-
-    void zoom(int delta) => setState(() {
-      // At the newest bar, stay at the newest bar. Else keep the same time in view.
-      if (end < starts.length) _end = view.last.start;
-      _step = (stepIndex + delta).clamp(0, steps.length - 1);
-    });
-
-    final all = showsAll(step, c.first, c.today);
-    final unitText = c.unit == null ? '' : ' ${c.unit}';
-    final label = all ? 'All' : step.label;
-    // Rates and sums start at 0: one scale for all bars, so that it does not change while the chart moves. Averages,
-    // changes and ranges use the bars in view: over all data, small changes would not show.
-    final fixedScale = c.aggregate == Aggregate.rate || c.aggregate == Aggregate.sum;
-    final scaleBars = fixedScale && !c.range ? bars : view;
-    final lows = [for (final b in scaleBars) ?(c.range ? b.low : b.value)];
-    final highs = [for (final b in scaleBars) ?(c.range ? b.high : b.value)];
-
-    return _card(
-      c.title,
-      c.description,
-      wide: true,
-      actions: [
-        button(
-          classes: 'circle transparent small',
-          attributes: {'title': 'Zoom in', 'aria-label': 'Zoom in'},
-          disabled: stepIndex == 0,
-          onClick: () => zoom(-1),
-          [
-            i([.text('zoom_in')]),
-          ],
-        ),
-        small(
-          styles: const Styles(raw: {'min-width': '4.5rem', 'text-align': 'center', 'font-size': '0.75rem'}),
-          [.text(label)],
-        ),
-        button(
-          classes: 'circle transparent small',
-          attributes: {'title': 'Zoom out', 'aria-label': 'Zoom out'},
-          disabled: stepIndex == steps.length - 1,
-          onClick: () => zoom(1),
-          [
-            i([.text('zoom_out')]),
-          ],
-        ),
-      ],
-      [
-        div(
-          styles: const Styles(raw: {'touch-action': 'pan-y', 'user-select': 'none', 'cursor': 'grab'}),
-          events: {
-            'pointerdown': (e) {
-              final p = e as web.PointerEvent;
-              _capture(p);
-              _drag = (p.pageX, end);
-            },
-            'pointermove': (e) {
-              final drag = _drag;
-              if (drag == null) return;
-              final p = e as web.PointerEvent;
-              final width = (p.currentTarget as web.Element).getBoundingClientRect().width;
-              final shift = ((p.pageX - drag.$1) / (width / count)).round();
-              if (drag.$2 - shift != end) moveTo(drag.$2 - shift);
-            },
-            'pointerup': (_) => _drag = null,
-            'pointercancel': (_) => _drag = null,
-            'wheel': (e) {
-              final w = e as web.WheelEvent;
-              final delta = w.deltaX.abs() > w.deltaY.abs() ? w.deltaX : w.deltaY;
-              final target = (end + (_wheel + delta) ~/ _wheelStep).clamp(count, starts.length);
-              _wheel = (_wheel + delta).remainder(_wheelStep);
-              // At an end, the page scrolls as usual.
-              if (target == end && (end == count && delta < 0 || end == starts.length && delta > 0)) return;
-              w.preventDefault();
-              if (target != end) moveTo(target);
-            },
-          },
-          [
-            if (c.range)
-              _rangeRows(
-                view,
-                highs.isEmpty ? 1 : highs.reduce(math.max),
-                lows.isEmpty ? 0 : lows.reduce(math.min),
-                step.unit,
-              )
-            else
-              ..._barRows(
-                [
-                  for (final b in view)
-                    (
-                      label: _barLabel(b.start, step.unit),
-                      value: b.value,
-                      tooltip:
-                          '${_barTitle(b.start, step.unit)}: ${b.value == null ? 'no value' : '${c.format(b.value!)}$unitText'}',
-                    ),
-                ],
-                label: c.title,
-                signed: c.signed,
-                fromLowest: c.fromLowest,
-                max:
-                    c.max ??
-                    (highs.isEmpty
-                        ? null
-                        : (c.signed
-                              ? [...highs, ...lows].map((v) => v.abs()).reduce(math.max)
-                              : highs.reduce(math.max))),
-                min: lows.isEmpty ? null : lows.reduce(math.min),
-                format: c.format,
-                showValues: count <= _valueBars,
-              ),
-            _labels([for (final (i, b) in view.indexed) _barLabel(b.start, step.unit, first: i == 0)]),
-          ],
-        ),
-        _overview(step, view, count, starts),
-      ],
-    );
-  }
-
-  /// The small chart of all data in weeks, with a box on the bars in view. A tap or a drag moves the box there.
-  Component _overview(ZoomStep step, List<ZoomBar> view, int count, List<Day> starts) {
-    final c = component;
-    final weeks = barStarts(c.first, c.today, BarUnit.week);
-    final aggregate = c.aggregate == Aggregate.change ? Aggregate.average : c.aggregate;
-    final bars = zoomBars(c.values, aggregate, weeks, BarUnit.week, first: c.first, today: c.today);
-    final values = [for (final b in bars) ?b.value];
-    final hi = values.isEmpty ? 1 : values.reduce(math.max);
-    // Rates and sums start at 0. Averages start a little below the lowest week, so that changes show.
-    final fromZero = aggregate == Aggregate.rate || aggregate == Aggregate.sum;
-    final lo = fromZero || values.isEmpty ? 0 : values.reduce(math.min) - (hi - values.reduce(math.min)) * 0.15;
-    const h = 30.0;
-    final w = weeks.length * 10.0;
-    double x(Day d) => (d.serial - weeks.first.serial) / 7 * 10;
-    final from = view.first.start, to = nextBarStart(view.last.start, step.unit);
-
-    void moveTo(web.PointerEvent p) {
-      final rect = (p.currentTarget as web.Element).getBoundingClientRect();
-      final f = ((p.pageX - web.window.scrollX - rect.left) / rect.width).clamp(0.0, 1.0);
-      final day = c.first.addDays((f * (c.today.serial - c.first.serial)).round());
-      final index = starts.indexOf(barStart(day, step.unit));
-      final e = (index + 1 + count ~/ 2).clamp(count, starts.length);
-      setState(() => _end = e == starts.length ? null : starts[e - 1]);
-    }
-
-    return div(
-      styles: const Styles(raw: {'margin-top': '0.5rem', 'touch-action': 'pan-y', 'cursor': 'pointer'}),
-      events: {
-        'pointerdown': (e) {
-          final p = e as web.PointerEvent;
-          _capture(p);
-          _miniDrag = true;
-          moveTo(p);
-        },
-        'pointermove': (e) {
-          if (_miniDrag) moveTo(e as web.PointerEvent);
-        },
-        'pointerup': (_) => _miniDrag = false,
-        'pointercancel': (_) => _miniDrag = false,
-      },
-      [
-        _svg(w, h + 2, height: '2rem', label: '${c.title}: all data', [
-          for (final (i, b) in bars.indexed)
-            if (b.value case final v?)
-              rect(
-                x: '${i * 10 + 1}',
-                y: '${h + 1 - math.max(0.5, (v - lo) / (hi - lo == 0 ? 1 : hi - lo) * h)}',
-                width: '8',
-                height: '${math.max(0.5, (v - lo) / (hi - lo == 0 ? 1 : hi - lo) * h)}',
-                styles: Styles(
-                  raw: {
-                    'fill': b.start.compareTo(from) >= 0 && b.start.compareTo(to) < 0
-                        ? _filled
-                        : 'var(--outline-variant)',
-                  },
+    final lows = [for (final b in bars) ?(range ? b.low : b.value)];
+    final highs = [for (final b in bars) ?(range ? b.high : b.value)];
+    if (highs.isEmpty) return _noValues(title, description);
+    final u = unit == null ? '' : ' $unit';
+    return _card(title, description, wide: true, [
+      _centered(bars.length, [
+        if (range)
+          _rangeRows(max ?? highs.reduce(math.max), min ?? lows.reduce(math.min), u)
+        else
+          ..._barRows(
+            [
+              for (final b in bars)
+                (
+                  label: _barLabel(b.start, barUnit),
+                  value: b.value,
+                  tooltip: '${_barTitle(b.start, barUnit)}: ${b.value == null ? 'no value' : '${format(b.value!)}$u'}',
                 ),
-                [],
-              ),
-          rect(
-            x: '${x(from)}',
-            y: '0.5',
-            width: '${math.max(4.0, x(to) - x(from))}',
-            height: '${h + 1}',
-            rx: '3',
-            styles: const Styles(
-              raw: {'fill': 'none', 'stroke': _primary, 'stroke-width': '1.5', 'vector-effect': 'non-scaling-stroke'},
-            ),
-            [],
+            ],
+            label: title,
+            fromLowest: fromLowest,
+            max: max ?? highs.reduce(math.max),
+            min: min ?? lows.reduce(math.min),
+            format: format,
+            showValues: bars.length <= _valueBars,
           ),
-        ]),
-      ],
-    );
+        _labels([for (final (i, b) in bars.indexed) _barLabel(b.start, barUnit, first: i == 0)]),
+      ]),
+    ]);
   }
 
-  /// One bar from the lowest to the highest value for each of [view], and the average as a dot.
-  Component _rangeRows(List<ZoomBar> view, num hi, num lo, BarUnit unit) {
+  /// One bar from the lowest to the highest value for each of [bars], and the average as a dot.
+  Component _rangeRows(num hi, num lo, String u) {
     const h = 50.0;
-    final w = view.length * 10.0;
+    final w = bars.length * 10.0;
     double y(num v) => hi == lo ? h / 2 : 2 + (h - 4) * (hi - v) / (hi - lo);
-    final u = component.unit == null ? '' : ' ${component.unit}';
-    return _svg(w, h, label: component.title, [
-      for (final (i, b) in view.indexed)
+    return _svg(w, h, label: title, [
+      for (final (i, b) in bars.indexed)
         if ((b.low, b.high, b.value) case (final low?, final high?, final avg?)) ...[
-          rect(
-            x: '${i * 10 + 2.5}',
-            y: '${y(high)}',
-            width: '5',
-            height: '${math.max(1.0, y(low) - y(high))}',
-            rx: '2',
-            styles: const Styles(raw: {'fill': _empty}),
-            [_tooltip('${_barTitle(b.start, unit)}: ${formatNumber(low, 2)} to ${formatNumber(high, 2)}$u')],
+          // A stroke, not a rect: the chart stretches to the card width, and a stroke keeps its round ends.
+          path(
+            d: 'M${i * 10 + 5} ${y(high)} V${math.max(y(high) + 0.5, y(low))}',
+            styles: const Styles(
+              raw: {
+                'fill': 'none',
+                'stroke': _empty,
+                'stroke-width': '10',
+                'stroke-linecap': 'round',
+                'vector-effect': 'non-scaling-stroke',
+              },
+            ),
+            [_tooltip('${_barTitle(b.start, barUnit)}: ${formatNumber(low, 2)} to ${formatNumber(high, 2)}$u')],
           ),
           path(
             d: 'M${i * 10 + 5} ${y(avg)} h0',
@@ -793,10 +597,105 @@ class _ZoomChartState extends State<ZoomChart> {
                 'vector-effect': 'non-scaling-stroke',
               },
             ),
-            [_tooltip('${_barTitle(b.start, unit)}: average ${formatNumber(avg, 2)}$u')],
+            [_tooltip('${_barTitle(b.start, barUnit)}: average ${formatNumber(avg, 2)}$u')],
           ),
         ],
     ]);
+  }
+}
+
+/// A small chart of all data in weeks, with a box on the days from [from] to [to]. A tap or a drag calls [onPoint]
+/// with the day under the pointer.
+class Overview extends StatefulComponent {
+  const Overview({
+    required this.weeks,
+    required this.fromZero,
+    required this.from,
+    required this.to,
+    required this.onPoint,
+    super.key,
+  });
+
+  /// One bar for each week of all data, oldest first.
+  final List<ZoomBar> weeks;
+
+  /// Bars start at 0, for rates and sums. Else a little below the lowest week, so that changes show.
+  final bool fromZero;
+  final Day from;
+  final Day to;
+  final void Function(Day day) onPoint;
+
+  @override
+  State<Overview> createState() => _OverviewState();
+}
+
+class _OverviewState extends State<Overview> {
+  bool _drag = false;
+
+  void _point(web.PointerEvent p) {
+    final c = component;
+    final rect = (p.currentTarget as web.Element).getBoundingClientRect();
+    final f = ((p.pageX - web.window.scrollX - rect.left) / rect.width).clamp(0.0, 1.0);
+    final first = c.weeks.first.start, last = c.weeks.last.start.addDays(6);
+    c.onPoint(first.addDays((f * (last.serial - first.serial)).round()));
+  }
+
+  @override
+  Component build(BuildContext context) {
+    final c = component;
+    final values = [for (final b in c.weeks) ?b.value];
+    final hi = values.isEmpty ? 1 : values.reduce(math.max);
+    final lo = c.fromZero || values.isEmpty ? 0 : values.reduce(math.min) - (hi - values.reduce(math.min)) * 0.15;
+    const h = 30.0;
+    final w = c.weeks.length * 10.0;
+    double x(Day d) => (d.serial - c.weeks.first.start.serial) / 7 * 10;
+    double bar(num v) => math.max(0.5, (v - lo) / (hi - lo == 0 ? 1 : hi - lo) * h);
+    return div(
+      styles: const Styles(raw: {'touch-action': 'none', 'cursor': 'pointer', 'user-select': 'none'}),
+      events: {
+        'pointerdown': (e) {
+          final p = e as web.PointerEvent;
+          _capture(p);
+          _drag = true;
+          _point(p);
+        },
+        'pointermove': (e) {
+          if (_drag) _point(e as web.PointerEvent);
+        },
+        'pointerup': (_) => _drag = false,
+        'pointercancel': (_) => _drag = false,
+      },
+      [
+        _svg(w, h + 2, height: '2rem', label: 'All data', [
+          for (final (i, b) in c.weeks.indexed)
+            if (b.value case final v?)
+              rect(
+                x: '${i * 10 + 1}',
+                y: '${h + 1 - bar(v)}',
+                width: '8',
+                height: '${bar(v)}',
+                styles: Styles(
+                  raw: {
+                    'fill': b.start.addDays(6).compareTo(c.from) >= 0 && b.start.compareTo(c.to) <= 0
+                        ? _filled
+                        : 'var(--outline-variant)',
+                  },
+                ),
+                [],
+              ),
+          rect(
+            x: '${x(c.from)}',
+            y: '0.5',
+            width: '${math.max(4.0, x(c.to.addDays(1)) - x(c.from))}',
+            height: '${h + 1}',
+            styles: const Styles(
+              raw: {'fill': 'none', 'stroke': _primary, 'stroke-width': '1.5', 'vector-effect': 'non-scaling-stroke'},
+            ),
+            [],
+          ),
+        ]),
+      ],
+    );
   }
 }
 
@@ -811,6 +710,7 @@ void _capture(web.PointerEvent p) {
 /// The label under a bar. Examples: "Sep 28" (week), "Sep" or "Jan ’26" (month), "Q3 ’26" (quarter). A month shows
 /// its year in January and on the [first] bar. The apostrophe tells a year from a day: "Feb ’24" is not "Feb 24".
 String _barLabel(Day start, BarUnit unit, {bool first = false}) => switch (unit) {
+  BarUnit.day => shortDay(start),
   BarUnit.week => shortDay(start),
   BarUnit.month =>
     start.month == 1 || first ? '${_months[start.month - 1]} ’${start.year % 100}' : _months[start.month - 1],
@@ -819,62 +719,84 @@ String _barLabel(Day start, BarUnit unit, {bool first = false}) => switch (unit)
 
 /// The name of a bar in a tooltip. Examples: "Week of Sep 28, 2026", "Sep 2026", "Q3 2026".
 String _barTitle(Day start, BarUnit unit) => switch (unit) {
+  BarUnit.day => '${shortDay(start)}, ${start.year}',
   BarUnit.week => 'Week of ${shortDay(start)}, ${start.year}',
   BarUnit.month => '${_months[start.month - 1]} ${start.year}',
   BarUnit.quarter => 'Q${(start.month + 2) ~/ 3} ${start.year}',
 };
 
-/// All days of a [year] in week columns, Monday at the top. A day with a value is filled. A tap on a day calls
-/// [onDay]. Days after [today] show faded and do nothing on a tap.
-class YearHeatmap extends StatelessComponent {
-  const YearHeatmap({required this.year, required this.filled, required this.today, required this.onDay, super.key});
+/// The days from [from] to [to] in week columns, Monday at the top. A day with a value is filled. A tap on a day
+/// calls [onDay].
+class DayHeatmap extends StatelessComponent {
+  const DayHeatmap({
+    required this.title,
+    required this.from,
+    required this.to,
+    required this.filled,
+    required this.today,
+    required this.onDay,
+    super.key,
+  });
 
-  final int year;
+  final String title;
+  final Day from;
+  final Day to;
   final bool Function(Day day) filled;
   final Day today;
   final void Function(Day day) onDay;
 
+  /// Longer windows: single days are too small.
+  static const maxDays = 371;
+
   @override
   Component build(BuildContext context) {
-    final first = Day(year, 1, 1);
-    final offset = first.weekday - 1;
-    final days = [for (var d = first; d.year == year; d = d.addDays(1)) d];
+    const description = 'Tap a day to show its month in the calendar.';
+    final count = to.serial - from.serial + 1;
+    if (count > maxDays) {
+      return _card(title, description, wide: true, [
+        small(styles: _textStyle, [.text('Zoom in to 1 year or less to see single days.')]),
+      ]);
+    }
+    return _card(title, description, wide: true, [_grid()]);
+  }
+
+  Component _grid() {
+    final offset = from.weekday - 1;
+    final days = [for (var d = from; d.compareTo(to) <= 0; d = d.addDays(1)) d];
     final columns = ((offset + days.length) / 7).ceil();
     const size = 10.0, gap = 2.0;
     return svg(
       viewBox: '0 0 ${columns * (size + gap)} ${7 * (size + gap)}',
-      styles: const Styles(raw: {'display': 'block', 'width': '100%', 'height': 'auto'}),
-      attributes: {'role': 'img', 'aria-label': 'All days of $year'},
+      // Short windows: cells at most about 1.5rem, centered, not the full width.
+      styles: Styles(
+        raw: {
+          'display': 'block',
+          'width': '100%',
+          'max-width': '${columns * 1.5}rem',
+          'height': 'auto',
+          'margin-inline': 'auto',
+        },
+      ),
+      attributes: {'role': 'img', 'aria-label': 'Days from $from to $to'},
       [
         for (final (i, d) in days.indexed)
-          if (d.compareTo(today) > 0)
-            rect(
-              x: '${((i + offset) ~/ 7) * (size + gap)}',
-              y: '${((i + offset) % 7) * (size + gap)}',
-              width: '$size',
-              height: '$size',
-              rx: '2',
-              styles: const Styles(raw: {'fill': _future}),
-              [_tooltip('$d')],
-            )
-          else
-            rect(
-              x: '${((i + offset) ~/ 7) * (size + gap)}',
-              y: '${((i + offset) % 7) * (size + gap)}',
-              width: '$size',
-              height: '$size',
-              rx: '2',
-              styles: Styles(
-                raw: {
-                  'fill': filled(d) ? _filled : _empty,
-                  'cursor': 'pointer',
-                  if (d == today) 'stroke': 'var(--on-surface)',
-                  if (d == today) 'stroke-width': '1',
-                },
-              ),
-              events: {'click': (_) => onDay(d)},
-              [_tooltip('$d')],
+          rect(
+            x: '${((i + offset) ~/ 7) * (size + gap)}',
+            y: '${((i + offset) % 7) * (size + gap)}',
+            width: '$size',
+            height: '$size',
+            rx: '2',
+            styles: Styles(
+              raw: {
+                'fill': filled(d) ? _filled : _empty,
+                'cursor': 'pointer',
+                if (d == today) 'stroke': 'var(--on-surface)',
+                if (d == today) 'stroke-width': '1',
+              },
             ),
+            events: {'click': (_) => onDay(d)},
+            [_tooltip('$d')],
+          ),
       ],
     );
   }

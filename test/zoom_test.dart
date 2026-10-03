@@ -10,6 +10,8 @@ void main() {
   group('bars', () {
     test('barStart and nextBarStart', () {
       const d = Day(2026, 8, 13);
+      expect(barStart(d, BarUnit.day), d);
+      expect(nextBarStart(d, BarUnit.day), const Day(2026, 8, 14));
       expect(barStart(d, BarUnit.week), const Day(2026, 8, 10));
       expect(barStart(d, BarUnit.month), const Day(2026, 8, 1));
       expect(barStart(d, BarUnit.quarter), const Day(2026, 7, 1));
@@ -25,8 +27,9 @@ void main() {
 
   group('zoomSteps', () {
     test('ends at the first step that shows all bars', () {
-      expect(zoomSteps(mon.addDays(-20), mon), [ZoomStep.month1]);
-      expect(zoomSteps(mon.addDays(-60), mon), [ZoomStep.month1, ZoomStep.month3]);
+      expect(zoomSteps(mon.addDays(-5), mon), [ZoomStep.week1]);
+      expect(zoomSteps(mon.addDays(-20), mon), [ZoomStep.week1, ZoomStep.week2, ZoomStep.month1]);
+      expect(zoomSteps(mon.addDays(-60), mon).last, ZoomStep.month3);
       expect(zoomSteps(const Day(2024, 10, 4), mon).last, ZoomStep.year2);
     });
   });
@@ -66,6 +69,45 @@ void main() {
         today: mon,
       );
       expect(bars.map((b) => b.value), [null, 1, -1.5]);
+    });
+  });
+
+  test('defaultStep: 3 months, or the last step if there are fewer', () {
+    expect(defaultStep(zoomSteps(mon.addDays(-200), mon)), ZoomStep.values.indexOf(ZoomStep.month3));
+    expect(defaultStep(zoomSteps(mon.addDays(-10), mon)), 1);
+  });
+
+  group('ZoomWindow', () {
+    // Data from 2026-08-03 (a Monday) to 2026-09-30: 9 weeks.
+    const first = Day(2026, 8, 3), today = Day(2026, 9, 30);
+
+    test('shows the newest bars, from first to today', () {
+      final w = ZoomWindow(ZoomStep.month1, first: first, today: today);
+      expect(w.starts, [for (var i = 4; i >= 0; i--) mon.addDays(-7 * i)]);
+      expect((w.from, w.to), (mon.addDays(-28), today));
+      expect(w.days.length, 31);
+      expect((w.atStart, w.atEnd), (false, true));
+    });
+
+    test('moves by bars and stops at the ends', () {
+      final w = ZoomWindow(ZoomStep.month1, first: first, today: today);
+      final back = ZoomWindow(ZoomStep.month1, first: first, today: today, end: w.moved(-2));
+      expect(back.to, mon.addDays(-14 + 6));
+      expect(w.moved(3), isNull);
+      final oldest = ZoomWindow(ZoomStep.month1, first: first, today: today, end: w.moved(-100));
+      expect((oldest.from, oldest.atStart), (first, true));
+    });
+
+    test('centeredOn puts the day in the middle bar', () {
+      final w = ZoomWindow(ZoomStep.month1, first: first, today: today);
+      final c = ZoomWindow(ZoomStep.month1, first: first, today: today, end: w.centeredOn(const Day(2026, 8, 26)));
+      expect(c.starts[2], const Day(2026, 8, 24));
+    });
+
+    test('fewer bars than the step: all bars', () {
+      final w = ZoomWindow(ZoomStep.year1, first: first, today: today);
+      expect(w.starts, [const Day(2026, 8, 1), const Day(2026, 9, 1)]);
+      expect((w.from, w.atStart, w.atEnd), (first, true, true));
     });
   });
 

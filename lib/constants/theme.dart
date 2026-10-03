@@ -269,10 +269,32 @@ List<StyleRule> get styles => [
       display: .grid,
       raw: {'grid-template-columns': 'minmax(0, 1fr)', 'grid-auto-flow': 'row dense', 'gap': '0.75rem'},
     ),
+    // The time window: stays in view below the app bar while the page scrolls. Opaque, so that charts go behind it.
+    css('.window-bar').styles(
+      display: .flex,
+      flexDirection: .column,
+      gap: .all(0.5.rem),
+      padding: .symmetric(vertical: 0.5.rem),
+      raw: {'position': 'sticky', 'top': '4rem', 'z-index': '2', 'background-color': 'var(--surface)'},
+    ),
+    // Zoom buttons on the left, dates with arrows on the right. Narrow screens: the dates go below the zoom buttons.
+    css('.window-row').styles(
+      display: .flex,
+      flexWrap: .wrap,
+      alignItems: .center,
+      justifyContent: .spaceBetween,
+      gap: .all(0.5.rem),
+    ),
+    css('.window-zoom').styles(gap: .all(0.25.rem)),
+    // A fixed width, so that the zoom buttons do not move when the label changes.
+    css('.zoom-label').styles(raw: {'min-width': '5.5rem'}),
+    css('.window-dates').styles(gap: .all(0.25.rem), raw: {'margin': '0 0 0 auto', 'font-size': '0.875rem'}),
+    // The numbers, charts and heatmap of the window.
+    css('.detail-body').styles(display: .flex, flexDirection: .column, gap: .all(1.rem)),
     css('.detail-section').styles(display: .flex, flexDirection: .column, gap: .all(0.5.rem)),
-    css('.detail-section h6').styles(margin: .zero),
+    css('.detail-section h6').styles(margin: .zero, raw: {'font-size': '1rem'}),
     css('.month-nav').styles(gap: .all(0.25.rem)),
-    // Swipes on the calendar and the heatmap: vertical scroll stays, side moves go to the page code.
+    // Side drags on the charts and swipes on the calendar: vertical scroll stays, side moves go to the page code.
     css('.swipe').styles(raw: {'touch-action': 'pan-y', 'user-select': 'none', '-webkit-user-select': 'none'}),
     // The calendars fill the width, as the chart cards above, with larger cells than on the Today page.
     css('.calendars').styles(raw: {'grid-template-columns': 'minmax(0, 1fr)'}),

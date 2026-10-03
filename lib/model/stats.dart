@@ -3,31 +3,10 @@ import 'dart:math' as math;
 import 'day.dart';
 import 'log_entry.dart';
 
-/// The time span of the metric detail screen. Each period ends today.
-enum Period {
-  week('Week', 7),
-  month('Month', 30),
-  year('Year', 365),
-  all('All', null);
-
-  const Period(this.label, this.length);
-
-  final String label;
-
-  /// The number of days. Null for [all]: from the first entry to today.
-  final int? length;
-
-  /// The days of the period, oldest first, ending on [today]. [all] starts at [first], the first day with a value.
-  List<Day> days(Day today, Day? first) {
-    final n = length ?? (first == null ? 1 : math.max(1, today.serial - first.serial + 1));
-    return [for (var i = n - 1; i >= 0; i--) today.addDays(-i)];
-  }
-}
-
 /// A value on a day, for example the best day of a count.
 typedef DayValue = ({Day day, num value});
 
-/// A month of a period.
+/// A month of the calendar.
 typedef MonthKey = ({int year, int month});
 
 /// The yes/no states of [metricId] in [entries]: true for `yes`, false for `no`. Days without entry are left out.
