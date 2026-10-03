@@ -1,4 +1,4 @@
-/// A row of the `metrics` tab. See docs/data-model.md.
+/// A row of the `Metrics` tab. See docs/data-model.md.
 sealed class Metric {
   const Metric({required this.id, required this.name, required this.icon, required this.group});
 

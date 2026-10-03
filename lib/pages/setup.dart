@@ -43,7 +43,7 @@ class _SetupPageState extends State<SetupPage> {
       h5([.text('Choose a sheet')]),
       p([
         .text(
-          'Pick a Google Sheet from your Drive. If it has no "metrics" and "log" tabs, '
+          'Pick a Google Sheet from your Drive. If it has no "Metrics" and "Log" tabs, '
           'the app adds them, with example metrics. Other tabs do not change.',
         ),
       ]),

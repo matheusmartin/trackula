@@ -2,7 +2,11 @@ import 'day.dart';
 import 'log_entry.dart';
 import 'metric.dart';
 
-/// Required column names of the `metrics` tab, in the order the app creates them.
+/// The tab titles. Exact case: the app finds the tabs by title. See docs/data-model.md.
+const metricsTitle = 'Metrics';
+const logTitle = 'Log';
+
+/// Required column names of the `Metrics` tab, in the order the app creates them.
 /// The app ignores other columns, for example `per_day` and `active` of older sheets.
 const metricsHeader = ['id', 'name', 'kind', 'unit', 'step', 'group', 'icon'];
 
@@ -27,9 +31,9 @@ final class HeaderException implements Exception {
 
 final _idPattern = RegExp(r'^[a-z0-9_-]+$');
 
-/// Parses the `metrics` tab. [rows] includes the header row.
+/// Parses the `Metrics` tab. [rows] includes the header row.
 Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
-  final col = _columns('metrics', rows, metricsHeader);
+  final col = _columns(metricsTitle, rows, metricsHeader);
   final items = <Metric>[];
   final warnings = <String>[];
   final seen = <String>{};
@@ -37,7 +41,7 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
   for (var i = 1; i < rows.length; i++) {
     final r = _Row(rows[i], col);
     if (r.isEmpty) continue;
-    final at = 'metrics row ${i + 1}';
+    final at = '$metricsTitle row ${i + 1}';
 
     final id = r.text('id');
     if (id == null || !_idPattern.hasMatch(id)) {
@@ -79,10 +83,10 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
   return Parsed(items, warnings);
 }
 
-/// Parses the `log` tab: column A is `date`, the other headers are metric ids. [rows] includes the header row.
+/// Parses the `Log` tab: column A is `date`, the other headers are metric ids. [rows] includes the header row.
 ({LogTable table, List<String> warnings}) parseLog(List<List<Object?>> rows, Map<String, Metric> metrics) {
   final header = rows.isEmpty ? const <Object?>[] : rows.first;
-  if (header.isEmpty || '${header.first}'.trim().toLowerCase() != 'date') throw HeaderException('log', ['date']);
+  if (header.isEmpty || '${header.first}'.trim().toLowerCase() != 'date') throw HeaderException(logTitle, ['date']);
 
   final warnings = <String>[];
   final columns = <String, int>{};
@@ -91,7 +95,7 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
     // A column with no metric, for example of a deleted metric: the app ignores the column and its values.
     if (id.isEmpty || !metrics.containsKey(id)) continue;
     if (columns.containsKey(id)) {
-      warnings.add('log column ${_letter(c)}: duplicate column "$id". The app uses the first one.');
+      warnings.add('$logTitle column ${_letter(c)}: duplicate column "$id". The app uses the first one.');
     } else {
       columns[id] = c;
     }
@@ -102,7 +106,7 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
   for (var i = 1; i < rows.length; i++) {
     final cells = rows[i];
     if (cells.every(_isEmpty)) continue;
-    final at = 'log row ${i + 1}';
+    final at = '$logTitle row ${i + 1}';
     final first = cells.isEmpty ? null : cells.first;
     // A real date is a serial number. Older app versions wrote the date as text: YYYY-MM-DD.
     final date = switch (first) {
@@ -139,7 +143,7 @@ Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
   return (table: LogTable(entries: entries, rows: days, columns: columns), warnings: warnings);
 }
 
-/// The `log` rows with a date stored as text (`YYYY-MM-DD`), as older app versions wrote it, and that date.
+/// The `Log` rows with a date stored as text (`YYYY-MM-DD`), as older app versions wrote it, and that date.
 ///
 /// The app changes these cells to real dates. Real dates (serial numbers) and invalid text do not change.
 /// [rows] includes the header row. The row is 1-based.
@@ -164,7 +168,7 @@ num? _yesNoValue(Object? cell) => switch (cell) {
   _ => null,
 };
 
-/// The `log` cells of yesno metrics that have a value of an old app version, and the new value of each cell.
+/// The `Log` cells of yesno metrics that have a value of an old app version, and the new value of each cell.
 ///
 /// Old versions wrote `1` for yes. `1`, `TRUE` and `0`, also as text, become `yes` or `no`. Cells with `yes` or
 /// `no`, empty cells and invalid values do not change. [rows] includes the header row. The row is 1-based,

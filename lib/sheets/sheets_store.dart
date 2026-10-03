@@ -5,7 +5,7 @@ import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/parse.dart';
 
-/// Rows for a new `metrics` tab. Edit or delete them in the sheet.
+/// Rows for a new `Metrics` tab. Edit or delete them in the sheet.
 const exampleMetrics = [
   ['weight', 'Weight', 'number', 'kg', 0.1, 'body', 'monitor_weight'],
   ['meditate', 'Meditate', 'yesno', '', '', 'habits', 'self_improvement'],
@@ -32,14 +32,14 @@ final class SheetsStore {
   /// True until [load] tried once to change text dates to real dates. Once is enough: the parser reads both.
   bool _convertDates = true;
 
-  /// Adds the `metrics` and `log` tabs to the spreadsheet if they are missing.
+  /// Adds the `Metrics` and `Log` tabs to the spreadsheet if they are missing.
   ///
-  /// A new `metrics` tab gets its header, [exampleMetrics] and data validation. A new `log` tab gets the `date`
+  /// A new `Metrics` tab gets its header, [exampleMetrics] and data validation. A new `Log` tab gets the `date`
   /// column. [load] adds the metric columns. Existing tabs and other tabs do not change.
   static Future<void> ensureTabs(SheetsApi api, String spreadsheetId) async {
     final tabs = await _tabs(api, spreadsheetId);
     final missing = [
-      for (final title in ['metrics', 'log'])
+      for (final title in [metricsTitle, logTitle])
         if (!tabs.containsKey(title)) title,
     ];
     if (missing.isEmpty) return;
@@ -65,17 +65,17 @@ final class SheetsStore {
       BatchUpdateValuesRequest(
         valueInputOption: 'RAW',
         data: [
-          if (newIds.containsKey('metrics'))
+          if (newIds.containsKey(metricsTitle))
             ValueRange(
-              range: 'metrics!A1',
+              range: '$metricsTitle!A1',
               values: [
                 metricsHeader,
                 ...exampleMetrics,
               ],
             ),
-          if (newIds.containsKey('log'))
+          if (newIds.containsKey(logTitle))
             ValueRange(
-              range: 'log!A1',
+              range: '$logTitle!A1',
               values: [
                 ['date'],
               ],
@@ -87,8 +87,8 @@ final class SheetsStore {
     await api.spreadsheets.batchUpdate(
       BatchUpdateSpreadsheetRequest(
         requests: [
-          if (newIds['metrics'] case final id?) ..._metricsRules(id, metricsHeader),
-          if (newIds['log'] case final id?) ..._dateRules(id),
+          if (newIds[metricsTitle] case final id?) ..._metricsRules(id, metricsHeader),
+          if (newIds[logTitle] case final id?) ..._dateRules(id),
         ],
       ),
       spreadsheetId,
@@ -98,20 +98,20 @@ final class SheetsStore {
   /// Sets the data validation rules of both tabs again, from the current headers and metric kinds. So sheets made
   /// by an older app version accept new values, for example kind `count` or `yes`, and new columns get their rule.
   ///
-  /// - `metrics`: the rules go to the columns with the matching header names, so moved columns keep their rules.
+  /// - `Metrics`: the rules go to the columns with the matching header names, so moved columns keep their rules.
   ///   First it removes all validation rules below row 1, so a moved column leaves no old rule behind.
-  /// - `log`: the date column gets its date format and rule. Each metric column gets the rule of its metric kind,
+  /// - `Log`: the date column gets its date format and rule. Each metric column gets the rule of its metric kind,
   ///   so a kind change also changes the rule.
   ///
   /// It changes only validation rules, not data.
   Future<void> refreshRules() async {
     final tabs = await _tabs(_api, spreadsheetId);
-    final metricsTab = tabs['metrics'];
+    final metricsTab = tabs[metricsTitle];
     if (metricsTab == null) return;
-    final logTab = tabs['log'];
+    final logTab = tabs[logTitle];
     final res = await _api.spreadsheets.values.batchGet(
       spreadsheetId,
-      ranges: ['metrics', if (logTab != null) 'log!1:1'],
+      ranges: [metricsTitle, if (logTab != null) '$logTitle!1:1'],
       valueRenderOption: 'UNFORMATTED_VALUE',
     );
     final metricRows = res.valueRanges![0].values ?? const <List<Object?>>[];
@@ -145,7 +145,7 @@ final class SheetsStore {
 
   /// Reads both tabs and validates each row.
   ///
-  /// Before it parses the `log` tab, it adds a column for each metric without one, and changes values of old app
+  /// Before it parses the `Log` tab, it adds a column for each metric without one, and changes values of old app
   /// versions: text dates to real dates (see [textDateRows]), and yesno `1` to `yes` (see [legacyYesNoCells]).
   Future<Snapshot> load() async {
     final (metricRows, logRows) = await _read();
@@ -166,7 +166,7 @@ final class SheetsStore {
     final textDates = _convertDates ? textDateRows(logRows) : const <({int row, Day date})>[];
     if (textDates.isNotEmpty) {
       _convertDates = false;
-      final tab = (await _tabs(_api, spreadsheetId))['log']!;
+      final tab = (await _tabs(_api, spreadsheetId))[logTitle]!;
       await _api.spreadsheets.batchUpdate(
         BatchUpdateSpreadsheetRequest(requests: [_dateFormat(tab.id)]),
         spreadsheetId,
@@ -178,7 +178,7 @@ final class SheetsStore {
           data: [
             for (final r in textDates)
               ValueRange(
-                range: 'log!A${r.row}',
+                range: '$logTitle!A${r.row}',
                 values: [
                   [r.date.toString()],
                 ],
@@ -227,7 +227,7 @@ final class SheetsStore {
   Future<(List<List<Object?>>, List<List<Object?>>)> _read() async {
     final res = await _api.spreadsheets.values.batchGet(
       spreadsheetId,
-      ranges: ['metrics', 'log'],
+      ranges: [metricsTitle, logTitle],
       valueRenderOption: 'UNFORMATTED_VALUE',
     );
     return (
@@ -242,7 +242,7 @@ final class SheetsStore {
         await _api.spreadsheets.values.append(
           ValueRange(values: [w.toCells()]),
           spreadsheetId,
-          'log!A1',
+          '$logTitle!A1',
           // USER_ENTERED: Sheets reads the YYYY-MM-DD text as a real date, as when you type it.
           // The other cells are numbers, or `yes` and `no`, which stay as they are.
           valueInputOption: 'USER_ENTERED',
@@ -266,7 +266,7 @@ final class SheetsStore {
 
   /// Adds a header cell and a validation rule for each metric in [metrics], after [width] columns.
   Future<void> _addColumns(List<Metric> metrics, int width) async {
-    final tab = (await _tabs(_api, spreadsheetId))['log']!;
+    final tab = (await _tabs(_api, spreadsheetId))[logTitle]!;
     // Column A is always `date`, even if the header row is empty.
     final start = width == 0 ? 1 : width;
     final needed = start + metrics.length - tab.columnCount;
@@ -289,12 +289,12 @@ final class SheetsStore {
         ],
       ),
       spreadsheetId,
-      'log!${columnLetter(width == 0 ? 0 : start)}1',
+      '$logTitle!${columnLetter(width == 0 ? 0 : start)}1',
       valueInputOption: 'RAW',
     );
   }
 
-  static String _cell(int row, int column) => 'log!${columnLetter(column)}$row';
+  static String _cell(int row, int column) => '$logTitle!${columnLetter(column)}$row';
 
   static Future<Map<String, ({int id, int columnCount})>> _tabs(SheetsApi api, String spreadsheetId) async {
     final s = await api.spreadsheets.get(
@@ -329,7 +329,7 @@ BooleanCondition _oneOf(List<String> items) => BooleanCondition(
   values: [for (final i in items) ConditionValue(userEnteredValue: i)],
 );
 
-/// The rules of the `metrics` tab. [header] holds the lowercase header names. A missing column gets no rule.
+/// The rules of the `Metrics` tab. [header] holds the lowercase header names. A missing column gets no rule.
 List<Request> _metricsRules(int id, List<String> header) {
   Request? at(String name, BooleanCondition Function(String cell) condition) {
     final i = header.indexOf(name);
@@ -352,7 +352,7 @@ List<Request> _dateRules(int id) => [
   _rule(_col(id, 0), BooleanCondition(type: 'DATE_IS_VALID')),
 ];
 
-/// Formats `log!A2:A` as a date with the pattern YYYY-MM-DD. The header row stays text.
+/// Formats `Log!A2:A` as a date with the pattern YYYY-MM-DD. The header row stays text.
 Request _dateFormat(int id) => Request(
   repeatCell: RepeatCellRequest(
     range: GridRange(sheetId: id, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1),

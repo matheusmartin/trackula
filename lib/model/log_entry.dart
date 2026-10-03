@@ -3,11 +3,11 @@ import 'dart:math' as math;
 import 'day.dart';
 import 'metric.dart';
 
-/// A non-empty value cell of the `log` tab.
+/// A non-empty value cell of the `Log` tab.
 final class LogEntry {
   const LogEntry({required this.row, required this.date, required this.metricId, required this.value});
 
-  /// 1-based row number in the `log` tab. Row 1 is the header.
+  /// 1-based row number in the `Log` tab. Row 1 is the header.
   final int row;
   final Day date;
   final String metricId;
@@ -16,7 +16,7 @@ final class LogEntry {
   final num value;
 }
 
-/// The `log` tab: one row per day, one column per metric. See docs/data-model.md.
+/// The `Log` tab: one row per day, one column per metric. See docs/data-model.md.
 final class LogTable {
   const LogTable({required this.entries, required this.rows, required this.columns});
 
@@ -39,7 +39,7 @@ final class LogTable {
   }
 }
 
-/// A change to the `log` tab.
+/// A change to the `Log` tab.
 sealed class LogWrite {
   const LogWrite();
 }
@@ -69,7 +69,7 @@ final class SetCell extends LogWrite {
   final Object? value;
 }
 
-/// The `log` cell for a [value]: `yes` (1) or `no` (0) for yesno metrics, the number for number metrics.
+/// The `Log` cell for a [value]: `yes` (1) or `no` (0) for yesno metrics, the number for number metrics.
 /// Null is an empty cell.
 Object? cellValue(Metric metric, num? value) => value == null
     ? null

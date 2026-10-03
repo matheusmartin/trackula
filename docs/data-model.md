@@ -4,17 +4,18 @@
 
 - Storage is one Google Sheet.
 - The sheet has 2 tabs:
-  - `metrics`: the list of things you track. You edit it by hand.
-  - `log`: one row for each day, one column for each metric. The app writes it. You can edit it by hand.
+  - `Metrics`: the list of things you track. You edit it by hand.
+  - `Log`: one row for each day, one column for each metric. The app writes it. You can edit it by hand.
 - Row 1 of each tab is the header row. Do not change the header names.
+- The tab names are `Metrics` and `Log`, with a capital first letter. Older app versions used `metrics` and `log`: rename these tabs.
 
-## Tab `metrics`
+## Tab `Metrics`
 
 One row for each metric. The row order is the display order in the app.
 
 | Column    | Type    | Required | Values                  | Description |
 |-----------|---------|----------|-------------------------|-------------|
-| `id`      | text    | Yes      | lowercase, `a-z0-9_-`   | Stable key. It is the column header in the `log` tab. Do not change it after first use. |
+| `id`      | text    | Yes      | lowercase, `a-z0-9_-`   | Stable key. It is the column header in the `Log` tab. Do not change it after first use. |
 | `name`    | text    | Yes      | any                     | Name that the app shows. You can change it at any time. |
 | `kind`    | text    | Yes      | `yesno`, `number`, `count` | `yesno`: done (`yes`) or not done (`no`). `number`: a value, with a line chart from the lowest to the highest value. In the app, a tap on a `number` cell opens an editor with a ruler, a text field and a Save button. Save with an empty field clears the day. `count`: the same as `number`, but with a bar chart from 0. In the app, a click or tap on a `count` cell adds `step`. A right-click (mouse) or a double-tap (touch) subtracts it. A count goes to empty only with subtractions: there is no reset. |
 | `unit`    | text    | No       | any                     | Example: `kg`, `glasses`, `steps`. Empty for `yesno`. |
@@ -24,7 +25,7 @@ One row for each metric. The row order is the display order in the app.
 
 Rules:
 
-- To hide a metric, delete its row. Its `log` column and values stay in the sheet, and the app ignores them. To show the metric again, add the row again with the same `id`.
+- To hide a metric, delete its row. Its `Log` column and values stay in the sheet, and the app ignores them. To show the metric again, add the row again with the same `id`.
 - The app ignores other columns. Older sheets have `per_day` and `active` columns: you can delete them.
 - Older sheets can have no `icon` column. Then the app shows an error. Add the column with an icon in each row.
 
@@ -38,7 +39,7 @@ Example:
 | water    | Water    | number | glasses | 1    | habits | 💧               |
 | reading  | Reading  | number | min     | 5    | habits | menu_book        |
 
-## Tab `log`
+## Tab `Log`
 
 One row for each day, one column for each metric. Rows are not sorted. The app sorts them.
 
@@ -81,27 +82,27 @@ Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses
 ### Layer 1: app writes
 
 - Dart types allow only valid writes. Example: a `YesNoMetric` can only write `yes` or `no`.
-- The app reads the `log` tab again before each write. This keeps row numbers correct after manual edits.
+- The app reads the `Log` tab again before each write. This keeps row numbers correct after manual edits.
 
 ### Layer 2: sheet data validation
 
-The app adds these rules when it adds a missing tab or a missing `log` column, and sets the `metrics` and `log` rules again each time it opens the sheet:
+The app adds these rules when it adds a missing tab or a missing `Log` column, and sets the `Metrics` and `Log` rules again each time it opens the sheet:
 
 | Range                 | Rule                                                                               | Similar DB constraint |
 |-----------------------|------------------------------------------------------------------------------------|-----------------------|
-| `log!A2:A`            | Valid date. Sheets also shows a date picker.                                       | Column type           |
-| `log` `number` or `count` column | Custom formula: `=ISNUMBER(B2)`                                         | Column type           |
-| `log` `yesno` column  | Dropdown: `yes`, `no`                                                              | Enum                  |
-| `metrics` column `kind`    | Dropdown: `yesno`, `number`, `count`                                          | Enum                  |
-| `metrics` column `icon`    | Custom formula: `=OR(REGEXMATCH(I2, "^[a-z0-9_]+$"), LEN(I2) <= 16)`          | Check constraint      |
+| `Log!A2:A`            | Valid date. Sheets also shows a date picker.                                       | Column type           |
+| `Log` `number` or `count` column | Custom formula: `=ISNUMBER(B2)`                                         | Column type           |
+| `Log` `yesno` column  | Dropdown: `yes`, `no`                                                              | Enum                  |
+| `Metrics` column `kind`    | Dropdown: `yesno`, `number`, `count`                                          | Enum                  |
+| `Metrics` column `icon`    | Custom formula: `=OR(REGEXMATCH(I2, "^[a-z0-9_]+$"), LEN(I2) <= 16)`          | Check constraint      |
 
-The `metrics` rules:
+The `Metrics` rules:
 
 - The app finds the columns by header name. The column letters can change. The `icon` example uses column `I`.
 - The app sets the rules again each time it opens the sheet. So a sheet from an older app version accepts new values, for example `count`, and a new column gets its rule, for example `icon`.
-- Before that, the app removes all validation rules below row 1 of the `metrics` tab. So a moved column leaves no old rule behind. Do not add your own rules to this tab: the app removes them.
+- Before that, the app removes all validation rules below row 1 of the `Metrics` tab. So a moved column leaves no old rule behind. Do not add your own rules to this tab: the app removes them.
 
-The `log` rules:
+The `Log` rules:
 
 - Each metric column gets the rule of its metric `kind` each time the app opens the sheet. So a changed `kind` also changes the rule, and a sheet from an older app version accepts `yes` and `no`.
 - Do not add your own rules to the metric columns: the app replaces them.
@@ -109,19 +110,19 @@ The `log` rules:
 Other setup:
 
 - Freeze row 1 in both tabs.
-- Format `log!A2:A` as a date with the pattern `yyyy-mm-dd`. So the dates show the same in every locale.
+- Format `Log!A2:A` as a date with the pattern `yyyy-mm-dd`. So the dates show the same in every locale.
 - Older app versions stored the dates as text. When the app opens the sheet, it changes them to real dates once.
 
 Limits:
 
 - API writes skip data validation. Sheets accepts the value and marks the cell as invalid. Layer 1 is necessary.
-- No cascade: a changed metric `id` breaks the link to its `log` column. If you must change it, rename the column header too. The app does not warn: it does not show the values of the old column.
+- No cascade: a changed metric `id` breaks the link to its `Log` column. If you must change it, rename the column header too. The app does not warn: it does not show the values of the old column.
 - No transactions: "read, then update" is not atomic.
 
 ### Layer 3: app reads
 
-- The app ignores a `log` row with an invalid `date`, and shows a warning.
-- The app ignores a `log` cell that is not a number (or not `yes` or `no` for `yesno`), and shows a warning.
-- The app ignores a `log` column with no metric, for example of a deleted metric. It shows no warning.
+- The app ignores a `Log` row with an invalid `date`, and shows a warning.
+- The app ignores a `Log` cell that is not a number (or not `yes` or `no` for `yesno`), and shows a warning.
+- The app ignores a `Log` column with no metric, for example of a deleted metric. It shows no warning.
 - If a day has 2 or more rows, the app uses the last row and shows a warning. Sheets does not block a second row for the same day: a cell can have only one rule, and the date column uses the valid-date rule.
-- The app ignores a `metrics` row with a missing or invalid `id` or `kind`, and shows a warning.
+- The app ignores a `Metrics` row with a missing or invalid `id` or `kind`, and shows a warning.

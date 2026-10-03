@@ -179,7 +179,7 @@ class _TodayPageState extends State<TodayPage> {
       if (_error case final e?) p(classes: 'error-text', [.text(e)]),
       if (data != null) ...[
         if (metrics.isEmpty)
-          p(classes: 'secondary-text', [.text('No metrics. Add rows to the "metrics" tab of the sheet.')])
+          p(classes: 'secondary-text', [.text('No metrics. Add rows to the "Metrics" tab of the sheet.')])
         else
           HabitTable(
             metrics: [

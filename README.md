@@ -8,7 +8,7 @@
 - Detail screen: tap a metric name to see all its data. It has numbers and charts for a period (week, month, year or all), a month calendar to edit any day and a year heatmap.
 - Charts over time have zoom buttons: 1 month to 5 years. Short spans show weeks, middle spans months, long spans quarters. A small chart below shows all data. Drag or use the mouse wheel to move.
 - Storage: one Google Sheet in your Google Drive. You pick it with the Google Picker. You can edit the data by hand.
-- If the picked sheet has no `metrics` and `log` tabs, the app adds them.
+- If the picked sheet has no `Metrics` and `Log` tabs, the app adds them.
 - Frontend only. No backend. The browser signs in with Google and calls the Sheets API.
 - Language: Dart. Framework: [Jaspr](https://jaspr.site), client mode.
 - UI: [BeerCSS](https://www.beercss.com) 5.0.3 (Material Design 3 and Material Symbols icons), loaded from the jsdelivr CDN in `web/index.html`.
