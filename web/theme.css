@@ -1,10 +1,18 @@
 /*
  * Blood orange color theme for BeerCSS (Material Design 3 variables).
- * - Light theme only. It is the same for the light and dark OS settings.
+ * - Light and dark themes. The device setting (prefers-color-scheme) selects one. There is no button in the app.
  * - Comes from the Fang T logo gradient: #F97316 (orange) to #BE123C (red).
- * - Surfaces are white with a little orange. Primary is the red end of the gradient.
- * Loads after BeerCSS, so these values replace the BeerCSS defaults. Error colors come from BeerCSS.
+ * - Light: surfaces are white with a little orange. Primary is the red end of the gradient.
+ * - Dark: surfaces are warm dark brown. Primary and tertiary are light tones of the same red and orange, as in
+ *   Material Design 3 dark schemes.
+ * Loads after BeerCSS, so these values replace the BeerCSS defaults. Light error colors come from BeerCSS.
+ * The app CSS (lib/constants/theme.dart) and the charts use only these variables, so they follow the theme.
  */
+:root {
+  /* Scrollbars, form fields and other browser parts follow the theme too. */
+  color-scheme: light dark;
+}
+
 :root,
 body.light,
 body.dark {
@@ -44,6 +52,51 @@ body.dark {
   --surface-container-highest: #fee3d0;
 }
 
+@media (prefers-color-scheme: dark) {
+  :root,
+  body.light,
+  body.dark {
+    --primary: #ffb2bd;
+    --on-primary: #67001d;
+    --primary-container: #91002d;
+    --on-primary-container: #ffd9dd;
+    --done: #8fd694;
+    --done-container: #1f3d22;
+    --on-done-container: #c8ecc9;
+    --secondary: #e7bcc1;
+    --on-secondary: #44292d;
+    --secondary-container: #5d3f43;
+    --on-secondary-container: #ffd9dd;
+    --tertiary: #ffb68a;
+    --on-tertiary: #522300;
+    --tertiary-container: #763400;
+    --on-tertiary-container: #ffdbc8;
+    --background: #1a1110;
+    --on-background: #f1dedc;
+    --surface: #1a1110;
+    --on-surface: #f1dedc;
+    --surface-variant: #534341;
+    --on-surface-variant: #d8c2bf;
+    --outline: #a08c8a;
+    --outline-variant: #534341;
+    --inverse-surface: #f1dedc;
+    --inverse-on-surface: #392e2d;
+    --inverse-primary: #be123c;
+    --surface-dim: #1a1110;
+    --surface-bright: #423736;
+    --surface-container-lowest: #140c0b;
+    --surface-container-low: #231918;
+    --surface-container: #271d1c;
+    --surface-container-high: #322827;
+    --surface-container-highest: #3d3231;
+    /* BeerCSS sets these only for body.dark. The body class stays "light", so they are set here. */
+    --error: #ffb4ab;
+    --on-error: #690005;
+    --error-container: #93000a;
+    --on-error-container: #ffb4ab;
+  }
+}
+
 /* The app name ("Trackula"): Helvetica Neue 600, the same as in the PNG logo (design/logo/make.py).
    Helvetica Neue is on Apple devices only. Other devices use Helvetica or Arial. */
 :root {
@@ -55,8 +108,11 @@ header h6 {
   font-weight: 600;
 }
 
-/* Top bar with the logo gradient. */
+/* Top bar with the logo gradient, in both themes. The text and icons stay white on it: the dark theme
+   --on-primary is dark red. */
 header.primary {
+  --on-primary: #ffffff;
+  color: #ffffff;
   background-image: linear-gradient(135deg, #f97316, #be123c);
 }
 
@@ -75,7 +131,7 @@ main.splash {
   min-block-size: 100dvh;
   margin: 0;
   padding: 2rem 1.5rem calc(2rem + env(safe-area-inset-bottom));
-  background: radial-gradient(circle at 50% 38%, #fee3d0 0, var(--surface) 65%);
+  background: radial-gradient(circle at 50% 38%, var(--surface-container-highest) 0, var(--surface) 65%);
 }
 
 .splash-logo {

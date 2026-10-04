@@ -12,6 +12,7 @@
 - Frontend only. No backend. The browser signs in with Google and calls the Sheets API.
 - Language: Dart. Framework: [Jaspr](https://jaspr.site), client mode.
 - UI: [BeerCSS](https://www.beercss.com) 5.0.3 (Material Design 3 and Material Symbols icons), loaded from the jsdelivr CDN in `web/index.html`.
+- Theme: blood orange, light or dark. The device setting selects it. Colors: `web/theme.css`.
 - Hosting: static files (Cloudflare Pages or GitHub Pages).
 - Data model: [docs/data-model.md](docs/data-model.md).
 
