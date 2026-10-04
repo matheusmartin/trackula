@@ -4,6 +4,9 @@ import '../model/day.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/parse.dart';
+import 'store.dart';
+
+export 'store.dart';
 
 /// Rows for a new `Metrics` tab. Edit or delete them in the sheet.
 const exampleMetrics = [
@@ -12,18 +15,8 @@ const exampleMetrics = [
   ['water', 'Water', 'number', 'glasses', 1, 'habits', 'water_drop'],
 ];
 
-/// The data of the spreadsheet at one point in time.
-final class Snapshot {
-  const Snapshot(this.metrics, this.log, this.warnings);
-
-  /// All metrics, in sheet order. Includes inactive metrics.
-  final List<Metric> metrics;
-  final LogTable log;
-  final List<String> warnings;
-}
-
 /// Reads and writes the trackula spreadsheet. See docs/data-model.md.
-final class SheetsStore {
+final class SheetsStore implements Store {
   SheetsStore(this._api, this.spreadsheetId);
 
   final SheetsApi _api;
@@ -104,6 +97,7 @@ final class SheetsStore {
   ///   so a kind change also changes the rule.
   ///
   /// It changes only validation rules, not data.
+  @override
   Future<void> refreshRules() async {
     final tabs = await _tabs(_api, spreadsheetId);
     final metricsTab = tabs[metricsTitle];
@@ -147,6 +141,7 @@ final class SheetsStore {
   ///
   /// Before it parses the `Log` tab, it adds a column for each metric without one, and changes values of old app
   /// versions: text dates to real dates (see [textDateRows]), and yesno `1` to `yes` (see [legacyYesNoCells]).
+  @override
   Future<Snapshot> load() async {
     final (metricRows, logRows) = await _read();
     final metrics = parseMetrics(metricRows);
@@ -217,11 +212,24 @@ final class SheetsStore {
   /// Reads the latest data, asks [plan] for a change, applies it, and returns the new data.
   ///
   /// The read before the write keeps row numbers correct after manual edits in the sheet.
+  @override
   Future<Snapshot> change(LogWrite? Function(LogTable log) plan) async {
     final w = plan((await load()).log);
     if (w == null) return load();
     await _apply(w);
     return load();
+  }
+
+  @override
+  Future<Snapshot> changeAll(List<LogWrite? Function(LogTable log)> plans) async {
+    var data = await load();
+    for (final plan in plans) {
+      if (plan(data.log) case final w?) {
+        await _apply(w);
+        data = await load();
+      }
+    }
+    return data;
   }
 
   Future<(List<List<Object?>>, List<List<Object?>>)> _read() async {

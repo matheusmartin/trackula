@@ -11,6 +11,7 @@ import '../model/number_input.dart';
 /// Editor for one day of a `number` metric. `count` metrics use taps instead. See HabitTable.
 ///
 /// - Ruler: drag it with a finger or the mouse, or scroll on it. It snaps to the metric step. One tick is one step.
+///   With [onChange] (the Today tiles), only a side scroll moves it: a vertical scroll scrolls the page.
 /// - Text field: exact values, for example a first value. "81.9" and "81,9" both work.
 /// - Save: saves the value. With an empty text field, Save clears the day.
 /// - Keys: Enter saves, Escape closes. Arrow keys: one step. On the ruler, Page Up and Page Down: 10 steps.
@@ -28,6 +29,8 @@ class NumberEditor extends StatefulComponent {
     required this.onSave,
     required this.onClear,
     required this.onClose,
+    this.autofocus = true,
+    this.onChange,
     super.key,
   });
 
@@ -46,6 +49,15 @@ class NumberEditor extends StatefulComponent {
   final void Function(num value) onSave;
   final VoidCallback onClear;
   final VoidCallback onClose;
+
+  /// Focus the ruler at the start. False when many editors show at the same time, as on the Today tiles: else the
+  /// page scrolls to the last one.
+  final bool autofocus;
+
+  /// Called with the value at each change, and when the user taps the ruler without a move: that confirms the
+  /// value. Null after the text field is emptied. With [onChange], the editor shows no Save button, and Enter does
+  /// nothing: the parent saves.
+  final void Function(num? value)? onChange;
 
   @override
   State<NumberEditor> createState() => _NumberEditorState();
@@ -86,7 +98,9 @@ class _NumberEditorState extends State<NumberEditor> {
     super.initState();
     // Focus the ruler, so the arrow keys work at once and the editor scrolls into view.
     // The text field gets no focus: on phones that opens the keyboard over the ruler.
-    Future(() => (web.document.querySelector('.number-editor .ruler') as web.HTMLElement?)?.focus());
+    if (component.autofocus) {
+      Future(() => (web.document.querySelector('.number-editor .ruler') as web.HTMLElement?)?.focus());
+    }
   }
 
   @override
@@ -103,17 +117,26 @@ class _NumberEditorState extends State<NumberEditor> {
       _text = formatStep(value, _step);
       _error = null;
     });
+    component.onChange?.call(value);
   }
 
   /// The ruler follows the text field while the user types a valid number.
-  void _type(String text) => setState(() {
-    _text = text;
-    if (parseDecimal(text) case final v?) _value = v;
-    _error = null;
-  });
+  void _type(String text) {
+    setState(() {
+      _text = text;
+      if (parseDecimal(text) case final v?) _value = v;
+      _error = null;
+    });
+    if (parseDecimal(text) case final v?) {
+      component.onChange?.call(v);
+    } else if (text.trim().isEmpty) {
+      component.onChange?.call(null);
+    }
+  }
 
   /// Saves the value. An empty text field clears the day.
   void _save() {
+    if (component.onChange != null) return;
     final v = parseDecimal(_text);
     if (v != null) return component.onSave(v);
     if (_text.trim().isEmpty && component.current != null) return component.onClear();
@@ -154,6 +177,8 @@ class _NumberEditorState extends State<NumberEditor> {
     e.preventDefault();
     (e.currentTarget as web.HTMLElement).focus();
     _dragEnd();
+    // A tap on the ruler confirms the value, also without a move.
+    component.onChange?.call(_value);
     _drag = (e.pageX, _value);
     web.window.addEventListener('pointermove', _onDragMove);
     web.window.addEventListener('pointerup', _onDragEnd);
@@ -175,6 +200,9 @@ class _NumberEditorState extends State<NumberEditor> {
   }
 
   void _wheelMove(web.WheelEvent e) {
+    // On the Today tiles (with onChange), the rulers fill much of the page: a vertical wheel scrolls the page, and only
+    // a side wheel or trackpad swipe moves the ruler. Else a page scroll changes values by mistake.
+    if (component.onChange != null && e.deltaY.abs() >= e.deltaX.abs()) return;
     e.preventDefault();
     final delta = e.deltaX.abs() > e.deltaY.abs() ? e.deltaX : e.deltaY;
     // deltaMode 1: the delta is in lines, not pixels. One line is one tick.
@@ -205,18 +233,25 @@ class _NumberEditorState extends State<NumberEditor> {
           if (m.unit case final unit?) span(classes: 'unit', [.text(unit)]),
         ]),
         _ruler(),
-        div(classes: 'actions', [
-          button(disabled: component.busy, onClick: _save, [.text('Save')]),
-        ]),
+        if (component.onChange == null)
+          div(classes: 'actions', [
+            button(disabled: component.busy, onClick: _save, [.text('Save')]),
+          ]),
         if (_error case final e?) span(classes: 'error-text', [.text(e)]),
       ],
     );
   }
 
   /// Ticks around the value: a long tick with a label every 10 steps, a middle tick every 5 steps.
-  /// The strip moves, and the needle stays in the middle.
+  /// The strip moves, and the needle stays in the middle. A green tick marks the start value (the value of the nearest
+  /// other day, see [NumberEditor.start]), on the nearest tick: it moves with the strip and shows how far the value is
+  /// from it. At the start value, the green tick does not show: under the needle, the two colors mix.
   Component _ruler() {
     final center = (_value / _step).round();
+    final startTick = switch (component.start) {
+      final s? when (s / _step).round() != center => (s / _step).round(),
+      _ => null,
+    };
     final first = math.max(0, center - _ticks);
     final offset = -((_value / _step - first) * _tick + _tick / 2);
     return div(
@@ -237,9 +272,17 @@ class _NumberEditorState extends State<NumberEditor> {
       [
         div(classes: 'strip', styles: Styles(raw: {'transform': 'translateX(${offset.toStringAsFixed(1)}px)'}), [
           for (var k = first; k <= center + _ticks; k++)
-            span(key: ValueKey(k), classes: k % 10 == 0 ? 'tick major' : (k % 5 == 0 ? 'tick mid' : 'tick'), [
-              if (k % 10 == 0) span([.text(formatShort(roundToStep(k * _step, _step)))]),
-            ]),
+            span(
+              key: ValueKey(k),
+              classes: [
+                'tick',
+                if (k % 10 == 0) 'major' else if (k % 5 == 0) 'mid',
+                if (k == startTick) 'start',
+              ].join(' '),
+              [
+                if (k % 10 == 0) span([.text(formatShort(roundToStep(k * _step, _step)))]),
+              ],
+            ),
         ]),
         span(classes: 'needle', []),
       ],

@@ -142,6 +142,20 @@ void main() {
       expect(dayValues(water, p.table.entries), {d29: 8, d30: 5});
     });
 
+    test('dayValuesWithPending adds count taps that are not written yet', () {
+      final p = parseLog([
+        ['date', 'water'],
+        ['2026-09-29', 8],
+        ['2026-09-30', 1],
+      ], metrics);
+      final pending = {
+        ('water', d29): [const CountStep.add(1), const CountStep.add(1)],
+        ('water', d30): [const CountStep.add(-1)],
+        ('weight', d29): [const CountStep.add(5)],
+      };
+      expect(dayValuesWithPending(water, p.table.entries, pending), {d29: 10});
+    });
+
     test('warns about invalid cells and duplicate days, and ignores columns with no metric', () {
       final p = parseLog([
         ['date', 'weight', 'steps', 'meditate'],

@@ -2,34 +2,63 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
 import '../components/habit_table.dart';
+import '../components/today_tiles.dart';
 import '../model/day.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../services/prefs.dart';
-import '../services/session.dart';
-import '../sheets/sheets_store.dart';
+import '../sheets/store.dart';
 import 'metric_detail.dart';
 
 /// Shows the metrics in a HabitKit-style table and records entries.
 class TodayPage extends StatefulComponent {
-  const TodayPage({required this.session, required this.sheetId, required this.onExpired, super.key});
+  const TodayPage({
+    required this.store,
+    required this.expired,
+    required this.onExpired,
+    required this.range,
+    required this.onRange,
+    required this.onDetail,
+    required this.reload,
+    required this.onBusy,
+    super.key,
+  });
 
-  final Session session;
-  final String sheetId;
+  /// The store of the sheet, or of demo mode. The page keeps the first one.
+  final Store store;
+
+  /// True after the Google sign-in expired. Then [onExpired] runs instead of a store call.
+  final bool Function() expired;
   final VoidCallback onExpired;
+
+  /// The view: the Today tiles, the 5-day table or the 31-day calendars. The App owns it, because the bottom
+  /// navigation bar is a child of `<body>`, outside this page. See App.
+  final DayRange range;
+
+  /// Changes [range].
+  final void Function(DayRange range) onRange;
+
+  /// Called with true when a metric detail screen opens, and with false when it closes. The App hides the bottom
+  /// navigation bar on the detail screen.
+  final void Function(bool open) onDetail;
+
+  /// The reload button in the app bar calls [ReloadHandle.run]. The page sets it.
+  final ReloadHandle reload;
+
+  /// Called when a load or a write starts (true) and ends (false). The app bar shows a progress circle.
+  final void Function(bool busy) onBusy;
 
   @override
   State<TodayPage> createState() => _TodayPageState();
 }
 
 class _TodayPageState extends State<TodayPage> {
-  late final SheetsStore _store = component.session.store(component.sheetId);
+  late final Store _store = component.store;
   Snapshot? _data;
   bool _busy = false;
   String? _error;
 
-  /// The saved range. An old saved value, such as `week`, gives the default: the last 5 days.
-  DayRange _range = DayRange.values.asNameMap()[LocalPrefs.get('range')] ?? DayRange.short;
+  DayRange get _range => component.range;
 
   /// The selected group, or null for all groups.
   String? _group = LocalPrefs.get('group');
@@ -43,19 +72,36 @@ class _TodayPageState extends State<TodayPage> {
   /// Count taps in the write that runs now. The table shows them until the new data arrives.
   final _sending = <(String, Day), List<CountStep>>{};
 
-  void _toggleRange() => setState(() {
-    _range = _range == DayRange.short ? DayRange.month : DayRange.short;
-    LocalPrefs.set('range', _range.name);
-  });
+  /// Opens the detail screen of the metric [id], or closes it with null.
+  void _openDetail(String? id) {
+    setState(() => _detail = id);
+    component.onDetail(id != null);
+  }
 
   void _setGroup(String? g) => setState(() {
     _group = g;
     LocalPrefs.set('group', g);
   });
 
+  /// Tells the app bar about [busy] after the current build: the first load starts in [initState], and the App
+  /// must not rebuild during a build.
+  void _notifyBusy(bool busy) => Future(() {
+    if (mounted) component.onBusy(busy);
+  });
+
+  void _reload() => _run(_store.load);
+
+  @override
+  void dispose() {
+    // A new page (another sheet) can already use the handle.
+    if (component.reload.run == _reload) component.reload.run = null;
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
+    component.reload.run = _reload;
     _run(() async {
       await _store.refreshRules();
       return _store.load();
@@ -65,11 +111,12 @@ class _TodayPageState extends State<TodayPage> {
   /// Runs [task] and shows its data. [done] runs in the same update as the new data or the error.
   /// After that, the count taps that came during the task get written.
   Future<void> _run(Future<Snapshot> Function() task, {VoidCallback? done}) async {
-    if (component.session.expired) return component.onExpired();
+    if (component.expired()) return component.onExpired();
     setState(() {
       _busy = true;
       _error = null;
     });
+    _notifyBusy(true);
     try {
       final data = await task();
       setState(() {
@@ -84,12 +131,20 @@ class _TodayPageState extends State<TodayPage> {
     } finally {
       if (mounted) {
         setState(() => _busy = false);
+        _notifyBusy(false);
         _writeCounts();
       }
     }
   }
 
   void _write(LogWrite? Function(LogTable log) plan) => _run(() => _store.change(plan));
+
+  /// Saves the values of the Today tiles. After a successful save, the page shows the last 5 days. It does not save
+  /// that range: the app still opens on the saved range, for example Today. After an error, the Today tiles stay.
+  Future<void> _writeAll(List<LogWrite? Function(LogTable log)> plans) async {
+    await _run(() => _store.changeAll(plans));
+    if (mounted && _error == null) component.onRange(DayRange.short);
+  }
 
   /// Adds a count tap. The table shows it at once. The write starts when no other write runs.
   void _count(NumberMetric m, Day d, CountStep step) {
@@ -125,6 +180,10 @@ class _TodayPageState extends State<TodayPage> {
     final metrics = data?.metrics ?? const <Metric>[];
     final groups = {for (final m in metrics) m.group ?? 'other'}.toList();
     final group = groups.contains(_group) ? _group : null;
+    final shown = [
+      for (final m in metrics)
+        if (group == null || (m.group ?? 'other') == group) m,
+    ];
     final pending = {
       for (final key in {..._sending.keys, ..._queued.keys}) key: [...?_sending[key], ...?_queued[key]],
     };
@@ -141,7 +200,7 @@ class _TodayPageState extends State<TodayPage> {
           onWrite: _write,
           pending: pending,
           onCount: _count,
-          onBack: () => setState(() => _detail = null),
+          onBack: () => _openDetail(null),
         ),
         if (_error case final e?) p(classes: 'error-text', [.text(e)]),
       ]);
@@ -157,35 +216,22 @@ class _TodayPageState extends State<TodayPage> {
             for (final g in groups) _chip(g, g == group, () => _setGroup(g)),
           ],
         ),
-      nav(classes: 'toolbar-row', [
-        button(classes: 'chip', onClick: _toggleRange, [
-          i([.text('date_range')]),
-          span([.text(_range.label)]),
-        ]),
-        span(classes: 'max small-text secondary-text range', [
-          .text('${_short(days.first)} — ${_short(days.last)}'),
-        ]),
-        if (_busy) progress(classes: 'circle small', []),
-        button(
-          classes: 'circle transparent',
-          disabled: _busy,
-          attributes: {'title': 'Reload'},
-          onClick: () => _run(_store.load),
-          [
-            i([.text('refresh')]),
-          ],
-        ),
-      ]),
       if (_error case final e?) p(classes: 'error-text', [.text(e)]),
       if (data != null) ...[
         if (metrics.isEmpty)
           p(classes: 'secondary-text', [.text('No metrics. Add rows to the "Metrics" tab of the sheet.')])
+        else if (_range == DayRange.today)
+          TodayTiles(
+            metrics: shown,
+            log: data.log,
+            today: today,
+            busy: _busy,
+            onWriteAll: _writeAll,
+            pending: pending,
+          )
         else
           HabitTable(
-            metrics: [
-              for (final m in metrics)
-                if (group == null || (m.group ?? 'other') == group) m,
-            ],
+            metrics: shown,
             log: data.log,
             today: today,
             days: days,
@@ -194,7 +240,7 @@ class _TodayPageState extends State<TodayPage> {
             onWrite: _write,
             pending: pending,
             onCount: _count,
-            onOpen: (m) => setState(() => _detail = m.id),
+            onOpen: (m) => _openDetail(m.id),
           ),
         if (data.warnings.isNotEmpty)
           article(classes: 'border warnings', [
@@ -220,9 +266,9 @@ class _TodayPageState extends State<TodayPage> {
       span([.text(label.isEmpty ? label : label[0].toUpperCase() + label.substring(1))]),
     ],
   );
+}
 
-  static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  /// Example: "Sep 24".
-  static String _short(Day d) => '${_months[d.month - 1]} ${d.day}';
+/// Lets the app bar reload the data of the Today page. The page sets [run] when it starts.
+final class ReloadHandle {
+  VoidCallback? run;
 }

@@ -95,15 +95,7 @@ class _MetricDetailState extends State<MetricDetail> {
   Day get _today => component.today;
 
   /// The day values, with the count taps that are not written yet. The same values as in the table.
-  Map<Day, num> get _values {
-    final values = dayValues(_m, component.log.entries);
-    for (final MapEntry(key: (id, day), value: steps) in component.pending.entries) {
-      if (id != _m.id) continue;
-      final v = applyCountSteps(values[day], steps);
-      v == null ? values.remove(day) : values[day] = v;
-    }
-    return values;
-  }
+  Map<Day, num> get _values => dayValuesWithPending(_m, component.log.entries, component.pending);
 
   void _moveTo(Day? end) {
     if (end == _end) return;

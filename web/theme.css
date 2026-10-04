@@ -12,6 +12,10 @@ body.dark {
   --on-primary: #ffffff;
   --primary-container: #f5d9e0;
   --on-primary-container: #2b1b15;
+  /* Not Material: the green of done and entered tiles on the Today screen. */
+  --done: #2e7d32;
+  --done-container: #dcefdc;
+  --on-done-container: #1b4d1f;
   --secondary: #8f0e2d;
   --on-secondary: #ffffff;
   --secondary-container: #edd8dd;

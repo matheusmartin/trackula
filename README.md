@@ -39,13 +39,14 @@
 ## Commands
 
 - Run the development server: `jaspr serve --dart-define-from-file=config.env`
+- Demo mode: open `http://localhost:8080/?demo`. Sample data in memory, no Google sign-in, no writes to a sheet. A reload starts again from the sample data. Use it to test the UI.
 - Run the tests: `dart test`
 - Build for production: `jaspr build --dart-define-from-file=config.env`. The output goes to `build/jaspr/`.
 
 ## Project structure
 
 - `lib/model/`: data model, parsing, validation and write planning. Pure Dart, no browser code.
-- `lib/sheets/`: Google Sheets access.
+- `lib/sheets/`: Google Sheets access (`SheetsStore`) and the demo mode data (`DemoStore`). Both implement `Store`.
 - `lib/services/`: Google sign-in and browser storage.
 - `lib/pages/`, `lib/components/`: UI. `lib/model/stats.dart` and `lib/model/zoom.dart`: the numbers and zoom bars of the detail screen.
 - `lib/constants/theme.dart`: app CSS (`@css`) on top of BeerCSS. Only the habit table and editor. Use Material theme variables (`var(--primary)`…) for colors.

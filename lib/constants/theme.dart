@@ -7,7 +7,9 @@ import 'package:jaspr/dom.dart';
 @css
 List<StyleRule> get styles => [
   // today.dart
-  css('nav.chips, nav.toolbar-row').styles(margin: .only(bottom: 0.75.rem)),
+  css('nav.chips').styles(margin: .only(bottom: 0.75.rem)),
+  // header.dart: the progress circle in the app bar, white as the icons. BeerCSS draws it in the primary color.
+  css('header progress.circle').styles(raw: {'color': 'var(--on-primary)'}),
   // Group chips: one row that scrolls sideways, without a scroll bar. The right edge fades out to show more chips.
   css('nav.chips', [
     css('&').styles(
@@ -35,13 +37,6 @@ List<StyleRule> get styles => [
     // Space at the end, so the last chip can scroll out of the faded edge.
     css('&::after').styles(raw: {'content': '""', 'flex': '0 0 1rem'}),
   ]),
-  // The range chip has the same border as the group chips.
-  css('nav.toolbar-row .chip').styles(
-    raw: {
-      'color': 'var(--on-surface)',
-      'border-color': 'color-mix(in srgb, var(--primary) 30%, var(--outline-variant))',
-    },
-  ),
   css('.warnings ul').styles(padding: .only(left: 1.25.rem)),
 
   // habit_table.dart: shared parts.
@@ -175,6 +170,12 @@ List<StyleRule> get styles => [
     ),
     css('.tick.mid::before').styles(raw: {'block-size': '1rem'}),
     css('.tick.major::before').styles(raw: {'block-size': '1.5rem', 'background-color': 'var(--on-surface-variant)'}),
+    // The start value: a green tick over the full height, 2px wide as the needle. Left 3.5px: centered on the 1px
+    // tick line at 4px. Green: --done in web/theme.css.
+    css('.tick.start::before').styles(
+      position: .absolute(left: 3.5.px, top: .zero),
+      raw: {'inline-size': '2px', 'block-size': '100%', 'background-color': 'var(--done)'},
+    ),
     css('.tick span').styles(
       position: .absolute(left: 4.5.px, top: 1.75.rem),
       fontSize: 0.7.rem,
@@ -186,6 +187,101 @@ List<StyleRule> get styles => [
     ),
     css('.actions').styles(display: .flex, flexWrap: .wrap, alignItems: .center, gap: .all(0.5.rem)),
   ]),
+
+  // today_tiles.dart: one tile for each metric. Phones: 2 columns. Wider screens: 4 columns. Number tiles with a
+  // ruler take a full row, so that the small tiles in a row have the same height. Dense: small tiles fill the gaps.
+  // Green: --done variables in web/theme.css.
+  css('.tiles', [
+    css('&').styles(
+      display: .grid,
+      raw: {'grid-template-columns': 'repeat(2, minmax(0, 1fr))', 'grid-auto-flow': 'row dense', 'gap': '0.75rem'},
+    ),
+    css('.tile').styles(
+      position: .relative(),
+      radius: .circular(16.px),
+      raw: {'background-color': 'var(--surface-container)', 'min-width': '0'},
+    ),
+    css('.tile.done').styles(
+      raw: {'background-color': 'var(--done-container)', 'color': 'var(--on-done-container)'},
+    ),
+    // A tile with a value that the Save button has not saved yet. A box shadow, not an outline: BeerCSS buttons inherit
+    // the outline.
+    css('.tile.unsaved').styles(raw: {'box-shadow': 'inset 0 0 0 2px var(--done)'}),
+    css('.tile.wide').styles(padding: .all(0.75.rem), raw: {'grid-column': '1 / -1'}),
+    // Yes/no and count tiles are one button. BeerCSS styles every <button>, so reset its size, color and layout here.
+    // touch-action: no double-tap zoom, so that a double-tap on a count tile subtracts at once.
+    css('.tile-main').styles(
+      display: .flex,
+      flexDirection: .column,
+      alignItems: .start,
+      justifyContent: .spaceBetween,
+      gap: .all(0.75.rem),
+      margin: .zero,
+      padding: .all(0.75.rem),
+      textAlign: .left,
+      raw: {
+        // border-box: BeerCSS buttons are content-box, so 100% plus the padding goes past the tile.
+        'box-sizing': 'border-box',
+        'inline-size': '100%',
+        'block-size': 'auto',
+        'min-block-size': '6rem',
+        'border': '0',
+        'border-radius': 'inherit',
+        'background': 'transparent',
+        'color': 'inherit',
+        'box-shadow': 'none',
+        'white-space': 'normal',
+        'font-weight': '400',
+        'touch-action': 'manipulation',
+      },
+    ),
+    css('.tile.wide .tile-main').styles(
+      flexDirection: .row,
+      alignItems: .center,
+      justifyContent: .start,
+      padding: .zero,
+      raw: {'min-block-size': '0'},
+    ),
+    css('.tile-text').styles(display: .flex, flexDirection: .column, raw: {'min-width': '0'}),
+    // The counter of count tiles: top right, in the corner that the icon row leaves free.
+    css('.tile-counter').styles(
+      position: .absolute(top: 0.75.rem, right: 0.75.rem),
+      fontSize: 1.rem,
+      raw: {
+        'line-height': '1',
+        'pointer-events': 'none',
+        'color': 'color-mix(in srgb, currentColor 70%, transparent)',
+      },
+    ),
+    css('.tile-name').styles(fontSize: 1.rem, raw: {'line-height': '1.3'}),
+    // Number tiles: a smaller value and ruler than in the table editor, so that the habit tiles fit on a phone screen.
+    css('.tile.wide .editor').styles(
+      margin: .only(top: 0.25.rem),
+      gap: .all(0.25.rem),
+    ),
+    css('.tile.wide .number-editor .value input').styles(fontSize: 1.375.rem, raw: {'color': 'inherit'}),
+    css('.tile.wide .number-editor .ruler').styles(raw: {'block-size': '2.75rem'}),
+    // Green focus frame, not red: red looks like an error on a green tile.
+    css('.tile.wide .number-editor .ruler:focus-visible').styles(raw: {'outline-color': 'var(--done)'}),
+    css('.tile.wide .number-editor .tick span').styles(
+      position: .absolute(top: 1.5.rem, left: 4.5.px),
+    ),
+  ]),
+  css.media(MediaQuery.screen(minWidth: 640.px), [
+    css('.tiles').styles(raw: {'grid-template-columns': 'repeat(4, minmax(0, 1fr))'}),
+  ]),
+  // The Save button of the Today tiles: at the end of the page, below the tiles, as wide as the tiles. border-box:
+  // BeerCSS buttons are content-box, so 100% plus the padding goes past the tiles. The corners of the tiles.
+  css('.save-button').styles(
+    margin: .only(top: 1.5.rem, bottom: 1.rem),
+    radius: .circular(16.px),
+    fontSize: 1.rem,
+    raw: {'box-sizing': 'border-box', 'inline-size': '100%', 'block-size': '3.25rem', 'margin-inline': '0'},
+  ),
+  // No changes: a quiet grey button with readable text, not the pale red of a disabled BeerCSS button.
+  css('.save-button:disabled').styles(
+    raw: {'background-color': 'var(--surface-container-highest)', 'color': 'var(--on-surface-variant)', 'opacity': '1'},
+  ),
 
   // habit_table.dart: 7-day table.
   css('.table-wrap').styles(overflow: .auto),

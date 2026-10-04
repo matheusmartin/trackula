@@ -11,9 +11,10 @@ import 'metric_icon.dart';
 import 'number_editor.dart';
 import 'trend_chart.dart';
 
-/// How many past days the app shows: a table of the last 5 days on all screens, or one small calendar per metric
-/// for the last 31 days.
+/// How many past days the app shows: today as input tiles (see TodayTiles), a table of the last 5 days on all
+/// screens, or one small calendar per metric for the last 31 days.
 enum DayRange {
+  today(1),
   short(5),
   month(31);
 
@@ -21,7 +22,15 @@ enum DayRange {
 
   final int days;
 
-  String get label => 'Last $days days';
+  /// The label in the bottom navigation bar.
+  String get label => days == 1 ? 'Today' : '$days days';
+
+  /// The Material Symbols icon in the bottom navigation bar.
+  String get icon => switch (this) {
+    DayRange.today => 'today',
+    DayRange.short => 'view_week',
+    DayRange.month => 'calendar_month',
+  };
 
   /// The days of the range, oldest first, ending on [today].
   List<Day> daysUntil(Day today) => [for (var i = days - 1; i >= 0; i--) today.addDays(-i)];
@@ -157,15 +166,7 @@ class _HabitTableState extends State<HabitTable> {
   }
 
   /// The day values of [m], with the count taps that are not written yet.
-  Map<Day, num> _values(Metric m) {
-    final values = dayValues(m, component.log.entries);
-    for (final MapEntry(key: (id, day), value: steps) in component.pending.entries) {
-      if (id != m.id) continue;
-      final v = applyCountSteps(values[day], steps);
-      v == null ? values.remove(day) : values[day] = v;
-    }
-    return values;
-  }
+  Map<Day, num> _values(Metric m) => dayValuesWithPending(m, component.log.entries, component.pending);
 
   @override
   Component build(BuildContext context) {

@@ -16,6 +16,18 @@ Map<Day, num> dayValues(Metric metric, List<LogEntry> log) {
   return values;
 }
 
+/// [dayValues] of [metric], with the count taps in [pending] that are not written yet. Keys of [pending] are metric
+/// id and day.
+Map<Day, num> dayValuesWithPending(Metric metric, List<LogEntry> log, Map<(String, Day), List<CountStep>> pending) {
+  final values = dayValues(metric, log);
+  for (final MapEntry(key: (id, day), value: steps) in pending.entries) {
+    if (id != metric.id) continue;
+    final v = applyCountSteps(values[day], steps);
+    v == null ? values.remove(day) : values[day] = v;
+  }
+  return values;
+}
+
 /// The day of [days] that is nearest before [day], else the nearest after it. Null if [days] has no other day.
 ///
 /// The number editor of an empty day starts at the value of this day.
