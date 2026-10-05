@@ -1,6 +1,5 @@
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
-import 'package:web/web.dart' as web;
 
 import '../model/date_format.dart';
 import '../model/day.dart';
@@ -8,7 +7,7 @@ import '../model/format.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/summary.dart';
-import '../services/double_tap.dart';
+import '../services/count_input.dart';
 import 'metric_icon.dart';
 import 'number_editor.dart';
 import 'trend_chart.dart';
@@ -100,69 +99,24 @@ class _HabitTableState extends State<HabitTable> {
   /// The metric and day open in the editor.
   (String, Day)? _editing;
 
-  /// Touch taps on count cells: a tap waits 300 ms for a second tap on the same cell. Keys are metric id and day.
-  final _taps = DoubleTap<(String, Day)>();
-
-  /// The pointer type of the last press on a count cell: 'mouse', 'touch' or 'pen'. Null after the click, so a
-  /// keyboard click (Enter or Space) works like a mouse click.
-  String? _pressType;
-
-  bool get _touchPress => _pressType == 'touch' || _pressType == 'pen';
+  /// The input of count cells. Keys are metric id and day.
+  final _counts = CountInput<(String, Day)>();
 
   @override
   void dispose() {
-    _taps.dispose();
+    _counts.dispose();
     super.dispose();
   }
 
   void _click(Metric m, Day d, Map<Day, num> values) => switch (m) {
     YesNoMetric() => component.onWrite((log) => planYesNo(m, d, values[d] == null, log)),
-    NumberMetric(isCount: true) => _countClick(m, d),
+    NumberMetric(isCount: true) => _counts.click((m.id, d), _counter(m, d)),
     NumberMetric() => setState(() => _editing = _editing == (m.id, d) ? null : (m.id, d)),
   };
 
-  /// Mouse and keyboard: a click adds the step at once, so two quick clicks add two steps.
-  /// Touch: a tap adds the step after the double-tap wait, and a double-tap subtracts it. See [DoubleTap].
-  void _countClick(NumberMetric m, Day d) {
-    final touch = _touchPress;
-    _pressType = null;
-    if (touch) {
-      _taps.tap(
-        (m.id, d),
-        onSingle: () => component.onCount(m, d, CountStep.add(m.step)),
-        onDouble: () => component.onCount(m, d, CountStep.add(-m.step)),
-      );
-    } else {
-      _addCount(m, d, m.step);
-    }
-  }
-
-  /// Right-click: subtracts the step. A touch long-press also opens the context menu on Android: it does nothing.
-  /// The browser menu never opens on a count cell.
-  void _countMenu(NumberMetric m, Day d, web.Event e) {
-    e.preventDefault();
-    final touch = _touchPress;
-    _pressType = null;
-    if (!touch) _addCount(m, d, -m.step);
-  }
-
-  /// Keys on a focused count cell: `+` adds the step, `-` subtracts it.
-  void _countKey(NumberMetric m, Day d, web.KeyboardEvent e) {
-    final sign = switch (e.key) {
-      '+' || '=' => 1,
-      '-' => -1,
-      _ => 0,
-    };
-    if (sign == 0) return;
-    e.preventDefault();
-    _addCount(m, d, sign * m.step);
-  }
-
-  /// Adds [delta] at once. A waiting touch tap runs first, so the steps keep their order.
-  void _addCount(NumberMetric m, Day d, num delta) {
-    _taps.flush();
-    component.onCount(m, d, CountStep.add(delta));
-  }
+  /// Adds `sign` steps of [m] on [d]. See [CountInput].
+  void Function(int sign) _counter(NumberMetric m, Day d) =>
+      (sign) => component.onCount(m, d, CountStep.add(sign * m.step));
 
   /// The day values of [m], with the count taps that are not written yet.
   Map<Day, num> _values(Metric m) => dayValuesWithPending(m, component.log.entries, component.pending);
@@ -300,11 +254,7 @@ class _HabitTableState extends State<HabitTable> {
       onClick: () => _click(m, d, values),
       events: {
         // Count cells are not disabled during a write: taps queue and show at once. See TodayPage.
-        if (m case NumberMetric(isCount: true)) ...{
-          'pointerdown': (e) => _pressType = (e as web.PointerEvent).pointerType,
-          'contextmenu': (e) => _countMenu(m, d, e),
-          'keydown': (e) => _countKey(m, d, e as web.KeyboardEvent),
-        },
+        if (m case NumberMetric(isCount: true)) ..._counts.events(_counter(m, d)),
       },
       [
         if (m is NumberMetric && v != null) .text(formatCompact(v)),

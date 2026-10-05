@@ -1,6 +1,5 @@
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
-import 'package:web/web.dart' as web;
 
 import '../model/day.dart';
 import '../model/log_entry.dart';
@@ -9,7 +8,7 @@ import '../model/number_input.dart';
 import '../model/summary.dart';
 import 'metric_icon.dart';
 import 'number_editor.dart';
-import '../services/double_tap.dart';
+import '../services/count_input.dart';
 
 /// Today input mode: one tile for each metric, for today only. The fewest taps for each input.
 ///
@@ -60,16 +59,12 @@ class _TodayTilesState extends State<TodayTiles> {
 
   Day get today => component.today;
 
-  /// Touch taps on count tiles: a tap waits 300 ms for a second tap on the same tile. Keys are metric ids.
-  final _taps = DoubleTap<String>();
-
-  /// The pointer type of the last press on a count tile: 'mouse', 'touch' or 'pen'. Null after the click, so a
-  /// keyboard click (Enter or Space) works like a mouse click.
-  String? _pressType;
+  /// The input of count tiles. Keys are metric ids.
+  final _counts = CountInput<String>();
 
   @override
   void dispose() {
-    _taps.dispose();
+    _counts.dispose();
     super.dispose();
   }
 
@@ -177,45 +172,16 @@ class _TodayTilesState extends State<TodayTiles> {
   void _add(NumberMetric m, num delta, num? saved) =>
       _set(m, applyCountSteps(_shown(m, saved), [CountStep.add(delta)]), saved);
 
-  /// Mouse and keyboard: a click adds the step at once. Touch: a tap adds the step after the double-tap wait, and a
-  /// double-tap subtracts it. See [DoubleTap].
-  void _countClick(NumberMetric m, num? saved) {
-    final touch = _pressType == 'touch' || _pressType == 'pen';
-    _pressType = null;
-    if (touch) {
-      _taps.tap(m.id, onSingle: () => _add(m, m.step, saved), onDouble: () => _add(m, -m.step, saved));
-    } else {
-      _taps.flush();
-      _add(m, m.step, saved);
-    }
-  }
-
   Component _count(NumberMetric m, num? saved) {
     final v = _shown(m, saved);
     final step = formatStep(m.step, m.step);
+    void add(int sign) => _add(m, sign * m.step, saved);
     return div(classes: _classes(m, done: v != null, kind: 'count'), [
       button(
         classes: 'tile-main',
         attributes: {'title': 'Tap or click: +$step. Double-tap or right-click: −$step.', 'aria-label': m.name},
-        onClick: () => _countClick(m, saved),
-        events: {
-          'pointerdown': (e) => _pressType = (e as web.PointerEvent).pointerType,
-          // Right-click subtracts. A touch long-press also opens the context menu on Android: it does nothing.
-          'contextmenu': (e) {
-            e.preventDefault();
-            final touch = _pressType == 'touch' || _pressType == 'pen';
-            _pressType = null;
-            if (touch) return;
-            _taps.flush();
-            _add(m, -m.step, saved);
-          },
-          'keydown': (e) {
-            final k = (e as web.KeyboardEvent).key;
-            if (k != '+' && k != '=' && k != '-') return;
-            _taps.flush();
-            _add(m, k == '-' ? -m.step : m.step, saved);
-          },
-        },
+        onClick: () => _counts.click(m.id, add),
+        events: _counts.events(add),
         [
           ..._head(m),
           // The counter: the value of today, 0 when empty.
