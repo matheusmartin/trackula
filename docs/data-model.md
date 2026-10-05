@@ -7,7 +7,7 @@
   - `Metrics`: the list of things you track. You edit it by hand.
   - `Log`: the values for each day. The app writes it. You can edit it by hand.
 - Row 1 of each tab is the header row. Do not change the header names.
-- The tab names are `Metrics` and `Log`, with a capital first letter. Older app versions used `metrics` and `log`: rename these tabs.
+- The tab names are `Metrics` and `Log`, with a capital first letter.
 
 ## Tab `Metrics`
 
@@ -26,8 +26,7 @@ One row for each metric. The row order is the display order in the app.
 ### Rules
 
 - To hide a metric, delete its row. Its `Log` column and values stay in the sheet, and the app ignores them. To show the metric again, add the row again with the same `id`.
-- The app ignores other columns. Older sheets have `per_day` and `active` columns: you can delete them.
-- Older sheets can have no `icon` column. Then the app shows an error. Add the column with an icon in each row.
+- The app ignores other columns.
 
 ### Metric kinds
 
@@ -62,7 +61,6 @@ One row for each day, one column for each metric. Rows are not sorted. The app s
 - The app adds a column at the end when a metric has no column. The app does this when it loads the sheet.
 - The column order does not matter. You can move columns.
 - `yesno`: case does not matter. An empty cell means no entry: the app shows it like `no`.
-  - Old app versions wrote `1` for `yes`. When the app opens the sheet, it changes these cells to `yes` (and `0` to `no`). It does not change empty cells.
 - `number` and `count`: one value per day. For amounts, for example glasses of water, it is the day total. Single entries are not stored.
 - The app adds a row when a day has no row. It does not delete rows. A row with only a date is valid.
 
@@ -74,6 +72,11 @@ One row for each day, one column for each metric. Rows are not sorted. The app s
 | 2026-09-30 | 82.1   | yes      | 5     | 25      |
 
 Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses, reading 25 min.
+
+## Sheet format
+
+- When the app adds a tab, it freezes row 1.
+- Each time it opens the sheet, the app formats `Log!A2:A` as a date with the pattern `yyyy-mm-dd`. So the dates show the same in every locale.
 
 ## Consistency
 
@@ -114,12 +117,6 @@ The app finds the columns by header name, so the column letters can change. The 
 - Each metric column gets the rule of its metric `kind`. So a changed `kind` also changes the rule.
 - Do not add your own rules to the metric columns: the app replaces them.
 
-#### Other setup
-
-- Freeze row 1 in both tabs.
-- Format `Log!A2:A` as a date with the pattern `yyyy-mm-dd`. So the dates show the same in every locale.
-- Older app versions stored the dates as text. When the app opens the sheet, it changes them to real dates once.
-
 #### Limits
 
 - API writes skip data validation. Sheets accepts the value and marks the cell as invalid. Layer 1 is necessary.
@@ -133,3 +130,16 @@ The app finds the columns by header name, so the column letters can change. The 
 - The app ignores a `Log` column with no metric, for example of a deleted metric. It shows no warning.
 - If a day has 2 or more rows, the app uses the last row and shows a warning. Sheets does not block a second row for the same day: a cell can have only one rule, and the date column uses the valid-date rule.
 - The app ignores a `Metrics` row with a missing or invalid `id` or `kind`, and shows a warning.
+
+## Older sheets
+
+Sheets from older app versions can be different. The app changes some of these differences. You must change the others.
+
+| Difference                                   | Who changes it | Change |
+|----------------------------------------------|----------------|--------|
+| Tab names `metrics` and `log`                | You            | Rename the tabs to `Metrics` and `Log`. |
+| `per_day` and `active` columns in `Metrics`  | You (optional) | Delete the columns. The app ignores them. |
+| No `icon` column in `Metrics`                | You            | Add the column with an icon in each row. Until then, the app shows an error. |
+| `1` and `0` in `yesno` columns of `Log`      | The app        | When it opens the sheet, it changes `1` to `yes` and `0` to `no`. It does not change empty cells. |
+| Dates as text in `Log`                       | The app        | When it opens the sheet, it changes them to real dates once. |
+| Old validation rules                         | The app        | When it opens the sheet, it sets the rules of [Layer 2](#layer-2-sheet-data-validation) again. So the sheet accepts new values, for example `count`, `yes` and `no`. |
