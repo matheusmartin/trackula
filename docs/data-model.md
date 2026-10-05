@@ -21,7 +21,7 @@ One row for each metric. The row order is the display order in the app.
 | `unit`    | text    | No       | any                     | Example: `kg`, `glasses`, `steps`. Empty for `yesno`. |
 | `step`    | number  | No       | > 0                     | Input step for `number` and `count`. Example: `0.1` for weight. Default: `1`. |
 | `group`   | text    | No       | any                     | Groups metrics on the screen. Example: `habits`, `body`. |
-| `icon`    | text    | Yes      | Material Symbols name or emoji | Icon next to the name, and in the title of the detail screen. A lowercase name (`a-z`, `0-9`, `_`) is a [Material Symbols](https://fonts.google.com/icons) icon, for example `water_drop`. Other text shows as it is, for example `💧`. A row without icon is invalid: the app shows a warning and does not show the metric. |
+| `icon`    | text    | Yes      | Material Symbols name or emoji | Icon next to the name, and in the title of the detail screen. A lowercase name (`a-z`, `0-9`, `_`) is a [Material Symbols](https://fonts.google.com/icons) icon, for example `water_drop`. Other text shows as it is, for example `💧`. |
 
 ### Rules
 
@@ -120,7 +120,7 @@ The app finds the columns by header name, so the column letters can change. The 
 #### Limits
 
 - API writes skip data validation. Sheets accepts the value and marks the cell as invalid. Layer 1 is necessary.
-- No cascade: a changed metric `id` breaks the link to its `Log` column. If you must change it, rename the column header too. The app does not warn: it does not show the values of the old column.
+- No cascade: a changed metric `id` breaks the link to its `Log` column. If you must change it, rename the column header too. The app does not warn: it ignores the old column (see [Layer 3](#layer-3-app-reads)).
 - No transactions: "read, then update" is not atomic.
 
 ### Layer 3: app reads
@@ -129,7 +129,8 @@ The app finds the columns by header name, so the column letters can change. The 
 - The app ignores a `Log` cell that is not a number (or not `yes` or `no` for `yesno`), and shows a warning.
 - The app ignores a `Log` column with no metric, for example of a deleted metric. It shows no warning.
 - If a day has 2 or more rows, the app uses the last row and shows a warning. Sheets does not block a second row for the same day: a cell can have only one rule, and the date column uses the valid-date rule.
-- The app ignores a `Metrics` row with a missing or invalid `id` or `kind`, and shows a warning.
+- The app ignores a `Metrics` row with a missing, invalid or duplicate `id`, an invalid `kind` or no `icon`, and shows a warning.
+- If 2 `Log` columns have the same metric `id`, the app uses the first one and shows a warning.
 
 ## Older sheets
 
