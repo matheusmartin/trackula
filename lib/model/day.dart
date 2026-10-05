@@ -43,8 +43,13 @@ final class Day implements Comparable<Day> {
   String toString() =>
       '${year.toString().padLeft(4, '0')}-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
 
+  /// Compares the numbers, not the text: this runs often, for example to sort and filter days.
   @override
-  int compareTo(Day other) => toString().compareTo(other.toString());
+  int compareTo(Day other) => year != other.year
+      ? year.compareTo(other.year)
+      : month != other.month
+      ? month.compareTo(other.month)
+      : day.compareTo(other.day);
 
   @override
   bool operator ==(Object other) => other is Day && other.year == year && other.month == month && other.day == day;

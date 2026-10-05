@@ -42,6 +42,18 @@ void main() {
       }
     });
 
+    test('compareTo orders by year, then month, then day', () {
+      final days = [
+        const Day(2026, 10, 1),
+        const Day(2025, 12, 31),
+        const Day(2026, 9, 30),
+        const Day(2026, 9, 5),
+        const Day(2026, 1, 15),
+      ]..sort();
+      expect(days.map((d) => '$d'), ['2025-12-31', '2026-01-15', '2026-09-05', '2026-09-30', '2026-10-01']);
+      expect(d30.compareTo(const Day(2026, 9, 30)), 0);
+    });
+
     test('rejects invalid dates', () {
       expect(Day.tryParse('2026-02-30'), isNull);
       expect(Day.tryParse('30/09/2026'), isNull);
@@ -139,7 +151,19 @@ void main() {
       expect(p.table.valueAt('weight', d30), 82.1);
       expect(p.table.valueAt('meditate', d30), 1);
       expect(p.table.valueAt('meditate', d29), isNull);
+      // A day without a row, and a metric without a column.
+      expect(p.table.valueAt('weight', d29.addDays(-1)), isNull);
+      expect(p.table.valueAt('steps', d30), isNull);
       expect(dayValues(water, p.table.entries), {d29: 8, d30: 5});
+    });
+
+    test('valueAt reads the last row of a day with 2 rows', () {
+      final p = parseLog([
+        ['date', 'weight'],
+        ['2026-09-30', 82.4],
+        ['2026-09-30', 82.1],
+      ], metrics);
+      expect(p.table.valueAt('weight', d30), 82.1);
     });
 
     test('dayValuesWithPending adds count taps that are not written yet', () {

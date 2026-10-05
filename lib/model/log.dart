@@ -18,7 +18,7 @@ final class LogEntry {
 
 /// The `Log` tab: one row per day, one column per metric. See docs/data-model.md.
 final class LogTable {
-  const LogTable({required this.entries, required this.rows, required this.columns});
+  LogTable({required this.entries, required this.rows, required this.columns});
 
   /// All valid, non-empty value cells.
   final List<LogEntry> entries;
@@ -29,13 +29,13 @@ final class LogTable {
   /// 0-based column index of each metric. Column 0 is `date`.
   final Map<String, int> columns;
 
+  /// The value of each cell, by row and metric id. Built at the first [valueAt].
+  late final Map<(int, String), num> _cells = {for (final e in entries) (e.row, e.metricId): e.value};
+
+  /// The value of [metricId] in the row of [date], or null if the cell is empty or the day has no row.
   num? valueAt(String metricId, Day date) {
     final row = rows[date];
-    num? value;
-    for (final e in entries) {
-      if (e.row == row && e.metricId == metricId) value = e.value;
-    }
-    return value;
+    return row == null ? null : _cells[(row, metricId)];
   }
 }
 
