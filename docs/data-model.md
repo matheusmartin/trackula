@@ -93,7 +93,7 @@ Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses
 
 ### Layer 2: sheet data validation
 
-The app adds these rules when it adds a missing tab or a missing `Log` column, and sets the `Metrics` and `Log` rules again each time it opens the sheet:
+The app sets these rules each time it opens the sheet, and when it adds a missing tab or a missing `Log` column:
 
 | Range                            | Rule                                                                 | Similar DB constraint |
 |----------------------------------|----------------------------------------------------------------------|-----------------------|
@@ -101,17 +101,17 @@ The app adds these rules when it adds a missing tab or a missing `Log` column, a
 | `Log` `number` or `count` column | Custom formula: `=ISNUMBER(B2)`                                      | Column type           |
 | `Log` `yesno` column             | Dropdown: `yes`, `no`                                                | Enum                  |
 | `Metrics` column `kind`          | Dropdown: `yesno`, `number`, `count`                                 | Enum                  |
-| `Metrics` column `icon`          | Custom formula: `=OR(REGEXMATCH(I2, "^[a-z0-9_]+$"), LEN(I2) <= 16)` | Check constraint      |
+| `Metrics` column `icon`          | Custom formula: `=OR(REGEXMATCH(G2, "^[a-z0-9_]+$"), LEN(G2) <= 16)` | Check constraint      |
+
+The app finds the columns by header name, so the column letters can change. The formulas use the columns of the examples: `B` is the first metric column of `Log`, and `G` is the `icon` column of `Metrics`.
 
 #### `Metrics` rules
 
-- The app finds the columns by header name. The column letters can change. The `icon` example uses column `I`.
-- The app sets the rules again each time it opens the sheet. So a sheet from an older app version accepts new values, for example `count`, and a new column gets its rule, for example `icon`.
-- Before that, the app removes all validation rules below row 1 of the `Metrics` tab. So a moved column leaves no old rule behind. Do not add your own rules to this tab: the app removes them.
+- Before it sets the rules, the app removes all validation rules below row 1 of the `Metrics` tab. So a moved column leaves no old rule behind. Do not add your own rules to this tab: the app removes them.
 
 #### `Log` rules
 
-- Each metric column gets the rule of its metric `kind` each time the app opens the sheet. So a changed `kind` also changes the rule, and a sheet from an older app version accepts `yes` and `no`.
+- Each metric column gets the rule of its metric `kind`. So a changed `kind` also changes the rule.
 - Do not add your own rules to the metric columns: the app replaces them.
 
 #### Other setup
