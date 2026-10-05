@@ -2,7 +2,9 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
 import '../model/chart.dart';
+import '../model/date_format.dart';
 import '../model/day.dart';
+import '../model/format.dart';
 
 /// A small chart of one number metric over [days], with the first and last day below it.
 /// The SVG stretches to the card width.
@@ -29,8 +31,8 @@ class TrendChart extends StatelessComponent {
 
     return div(classes: 'chart', styles: _chart, [
       div(styles: _yAxis, [
-        small(styles: _text, [.text(_format(high))]),
-        if (high != low) small(styles: _text, [.text(_format(low))]),
+        small(styles: _text, [.text(formatNumber(high, 3))]),
+        if (high != low) small(styles: _text, [.text(formatNumber(low, 3))]),
       ]),
       svg(
         viewBox: '0 0 ${_n(_w)} ${_n(_h)}',
@@ -39,8 +41,8 @@ class TrendChart extends StatelessComponent {
         bars ? _bars() : _line(points),
       ),
       div(styles: _xAxis, [
-        small(styles: _text, [.text(_short(days.first))]),
-        small(styles: _text, [.text(_short(days.last))]),
+        small(styles: _text, [.text(shortDay(days.first))]),
+        small(styles: _text, [.text(shortDay(days.last))]),
       ]),
     ]);
   }
@@ -111,18 +113,10 @@ class TrendChart extends StatelessComponent {
 
   /// Tooltip with the date and value.
   Component _title(Day day, num value) =>
-      Component.element(tag: 'title', children: [.text('$day: ${_format(value)} ${unit ?? ''}'.trim())]);
+      Component.element(tag: 'title', children: [.text('$day: ${withUnit(value, unit, 3)}')]);
 
   String _label(num low, num high) =>
-      'Values from ${_format(low)} to ${_format(high)} ${unit ?? ''}, ${_short(days.first)} to ${_short(days.last)}';
-
-  static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-  static String _short(Day d) => '${_months[d.month - 1]} ${d.day}';
+      'Values from ${formatNumber(low, 3)} to ${withUnit(high, unit, 3)}, ${shortDay(days.first)} to ${shortDay(days.last)}';
 
   static String _n(double v) => v.toStringAsFixed(2);
-
-  /// Removes float noise, for example 82.10000000000001.
-  static String _format(num v) =>
-      v == v.roundToDouble() ? v.toInt().toString() : double.parse(v.toStringAsFixed(3)).toString();
 }

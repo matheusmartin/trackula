@@ -2,7 +2,9 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:web/web.dart' as web;
 
+import '../model/date_format.dart';
 import '../model/day.dart';
+import '../model/format.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/summary.dart';
@@ -44,9 +46,6 @@ enum DayLayout {
   /// One small calendar per metric, Monday to Sunday.
   calendars,
 }
-
-const _weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /// HabitKit-style input table: one row per metric, one column per day, today on the right.
 ///
@@ -183,7 +182,7 @@ class _HabitTableState extends State<HabitTable> {
             th(classes: 'corner', []),
             for (final d in days)
               th(classes: d == component.today ? 'today' : null, [
-                small([.text(_weekdays[d.weekday - 1])]),
+                small([.text(weekdayShort[d.weekday - 1])]),
                 span([.text('${d.day}')]),
               ]),
           ]),
@@ -208,7 +207,7 @@ class _HabitTableState extends State<HabitTable> {
       // each week row on the left, with the month when it changes.
       div(classes: 'month', [
         span([]),
-        for (final w in _weekdays) small([.text(w.substring(0, 1))]),
+        for (final w in weekdayLetters) small([.text(w)]),
         for (final (i, week) in weeks.indexed) ...[
           small(classes: 'week', [.text(labels[i])]),
           for (final d in week) d == null ? span([]) : _cell(m, d, values, editing == (m.id, d)),
@@ -259,7 +258,7 @@ class _HabitTableState extends State<HabitTable> {
     return [
       for (final week in weeks)
         switch (week.whereType<Day>().first) {
-          final d when d.month != month => '${_months[(month = d.month) - 1]} ${d.day}',
+          final d when d.month != month => '${shortMonth(month = d.month)} ${d.day}',
           final d => '${d.day}',
         },
     ];
@@ -308,7 +307,7 @@ class _HabitTableState extends State<HabitTable> {
         },
       },
       [
-        if (m is NumberMetric && v != null) .text(_compact(v)),
+        if (m is NumberMetric && v != null) .text(formatCompact(v)),
       ],
     );
   }
@@ -339,22 +338,13 @@ class _HabitTableState extends State<HabitTable> {
   /// The input help in the cell tooltip of count metrics.
   static String _hint(Metric m) => switch (m) {
     NumberMetric(isCount: true, :final step) =>
-      ' · Click or tap: +${_format(step)}. Right-click or double-tap: −${_format(step)}.',
+      ' · Click or tap: +${formatNumber(step, 3)}. Right-click or double-tap: −${formatNumber(step, 3)}.',
     _ => '',
   };
 
   static String _valueText(Metric m, num? v) => switch ((m, v)) {
     (_, null) => '',
     (YesNoMetric(), _) => ': yes',
-    (NumberMetric(unit: final unit), final v?) => ': ${_format(v)} ${unit ?? ''}'.trimRight(),
+    (NumberMetric(unit: final unit), final v?) => ': ${withUnit(v, unit, 3)}',
   };
-
-  /// Short text for a cell: 1 decimal at most, and "k" from 1000. Example: 12500 → 12.5k.
-  static String _compact(num v) => v.abs() >= 1000
-      ? '${_format(double.parse((v / 1000).toStringAsFixed(1)))}k'
-      : _format(double.parse(v.toStringAsFixed(1)));
-
-  /// Removes float noise, for example 82.10000000000001.
-  static String _format(num v) =>
-      v == v.roundToDouble() ? v.toInt().toString() : double.parse(v.toStringAsFixed(3)).toString();
 }

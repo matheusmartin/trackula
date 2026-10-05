@@ -5,23 +5,12 @@ import 'package:jaspr/jaspr.dart';
 import 'package:web/web.dart' as web;
 
 import '../model/day.dart';
-import '../model/number_input.dart';
+import '../model/date_format.dart';
+import '../model/format.dart';
 import '../model/zoom.dart';
 
 // Charts of the metric detail screen. Inline styles, not @css rules, as in trend_chart.dart: the charts must
 // render correctly even when the browser has an old main.css. Colors come from the theme variables.
-
-const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const _weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-/// [v] with at most [decimals] decimals and no zeros at the end. Example: 81.25 → "81.3".
-String formatNumber(num v, [int decimals = 1]) => formatShort(double.parse(v.toStringAsFixed(decimals)));
-
-/// Example: "Sep 28".
-String shortDay(Day d) => '${_months[d.month - 1]} ${d.day}';
-
-/// The weekday letters, Monday first.
-List<String> get weekdayLetters => _weekdays;
 
 const _primary = 'var(--primary)';
 const _filled = 'color-mix(in srgb, var(--primary) 70%, var(--surface-container-highest))';
@@ -348,7 +337,7 @@ class LineChart extends StatelessComponent {
       for (final (i, v) in vs.indexed)
         if (v != null) '${i == vs.indexWhere((e) => e != null) ? 'M' : 'L'}${x(i)} ${y(v)}',
     ].join(' ');
-    final u = unit == null ? '' : ' $unit';
+    final u = unitSuffix(unit);
     return _card(title, description, [
       div(styles: const Styles(raw: {'display': 'grid', 'grid-template-columns': 'auto 1fr', 'column-gap': '0.4rem'}), [
         div(
@@ -483,7 +472,7 @@ class DonutChart extends StatelessComponent {
                 ),
                 [],
               ),
-              span([.text('${p.label}: ${p.value} · ${total == 0 ? 0 : (p.value / total * 100).round()}%')]),
+              span([.text('${p.label}: ${p.value} · ${formatPercent(total == 0 ? 0 : p.value / total)}')]),
             ]),
         ]),
       ]),
@@ -537,7 +526,7 @@ class TimeBars extends StatelessComponent {
     final lows = [for (final b in bars) ?(range ? b.low : b.value)];
     final highs = [for (final b in bars) ?(range ? b.high : b.value)];
     if (highs.isEmpty) return _noValues(title, description);
-    final u = unit == null ? '' : ' $unit';
+    final u = unitSuffix(unit);
     return _card(title, description, wide: true, [
       _centered(bars.length, [
         if (range)
@@ -547,9 +536,9 @@ class TimeBars extends StatelessComponent {
             [
               for (final b in bars)
                 (
-                  label: _barLabel(b.start, barUnit),
+                  label: barLabel(b.start, barUnit),
                   value: b.value,
-                  tooltip: '${_barTitle(b.start, barUnit)}: ${b.value == null ? 'no value' : '${format(b.value!)}$u'}',
+                  tooltip: '${barTitle(b.start, barUnit)}: ${b.value == null ? 'no value' : '${format(b.value!)}$u'}',
                 ),
             ],
             label: title,
@@ -559,7 +548,7 @@ class TimeBars extends StatelessComponent {
             format: format,
             showValues: bars.length <= _valueBars,
           ),
-        _labels([for (final (i, b) in bars.indexed) _barLabel(b.start, barUnit, first: i == 0)]),
+        _labels([for (final (i, b) in bars.indexed) barLabel(b.start, barUnit, first: i == 0)]),
       ]),
     ]);
   }
@@ -584,7 +573,7 @@ class TimeBars extends StatelessComponent {
                 'vector-effect': 'non-scaling-stroke',
               },
             ),
-            [_tooltip('${_barTitle(b.start, barUnit)}: ${formatNumber(low, 2)} to ${formatNumber(high, 2)}$u')],
+            [_tooltip('${barTitle(b.start, barUnit)}: ${formatNumber(low, 2)} to ${formatNumber(high, 2)}$u')],
           ),
           path(
             d: 'M${i * 10 + 5} ${y(avg)} h0',
@@ -597,7 +586,7 @@ class TimeBars extends StatelessComponent {
                 'vector-effect': 'non-scaling-stroke',
               },
             ),
-            [_tooltip('${_barTitle(b.start, barUnit)}: average ${formatNumber(avg, 2)}$u')],
+            [_tooltip('${barTitle(b.start, barUnit)}: average ${formatNumber(avg, 2)}$u')],
           ),
         ],
     ]);
@@ -706,24 +695,6 @@ void _capture(web.PointerEvent p) {
     (p.currentTarget as web.Element).setPointerCapture(p.pointerId);
   } catch (_) {}
 }
-
-/// The label under a bar. Examples: "Sep 28" (week), "Sep" or "Jan ’26" (month), "Q3 ’26" (quarter). A month shows
-/// its year in January and on the [first] bar. The apostrophe tells a year from a day: "Feb ’24" is not "Feb 24".
-String _barLabel(Day start, BarUnit unit, {bool first = false}) => switch (unit) {
-  BarUnit.day => shortDay(start),
-  BarUnit.week => shortDay(start),
-  BarUnit.month =>
-    start.month == 1 || first ? '${_months[start.month - 1]} ’${start.year % 100}' : _months[start.month - 1],
-  BarUnit.quarter => 'Q${(start.month + 2) ~/ 3} ’${start.year % 100}',
-};
-
-/// The name of a bar in a tooltip. Examples: "Week of Sep 28, 2026", "Sep 2026", "Q3 2026".
-String _barTitle(Day start, BarUnit unit) => switch (unit) {
-  BarUnit.day => '${shortDay(start)}, ${start.year}',
-  BarUnit.week => 'Week of ${shortDay(start)}, ${start.year}',
-  BarUnit.month => '${_months[start.month - 1]} ${start.year}',
-  BarUnit.quarter => 'Q${(start.month + 2) ~/ 3} ${start.year}',
-};
 
 /// The days from [from] to [to] in week columns, Monday at the top. A day with a value is filled. A tap on a day
 /// calls [onDay].

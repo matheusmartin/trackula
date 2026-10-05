@@ -404,9 +404,8 @@ void main() {
       expect(roundToStep(-0.3, 0.1), 0);
     });
 
-    test('formatStep and formatShort', () {
+    test('formatStep', () {
       expect([formatStep(82, 0.1), formatStep(1250, 250), formatStep(90.5, 0.5)], ['82.0', '1250', '90.5']);
-      expect([formatShort(82.0), formatShort(2.5), formatShort(2500)], ['82', '2.5', '2500']);
     });
   });
 

@@ -5,6 +5,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:web/web.dart' as web;
 
+import '../model/format.dart';
 import '../model/metric.dart';
 import '../model/number_input.dart';
 
@@ -72,7 +73,7 @@ class _NumberEditorState extends State<NumberEditor> {
 
   num get _step => component.metric.step;
 
-  String get _unit => component.metric.unit == null ? '' : ' ${component.metric.unit}';
+  String get _unit => unitSuffix(component.metric.unit);
 
   late num _value = component.current ?? component.start ?? 0;
 

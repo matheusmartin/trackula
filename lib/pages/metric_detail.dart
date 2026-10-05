@@ -7,7 +7,9 @@ import 'package:web/web.dart' as web;
 import '../components/charts.dart';
 import '../components/habit_table.dart';
 import '../components/metric_icon.dart';
+import '../model/date_format.dart';
 import '../model/day.dart';
+import '../model/format.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/stats.dart';
@@ -51,21 +53,6 @@ class MetricDetail extends StatefulComponent {
 }
 
 class _MetricDetailState extends State<MetricDetail> {
-  static const _monthNames = [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ];
-
   /// The index in [zoomSteps]. Null: [defaultStep].
   int? _step;
 
@@ -205,7 +192,7 @@ class _MetricDetailState extends State<MetricDetail> {
               i([.text('chevron_left')]),
             ],
           ),
-          span(classes: 'center-align', [.text(_dates(w.from, w.to))]),
+          span(classes: 'center-align', [.text(dayRange(w.from, w.to))]),
           button(
             classes: 'circle transparent small',
             attributes: {'title': 'Later'},
@@ -241,11 +228,6 @@ class _MetricDetailState extends State<MetricDetail> {
     _step = index;
     _beforeAll = beforeAll;
   });
-
-  /// Example: "Jul 6 – Oct 3, 2026", or "Nov 3, 2025 – Feb 1, 2026" across a year.
-  String _dates(Day from, Day to) => from.year == to.year
-      ? '${shortDay(from)} – ${shortDay(to)}, ${to.year}'
-      : '${shortDay(from)}, ${from.year} – ${shortDay(to)}, ${to.year}';
 
   /// [children] with side drags and side wheel moves that move the window by bars. A drag starts only after
   /// [_dragStart] pixels, so that a tap on a heatmap day still works. `.swipe` in theme.dart keeps vertical scroll.
@@ -304,11 +286,9 @@ class _MetricDetailState extends State<MetricDetail> {
       final m = DateTime(month.year, month.month + delta);
       _month = (year: m.year, month: m.month);
     });
-    final current = '${_monthNames[month.month - 1]} ${month.year}';
-    // Wide screens: "September – October 2026", or "December 2025 – January 2026" across a year.
-    final pair = before.year == month.year
-        ? '${_monthNames[before.month - 1]} – $current'
-        : '${_monthNames[before.month - 1]} ${before.year} – $current';
+    final current = monthYear(month);
+    // Wide screens.
+    final pair = monthRange(before, month);
     return _section('Edit days', [
       nav(classes: 'month-nav', [
         button(
@@ -424,13 +404,11 @@ class _MetricDetailState extends State<MetricDetail> {
     );
   }
 
-  String _percent(double rate) => '${(rate * 100).round()}%';
-
   List<Component> _yesNo(YesNoStats s, ZoomWindow w, Map<Day, num> values) => [
     KeyNumbers(
       items: [
         ('done days', '${s.yes}'),
-        ('rate', _percent(s.rate)),
+        ('rate', formatPercent(s.rate)),
         ('missed (no)', '${s.no}'),
         ('no entry', '${s.none}'),
         (w.atEnd ? 'current streak' : 'streak on ${shortDay(w.to)}', '${s.currentStreak} d'),
@@ -445,7 +423,7 @@ class _MetricDetailState extends State<MetricDetail> {
         values,
         Aggregate.rate,
         max: 1,
-        format: (v) => _percent(v.toDouble()),
+        format: (v) => formatPercent(v.toDouble()),
       ),
       LineChart(
         title: 'Habit strength (%)',
@@ -459,7 +437,7 @@ class _MetricDetailState extends State<MetricDetail> {
       DonutChart(
         title: 'Yes, no and no entry',
         description: 'The share of days with yes, with no and with no entry.',
-        center: _percent(s.rate),
+        center: formatPercent(s.rate),
         parts: [
           (label: 'Yes', value: s.yes, color: DonutChart.yesColor),
           (label: 'No', value: s.no, color: DonutChart.noColor),
@@ -476,7 +454,7 @@ class _MetricDetailState extends State<MetricDetail> {
             (
               label: weekdayLetters[i],
               value: r == null ? null : r * 100,
-              tooltip: r == null ? 'No day' : _percent(r),
+              tooltip: r == null ? 'No day' : formatPercent(r),
             ),
         ],
       ),
@@ -497,14 +475,11 @@ class _MetricDetailState extends State<MetricDetail> {
     ]),
   ];
 
-  String _withUnit(num v, NumberMetric m, [int decimals = 1]) =>
-      '${formatNumber(v, decimals)}${m.unit == null ? '' : ' ${m.unit}'}';
-
   List<Component> _count(NumberMetric m, CountStats s, ZoomWindow w, Map<Day, num> values) => [
     KeyNumbers(
       items: [
-        ('total', _withUnit(s.total, m)),
-        ('per day', s.average == null ? '–' : _withUnit(s.average!, m)),
+        ('total', withUnit(s.total, m.unit)),
+        ('per day', s.average == null ? '–' : withUnit(s.average!, m.unit)),
         ('best day', s.best == null ? '–' : '${formatNumber(s.best!.value)} · ${shortDay(s.best!.day)}'),
         ('days logged', '${s.logged}'),
       ],
@@ -534,7 +509,7 @@ class _MetricDetailState extends State<MetricDetail> {
         description: 'The average on each weekday, from the days with a value.',
         bars: [
           for (final (i, a) in s.weekdayAverages.indexed)
-            (label: weekdayLetters[i], value: a, tooltip: a == null ? 'No value' : _withUnit(a, m)),
+            (label: weekdayLetters[i], value: a, tooltip: a == null ? 'No value' : withUnit(a, m.unit)),
         ],
       ),
       BarChart(
@@ -552,27 +527,21 @@ class _MetricDetailState extends State<MetricDetail> {
         items: [
           (
             'latest · ${s.latest == null ? '' : shortDay(s.latest!.day)}',
-            s.latest == null ? '–' : _withUnit(s.latest!.value, m, 2),
+            s.latest == null ? '–' : withUnit(s.latest!.value, m.unit, 2),
           ),
           (
             'change',
-            change == null
-                ? '–'
-                : '${change > 0
-                      ? '+'
-                      : change < 0
-                      ? '−'
-                      : ''}${_withUnit(change.abs(), m, 2)}',
+            change == null ? '–' : formatSigned(change, m.unit, 2),
           ),
           (
             'lowest · ${s.low == null ? '' : shortDay(s.low!.day)}',
-            s.low == null ? '–' : _withUnit(s.low!.value, m, 2),
+            s.low == null ? '–' : withUnit(s.low!.value, m.unit, 2),
           ),
           (
             'highest · ${s.high == null ? '' : shortDay(s.high!.day)}',
-            s.high == null ? '–' : _withUnit(s.high!.value, m, 2),
+            s.high == null ? '–' : withUnit(s.high!.value, m.unit, 2),
           ),
-          ('average', s.average == null ? '–' : _withUnit(s.average!, m, 2)),
+          ('average', s.average == null ? '–' : withUnit(s.average!, m.unit, 2)),
           ('days logged', '${s.logged}'),
         ],
       ),

@@ -32,7 +32,3 @@ num roundToStep(num v, num step, {bool snap = false}) {
 
 /// [v] with the decimals of [step]. Examples: (82, 0.1) → "82.0", (1250, 250) → "1250".
 String formatStep(num v, num step) => v.toStringAsFixed(stepDecimals(step));
-
-/// [v] without zeros at the end. Examples: 82.0 → "82", 2.5 → "2.5".
-String formatShort(num v) =>
-    v == v.roundToDouble() ? v.round().toString() : double.parse(v.toStringAsFixed(6)).toString();
