@@ -33,7 +33,7 @@ One row for each metric. The row order is the display order in the app.
 | Kind     | `Log` value                     | Main chart                                      | Input in the app |
 |----------|---------------------------------|-------------------------------------------------|------------------|
 | `yesno`  | `yes` (done) or `no` (not done) | Bar chart of the yes rate, from 0 to 100 %      | A tap writes `yes`, or `no` if the day is `yes`. |
-| `number` | number                          | Line chart, from the lowest to the highest value | A tap opens an editor with a ruler, a text field and a Save button. Save with an empty field clears the day. |
+| `number` | number                          | Range bars: lowest to highest value of each week, month or quarter. A dot shows the average. | A tap opens an editor with a ruler, a text field and a Save button. Save with an empty field clears the day. |
 | `count`  | number                          | Bar chart, from 0                               | A click or tap adds `step`. A right-click (mouse) or a double-tap (touch) subtracts it. A count goes to empty only with subtractions: there is no reset. |
 
 ### Example
@@ -139,8 +139,8 @@ Sheets from older app versions can be different. The app changes some of these d
 | Difference                                   | Who changes it | Change |
 |----------------------------------------------|----------------|--------|
 | Tab names `metrics` and `log`                | You            | Rename the tabs to `Metrics` and `Log`. |
-| `per_day` and `active` columns in `Metrics`  | You (optional) | Delete the columns. The app ignores them. |
+| `per_day` and `active` columns in `Metrics`  | You (optional) | Delete the columns. |
 | No `icon` column in `Metrics`                | You            | Add the column with an icon in each row. Until then, the app shows an error. |
-| `1` and `0` in `yesno` columns of `Log`      | The app        | When it opens the sheet, it changes `1` to `yes` and `0` to `no`. It does not change empty cells. |
+| `1`, `TRUE` and `0` in `yesno` columns of `Log` | The app     | When it opens the sheet, it changes `1` and `TRUE` to `yes`, and `0` to `no`, also as text. It does not change empty cells. |
 | Dates as text in `Log`                       | The app        | When it opens the sheet, it changes them to real dates once. |
-| Old validation rules                         | The app        | When it opens the sheet, it sets the rules of [Layer 2](#layer-2-sheet-data-validation) again. So the sheet accepts new values, for example `count`, `yes` and `no`. |
+| Old validation rules                         | The app        | When it opens the sheet, it sets the rules of [Layer 2](#layer-2-sheet-data-validation) again. So the sheet accepts new values, for example `count`, `yes` and `no`, and a new column, for example `icon`, gets its rule. |
