@@ -23,13 +23,13 @@ One row for each metric. The row order is the display order in the app.
 | `group`   | text    | No       | any                     | Groups metrics on the screen. Example: `habits`, `body`. |
 | `icon`    | text    | Yes      | Material Symbols name or emoji | Icon next to the name, and in the title of the detail screen. A lowercase name (`a-z`, `0-9`, `_`) is a [Material Symbols](https://fonts.google.com/icons) icon, for example `water_drop`. Other text shows as it is, for example `💧`. A row without icon is invalid: the app shows a warning and does not show the metric. |
 
-Rules:
+### Rules
 
 - To hide a metric, delete its row. Its `Log` column and values stay in the sheet, and the app ignores them. To show the metric again, add the row again with the same `id`.
 - The app ignores other columns. Older sheets have `per_day` and `active` columns: you can delete them.
 - Older sheets can have no `icon` column. Then the app shows an error. Add the column with an icon in each row.
 
-Example:
+### Example
 
 | id       | name     | kind   | unit    | step | group  | icon             |
 |----------|----------|--------|---------|------|--------|------------------|
@@ -48,7 +48,7 @@ One row for each day, one column for each metric. Rows are not sorted. The app s
 | A: `date`       | date   | Yes      | a date, shown as `YYYY-MM-DD` | The day. Maximum one row for each day. Can be a past day. |
 | B, C, …: metric `id` | number, or `yes` / `no` | No | number, `yes`, `no` | The value of the metric on that day. Empty means no value. For `yesno`: `yes` or `no`. |
 
-Rules:
+### Rules
 
 - The header of each metric column is the metric `id`, not the name.
 - The app adds a column at the end when a metric has no column. The app does this when it loads the sheet.
@@ -59,7 +59,7 @@ Rules:
 - `number` and `count`: one value per day. For amounts, for example glasses of water, it is the day total. Single entries are not stored.
 - The app adds a row when a day has no row. It does not delete rows. A row with only a date is valid.
 
-Example:
+### Example
 
 | date       | weight | meditate | water | reading |
 |------------|--------|----------|-------|---------|
@@ -88,32 +88,32 @@ Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses
 
 The app adds these rules when it adds a missing tab or a missing `Log` column, and sets the `Metrics` and `Log` rules again each time it opens the sheet:
 
-| Range                 | Rule                                                                               | Similar DB constraint |
-|-----------------------|------------------------------------------------------------------------------------|-----------------------|
-| `Log!A2:A`            | Valid date. Sheets also shows a date picker.                                       | Column type           |
-| `Log` `number` or `count` column | Custom formula: `=ISNUMBER(B2)`                                         | Column type           |
-| `Log` `yesno` column  | Dropdown: `yes`, `no`                                                              | Enum                  |
-| `Metrics` column `kind`    | Dropdown: `yesno`, `number`, `count`                                          | Enum                  |
-| `Metrics` column `icon`    | Custom formula: `=OR(REGEXMATCH(I2, "^[a-z0-9_]+$"), LEN(I2) <= 16)`          | Check constraint      |
+| Range                            | Rule                                                                 | Similar DB constraint |
+|----------------------------------|----------------------------------------------------------------------|-----------------------|
+| `Log!A2:A`                       | Valid date. Sheets also shows a date picker.                         | Column type           |
+| `Log` `number` or `count` column | Custom formula: `=ISNUMBER(B2)`                                      | Column type           |
+| `Log` `yesno` column             | Dropdown: `yes`, `no`                                                | Enum                  |
+| `Metrics` column `kind`          | Dropdown: `yesno`, `number`, `count`                                 | Enum                  |
+| `Metrics` column `icon`          | Custom formula: `=OR(REGEXMATCH(I2, "^[a-z0-9_]+$"), LEN(I2) <= 16)` | Check constraint      |
 
-The `Metrics` rules:
+#### `Metrics` rules
 
 - The app finds the columns by header name. The column letters can change. The `icon` example uses column `I`.
 - The app sets the rules again each time it opens the sheet. So a sheet from an older app version accepts new values, for example `count`, and a new column gets its rule, for example `icon`.
 - Before that, the app removes all validation rules below row 1 of the `Metrics` tab. So a moved column leaves no old rule behind. Do not add your own rules to this tab: the app removes them.
 
-The `Log` rules:
+#### `Log` rules
 
 - Each metric column gets the rule of its metric `kind` each time the app opens the sheet. So a changed `kind` also changes the rule, and a sheet from an older app version accepts `yes` and `no`.
 - Do not add your own rules to the metric columns: the app replaces them.
 
-Other setup:
+#### Other setup
 
 - Freeze row 1 in both tabs.
 - Format `Log!A2:A` as a date with the pattern `yyyy-mm-dd`. So the dates show the same in every locale.
 - Older app versions stored the dates as text. When the app opens the sheet, it changes them to real dates once.
 
-Limits:
+#### Limits
 
 - API writes skip data validation. Sheets accepts the value and marks the cell as invalid. Layer 1 is necessary.
 - No cascade: a changed metric `id` breaks the link to its `Log` column. If you must change it, rename the column header too. The app does not warn: it does not show the values of the old column.
