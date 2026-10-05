@@ -4,6 +4,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:web/web.dart' as web;
 
+import '../constants/tokens.dart';
 import '../model/chart.dart';
 import '../model/date_format.dart';
 import '../model/day.dart';
@@ -15,8 +16,6 @@ import '../services/pointer.dart';
 // render correctly even when the browser has an old main.css. Colors come from the theme variables.
 
 const _primary = 'var(--primary)';
-const _filled = 'color-mix(in srgb, var(--primary) 70%, var(--surface-container-highest))';
-const _empty = 'var(--surface-container-highest)';
 const _second = 'var(--tertiary)';
 
 const _textStyle = Styles(raw: {'font-size': '0.7rem', 'line-height': '1.2', 'color': 'var(--on-surface-variant)'});
@@ -28,7 +27,6 @@ Component _card(
   String description,
   List<Component> children, {
   bool wide = false,
-  List<Component> actions = const [],
 }) => div(
   classes: wide ? 'chart-wide' : null,
   styles: const Styles(
@@ -42,7 +40,6 @@ Component _card(
   [
     div(styles: const Styles(raw: {'display': 'flex', 'align-items': 'center', 'gap': '0.25rem'}), [
       div(styles: const Styles(raw: {'font-size': '0.85rem', 'flex': '1'}), [.text(title)]),
-      ...actions,
     ]),
     div(
       styles: const Styles(
@@ -186,14 +183,12 @@ class KeyNumbers extends StatelessComponent {
 /// One bar of a [BarChart]. A null value draws no bar.
 typedef Bar = ({String label, num? value, String tooltip});
 
-/// Bars from 0 to the highest value. With [signed], negative bars go down from a middle line.
+/// Bars from 0 to the highest value.
 class BarChart extends StatelessComponent {
   const BarChart({
     required this.title,
     required this.description,
     required this.bars,
-    this.signed = false,
-    this.fromLowest = false,
     this.max,
     this.format = formatNumber,
     this.wide = false,
@@ -203,11 +198,6 @@ class BarChart extends StatelessComponent {
   final String title;
   final String description;
   final List<Bar> bars;
-  final bool signed;
-
-  /// Bars start a little below the lowest value, not at 0. For values that differ little, for example monthly
-  /// averages of a weight.
-  final bool fromLowest;
 
   /// A fixed top of the scale, for example 100 for percentages. Null: the highest value.
   final num? max;
@@ -222,31 +212,25 @@ class BarChart extends StatelessComponent {
   @override
   Component build(BuildContext context) => _card(title, description, [
     _scroller(bars.length, [
-      ..._barRows(bars, label: title, signed: signed, fromLowest: fromLowest, max: max, format: format),
+      ..._barRows(bars, label: title, max: max, format: format),
       _labels([for (final b in bars) b.label], all: true),
     ]),
   ], wide: wide);
 }
 
-/// The value row and the bars of a bar chart, without labels. [max] and [min] fix the scale, for example to the
-/// highest and lowest value of all bars of a zoom chart, so that the scale stays the same while it moves.
+/// The value row and the bars of a bar chart, without labels. [max] fixes the top of the scale, for example to the
+/// highest value of all bars of a zoom chart, so that the scale stays the same while it moves.
 List<Component> _barRows(
   List<Bar> bars, {
   required String label,
-  bool signed = false,
-  bool fromLowest = false,
   num? max,
-  num? min,
   String Function(num v) format = formatNumber,
   bool showValues = true,
 }) {
   final values = [for (final b in bars) ?b.value];
   final top = max ?? (values.isEmpty ? 1 : values.map((v) => v.abs()).fold<num>(0, math.max));
-  final lowest = min ?? (values.isEmpty ? 0 : values.reduce(math.min));
-  final floor = fromLowest && values.isNotEmpty ? barFloor(lowest, top) : 0;
-  final scale = top - floor == 0 ? 1 : top - floor;
+  final scale = top == 0 ? 1 : top;
   const h = 50.0;
-  final base = signed ? h / 2 : h;
   final w = bars.length * 10.0;
   return [
     if (showValues)
@@ -266,29 +250,20 @@ List<Component> _barRows(
             small(styles: _textStyle.combine(const Styles(raw: {'color': 'var(--on-surface)'})), [
               .text(switch (b.value) {
                 null => '',
-                final v => '${signed && v > 0 ? '+' : ''}${format(v).replaceFirst('-', '−')}',
+                final v => format(v).replaceFirst('-', '−'),
               }),
             ]),
         ],
       ),
     _svg(w, h, label: label, [
-      if (signed)
-        line(
-          x1: '0',
-          y1: '$base',
-          x2: '$w',
-          y2: '$base',
-          styles: const Styles(raw: {'stroke': 'var(--outline)'}),
-          [],
-        ),
       for (final (i, b) in bars.indexed)
         if (b.value case final v?)
           rect(
             x: '${i * 10 + 1.5}',
-            y: '${v >= 0 ? base - (v - floor) / scale * (signed ? h / 2 : h) : base}',
+            y: '${v >= 0 ? h - v / scale * h : h}',
             width: '7',
-            height: '${math.max(0.4, (v.abs() - floor) / scale * (signed ? h / 2 : h))}',
-            styles: Styles(raw: {'fill': v >= 0 ? _filled : _second}),
+            height: '${math.max(0.4, v.abs() / scale * h)}',
+            styles: Styles(raw: {'fill': v >= 0 ? filledColor : _second}),
             [_tooltip(b.tooltip)],
           ),
     ]),
@@ -377,7 +352,7 @@ class LineChart extends StatelessComponent {
                 styles: Styles(
                   raw: {
                     'fill': 'none',
-                    'stroke': trend == null ? _primary : _filled,
+                    'stroke': trend == null ? _primary : filledColor,
                     'stroke-width': values.length > 60 ? '3' : '5',
                     'stroke-linecap': 'round',
                     'vector-effect': 'non-scaling-stroke',
@@ -414,9 +389,9 @@ class DonutChart extends StatelessComponent {
   final List<DonutPart> parts;
   final String center;
 
-  static const yesColor = _filled;
+  static const yesColor = filledColor;
   static const noColor = _second;
-  static const noneColor = _empty;
+  static const noneColor = emptyColor;
 
   @override
   Component build(BuildContext context) {
@@ -495,9 +470,7 @@ class TimeBars extends StatelessComponent {
     required this.bars,
     required this.barUnit,
     this.format = formatNumber,
-    this.min,
     this.max,
-    this.fromLowest = false,
     this.range = false,
     this.unit,
     super.key,
@@ -515,9 +488,7 @@ class TimeBars extends StatelessComponent {
 
   /// The text of the value above a bar and in its tooltip.
   final String Function(num v) format;
-  final num? min;
   final num? max;
-  final bool fromLowest;
   final bool range;
 
   /// The unit of the values in the tooltips, for example `Kg`. Not above the bars: there is no space.
@@ -532,7 +503,7 @@ class TimeBars extends StatelessComponent {
     return _card(title, description, wide: true, [
       _centered(bars.length, [
         if (range)
-          _rangeRows(max ?? highs.reduce(math.max), min ?? lows.reduce(math.min), u)
+          _rangeRows(max ?? highs.reduce(math.max), lows.reduce(math.min), u)
         else
           ..._barRows(
             [
@@ -544,9 +515,7 @@ class TimeBars extends StatelessComponent {
                 ),
             ],
             label: title,
-            fromLowest: fromLowest,
             max: max ?? highs.reduce(math.max),
-            min: min ?? lows.reduce(math.min),
             format: format,
             showValues: bars.length <= _valueBars,
           ),
@@ -569,7 +538,7 @@ class TimeBars extends StatelessComponent {
             styles: const Styles(
               raw: {
                 'fill': 'none',
-                'stroke': _empty,
+                'stroke': emptyColor,
                 'stroke-width': '10',
                 'stroke-linecap': 'round',
                 'vector-effect': 'non-scaling-stroke',
@@ -668,7 +637,7 @@ class _OverviewState extends State<Overview> {
                 styles: Styles(
                   raw: {
                     'fill': b.start.addDays(6).compareTo(c.from) >= 0 && b.start.compareTo(c.to) <= 0
-                        ? _filled
+                        ? filledColor
                         : 'var(--outline-variant)',
                   },
                 ),
@@ -753,7 +722,7 @@ class DayHeatmap extends StatelessComponent {
             rx: '2',
             styles: Styles(
               raw: {
-                'fill': filled(d) ? _filled : _empty,
+                'fill': filled(d) ? filledColor : emptyColor,
                 'cursor': 'pointer',
                 if (d == today) 'stroke': 'var(--on-surface)',
                 if (d == today) 'stroke-width': '1',

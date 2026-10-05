@@ -209,19 +209,9 @@ final class SheetsStore implements Store {
     return Snapshot(metrics.items, log.table, [...metrics.warnings, ...log.warnings]);
   }
 
-  /// Reads the latest data, asks [plan] for a change, applies it, and returns the new data.
-  ///
-  /// The read before the write keeps row numbers correct after manual edits in the sheet.
+  /// The read before each write keeps row numbers correct after manual edits in the sheet.
   @override
-  Future<Snapshot> change(LogWrite? Function(LogTable log) plan) async {
-    final w = plan((await load()).log);
-    if (w == null) return load();
-    await _apply(w);
-    return load();
-  }
-
-  @override
-  Future<Snapshot> changeAll(List<LogWrite? Function(LogTable log)> plans) async {
+  Future<Snapshot> change(List<LogPlan> plans) async {
     var data = await load();
     for (final plan in plans) {
       if (plan(data.log) case final w?) {

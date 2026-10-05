@@ -7,13 +7,13 @@ import 'package:web/web.dart' as web;
 import '../components/charts.dart';
 import '../components/habit_table.dart';
 import '../components/metric_icon.dart';
+import '../components/ui.dart';
 import '../model/date_format.dart';
 import '../model/day.dart';
 import '../model/format.dart';
-import '../model/log_entry.dart';
+import '../model/log_edits.dart';
 import '../model/metric.dart';
 import '../model/stats.dart';
-import '../model/summary.dart';
 import '../model/zoom.dart';
 import '../services/pointer.dart';
 import '../services/wheel_steps.dart';
@@ -31,23 +31,13 @@ import '../services/wheel_steps.dart';
 class MetricDetail extends StatefulComponent {
   const MetricDetail({
     required this.metric,
-    required this.log,
-    required this.today,
-    required this.busy,
-    required this.onWrite,
-    required this.pending,
-    required this.onCount,
+    required this.edits,
     required this.onBack,
     super.key,
   });
 
   final Metric metric;
-  final LogTable log;
-  final Day today;
-  final bool busy;
-  final void Function(LogWrite? Function(LogTable log) plan) onWrite;
-  final Map<(String, Day), List<CountStep>> pending;
-  final void Function(NumberMetric metric, Day day, CountStep step) onCount;
+  final LogEdits edits;
   final VoidCallback onBack;
 
   @override
@@ -80,10 +70,10 @@ class _MetricDetailState extends State<MetricDetail> {
   final _wheel = WheelSteps(40);
 
   Metric get _m => component.metric;
-  Day get _today => component.today;
+  Day get _today => component.edits.today;
 
   /// The day values, with the count taps that are not written yet. The same values as in the table.
-  Map<Day, num> get _values => dayValuesWithPending(_m, component.log.entries, component.pending);
+  Map<Day, num> get _values => component.edits.valuesOf(_m);
 
   void _moveTo(Day? end) {
     if (end == _end) return;
@@ -95,31 +85,20 @@ class _MetricDetailState extends State<MetricDetail> {
 
   @override
   Component build(BuildContext context) {
-    final states = _m is YesNoMetric ? yesNoStates(_m.id, component.log.entries) : const <Day, bool>{};
+    final states = _m is YesNoMetric ? yesNoStates(_m.id, component.edits.log.entries) : const <Day, bool>{};
     // For yes/no metrics: 1 for yes and 0 for no, as the rate bars expect.
     final values = _m is YesNoMetric
         ? <Day, num>{for (final MapEntry(key: d, value: yes) in states.entries) d: yes ? 1 : 0}
         : _values;
-    final first = values.keys.fold<Day?>(null, (f, d) => f == null || d.compareTo(f) < 0 ? d : f) ?? _today;
+    final first = earliestDay(values.keys) ?? _today;
     final steps = zoomSteps(first, _today);
     final stepIndex = math.min(_step ?? defaultStep(steps), steps.length - 1);
     final w = ZoomWindow(steps[stepIndex], first: first, today: _today, end: _end);
-    final aggregate = switch (_m) {
-      YesNoMetric() => Aggregate.rate,
-      NumberMetric(isCount: true) => Aggregate.sum,
-      _ => Aggregate.average,
-    };
+    final aggregate = aggregateOf(_m);
 
     return div(classes: 'metric-detail', [
       nav(classes: 'detail-head', [
-        button(
-          classes: 'circle transparent',
-          attributes: {'title': 'Back'},
-          onClick: component.onBack,
-          [
-            i([.text('arrow_back')]),
-          ],
-        ),
+        iconButton('arrow_back', title: 'Back', onClick: component.onBack),
         metricIcon(_m, large: true),
         h5(classes: 'max', [.text(_m.name)]),
       ]),
@@ -136,10 +115,10 @@ class _MetricDetailState extends State<MetricDetail> {
           to: w.to,
           today: _today,
           filled: (d) => _m is YesNoMetric ? states[d] == true : values.containsKey(d),
-          onDay: (d) => setState(() => _month = (year: d.year, month: d.month)),
+          onDay: (d) => setState(() => _month = monthOf(d)),
         ),
       ]),
-      _calendar(_month ?? (year: w.to.year, month: w.to.month)),
+      _calendar(_month ?? monthOf(w.to)),
     ]);
   }
 
@@ -156,14 +135,12 @@ class _MetricDetailState extends State<MetricDetail> {
           classes: 'window-zoom',
           attributes: {'aria-label': 'Zoom'},
           [
-            button(
-              classes: 'circle transparent small',
-              attributes: {'title': 'Zoom in'},
-              disabled: stepIndex == 0,
+            iconButton(
+              'zoom_in',
+              title: 'Zoom in',
               onClick: () => _zoom(w, stepIndex - 1),
-              [
-                i([.text('zoom_in')]),
-              ],
+              disabled: stepIndex == 0,
+              small: true,
             ),
             // A tap goes to All, and from All back to the step before.
             button(
@@ -172,36 +149,30 @@ class _MetricDetailState extends State<MetricDetail> {
               onClick: () => atAll ? _zoom(w, back) : _zoom(w, last, beforeAll: stepIndex),
               [.text(atAll ? 'All' : steps[stepIndex].label)],
             ),
-            button(
-              classes: 'circle transparent small',
-              attributes: {'title': 'Zoom out'},
-              disabled: atAll,
+            iconButton(
+              'zoom_out',
+              title: 'Zoom out',
               onClick: () => _zoom(w, stepIndex + 1),
-              [
-                i([.text('zoom_out')]),
-              ],
+              disabled: atAll,
+              small: true,
             ),
           ],
         ),
         nav(classes: 'window-dates', [
-          button(
-            classes: 'circle transparent small',
-            attributes: {'title': 'Earlier'},
-            disabled: w.atStart,
+          iconButton(
+            'chevron_left',
+            title: 'Earlier',
             onClick: () => _moveTo(w.moved(-count)),
-            [
-              i([.text('chevron_left')]),
-            ],
+            disabled: w.atStart,
+            small: true,
           ),
           span(classes: 'center-align', [.text(dayRange(w.from, w.to))]),
-          button(
-            classes: 'circle transparent small',
-            attributes: {'title': 'Later'},
-            disabled: w.atEnd,
+          iconButton(
+            'chevron_right',
+            title: 'Later',
             onClick: () => _moveTo(w.moved(count)),
-            [
-              i([.text('chevron_right')]),
-            ],
+            disabled: w.atEnd,
+            small: true,
           ),
         ]),
       ]),
@@ -263,56 +234,28 @@ class _MetricDetailState extends State<MetricDetail> {
     children,
   );
 
-  /// The month before [month]. Wide screens show it on the left. See .month-pair in theme.dart.
-  MonthKey _before(MonthKey month) {
-    final m = DateTime(month.year, month.month - 1);
-    return (year: m.year, month: m.month);
-  }
-
-  /// All days of [month]. Days after today show faded.
-  List<Day> _daysOf(MonthKey month) => [
-    for (var d = Day(month.year, month.month, 1); d.month == month.month; d = d.addDays(1)) d,
-  ];
-
   /// The calendar to edit days, with its own month arrows and swipes.
   Component _calendar(MonthKey month) {
-    final before = _before(month);
-    final isThisMonth = month.year == _today.year && month.month == _today.month;
-    void move(int delta) => setState(() {
-      final m = DateTime(month.year, month.month + delta);
-      _month = (year: m.year, month: m.month);
-    });
+    // Wide screens also show the month before, on the left. See .month-pair in theme.dart.
+    final before = addMonths(month, -1);
+    final isThisMonth = month == monthOf(_today);
+    void move(int delta) => setState(() => _month = addMonths(month, delta));
     final current = monthYear(month);
     // Wide screens.
     final pair = monthRange(before, month);
     return _section('Edit days', [
       nav(classes: 'month-nav', [
-        button(
-          classes: 'circle transparent',
-          attributes: {'title': 'Previous month'},
-          onClick: () => move(-1),
-          [
-            i([.text('chevron_left')]),
-          ],
-        ),
+        iconButton('chevron_left', title: 'Previous month', onClick: () => move(-1)),
         span(classes: 'max center-align', [
           span(classes: 'single-month', [.text(current)]),
           span(classes: 'two-months', [.text(pair)]),
         ]),
-        button(
-          classes: 'circle transparent',
-          attributes: {'title': 'Next month'},
-          disabled: isThisMonth,
-          onClick: () => move(1),
-          [
-            i([.text('chevron_right')]),
-          ],
-        ),
+        iconButton('chevron_right', title: 'Next month', onClick: () => move(1), disabled: isThisMonth),
       ]),
       _swipeable(
         div(classes: 'month-pair', [
-          div(classes: 'previous-month', [_table(DayLayout.calendars, _daysOf(before), key: 'previous')]),
-          _table(DayLayout.calendars, _daysOf(month), key: 'calendar'),
+          div(classes: 'previous-month', [_table(DayLayout.calendars, daysOfMonth(before), key: 'previous')]),
+          _table(DayLayout.calendars, daysOfMonth(month), key: 'calendar'),
         ]),
         onPrevious: () => move(-1),
         onNext: isThisMonth ? null : () => move(1),
@@ -358,14 +301,9 @@ class _MetricDetailState extends State<MetricDetail> {
   Component _table(DayLayout layout, List<Day> days, {required String key}) => HabitTable(
     key: ValueKey(key),
     metrics: [_m],
-    log: component.log,
-    today: _today,
+    edits: component.edits,
     days: days,
     layout: layout,
-    busy: component.busy,
-    onWrite: component.onWrite,
-    pending: component.pending,
-    onCount: component.onCount,
     bare: true,
   );
 
@@ -379,7 +317,6 @@ class _MetricDetailState extends State<MetricDetail> {
     Aggregate aggregate, {
     bool fixedScale = false,
     bool range = false,
-    bool fromLowest = false,
     num? max,
     String Function(num v) format = formatNumber,
     String? unit,
@@ -392,9 +329,7 @@ class _MetricDetailState extends State<MetricDetail> {
       bars: bars.sublist(w.allStarts.indexOf(w.starts.first), w.allStarts.indexOf(w.starts.last) + 1),
       barUnit: w.unit,
       max: max ?? (fixedScale && all.isNotEmpty ? all.reduce(math.max) : null),
-      min: fixedScale ? 0 : null,
       range: range,
-      fromLowest: fromLowest,
       format: format,
       unit: unit,
     );

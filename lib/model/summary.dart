@@ -18,7 +18,7 @@ Map<Day, num> dayValues(Metric metric, List<LogEntry> log) {
 
 /// [dayValues] of [metric], with the count taps in [pending] that are not written yet. Keys of [pending] are metric
 /// id and day.
-Map<Day, num> dayValuesWithPending(Metric metric, List<LogEntry> log, Map<(String, Day), List<CountStep>> pending) {
+Map<Day, num> dayValuesWithPending(Metric metric, List<LogEntry> log, PendingCounts pending) {
   final values = dayValues(metric, log);
   for (final MapEntry(key: (id, day), value: steps) in pending.entries) {
     if (id != metric.id) continue;

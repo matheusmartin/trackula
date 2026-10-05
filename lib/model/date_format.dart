@@ -2,7 +2,6 @@
 library;
 
 import 'day.dart';
-import 'stats.dart';
 import 'zoom.dart';
 
 const monthNames = [

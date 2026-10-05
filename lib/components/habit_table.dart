@@ -4,6 +4,7 @@ import 'package:jaspr/jaspr.dart';
 import '../model/date_format.dart';
 import '../model/day.dart';
 import '../model/format.dart';
+import '../model/log_edits.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/summary.dart';
@@ -57,33 +58,20 @@ enum DayLayout {
 class HabitTable extends StatefulComponent {
   const HabitTable({
     required this.metrics,
-    required this.log,
-    required this.today,
+    required this.edits,
     required this.days,
     required this.layout,
-    required this.busy,
-    required this.onWrite,
-    required this.pending,
-    required this.onCount,
     this.onOpen,
     this.bare = false,
     super.key,
   });
 
   final List<Metric> metrics;
-  final LogTable log;
-  final Day today;
+  final LogEdits edits;
 
   /// The days to show.
   final List<Day> days;
   final DayLayout layout;
-
-  final bool busy;
-  final void Function(LogWrite? Function(LogTable log) plan) onWrite;
-
-  /// Count taps that are not written yet, per metric id and day. The table shows them at once.
-  final Map<(String, Day), List<CountStep>> pending;
-  final void Function(NumberMetric metric, Day day, CountStep step) onCount;
 
   /// Opens the detail screen of a metric. Null: the metric names are not links.
   final void Function(Metric metric)? onOpen;
@@ -109,17 +97,17 @@ class _HabitTableState extends State<HabitTable> {
   }
 
   void _click(Metric m, Day d, Map<Day, num> values) => switch (m) {
-    YesNoMetric() => component.onWrite((log) => planYesNo(m, d, values[d] == null, log)),
+    YesNoMetric() => component.edits.onWrite([(log) => planYesNo(m, d, values[d] == null, log)]),
     NumberMetric(isCount: true) => _counts.click((m.id, d), _counter(m, d)),
     NumberMetric() => setState(() => _editing = _editing == (m.id, d) ? null : (m.id, d)),
   };
 
   /// Adds `sign` steps of [m] on [d]. See [CountInput].
   void Function(int sign) _counter(NumberMetric m, Day d) =>
-      (sign) => component.onCount(m, d, CountStep.add(sign * m.step));
+      (sign) => component.edits.onCount(m, d, CountStep.add(sign * m.step));
 
   /// The day values of [m], with the count taps that are not written yet.
-  Map<Day, num> _values(Metric m) => dayValuesWithPending(m, component.log.entries, component.pending);
+  Map<Day, num> _values(Metric m) => component.edits.valuesOf(m);
 
   @override
   Component build(BuildContext context) {
@@ -135,7 +123,7 @@ class _HabitTableState extends State<HabitTable> {
           tr([
             th(classes: 'corner', []),
             for (final d in days)
-              th(classes: d == component.today ? 'today' : null, [
+              th(classes: d == component.edits.today ? 'today' : null, [
                 small([.text(weekdayShort[d.weekday - 1])]),
                 span([.text('${d.day}')]),
               ]),
@@ -238,7 +226,7 @@ class _HabitTableState extends State<HabitTable> {
   /// A day cell. A cell with a value has one fixed color, whatever the value. See .cell.filled in theme.dart.
   /// A day after today is a faded cell that does nothing. See .cell.future.
   Component _cell(Metric m, Day d, Map<Day, num> values, bool selected) {
-    if (d.compareTo(component.today) > 0) {
+    if (d.compareTo(component.edits.today) > 0) {
       return button(classes: 'cell future', disabled: true, attributes: {'title': '$d'}, []);
     }
     final v = values[d];
@@ -246,10 +234,10 @@ class _HabitTableState extends State<HabitTable> {
       classes: [
         'cell',
         if (v != null) 'filled',
-        if (d == component.today) 'today',
+        if (d == component.edits.today) 'today',
         if (selected) 'selected',
       ].join(' '),
-      disabled: component.busy && m is YesNoMetric,
+      disabled: component.edits.busy && m is YesNoMetric,
       attributes: {'title': '${m.name}, $d${_valueText(m, v)}${_hint(m)}', 'aria-pressed': '${v != null}'},
       onClick: () => _click(m, d, values),
       events: {
@@ -266,19 +254,19 @@ class _HabitTableState extends State<HabitTable> {
   /// value. See [NumberEditor].
   Component _editor(NumberMetric m, Day d, Map<Day, num> values) {
     final near = nearestDay(values.keys, d);
-    return NumberEditor(
+    return NumberEditor.form(
       key: ValueKey('${m.id} $d'),
       metric: m,
-      label: '${m.name} · ${d == component.today ? 'today' : '$d'}',
+      label: '${m.name} · ${d == component.edits.today ? 'today' : '$d'}',
       current: values[d],
       start: near == null ? null : values[near],
-      busy: component.busy,
+      busy: component.edits.busy,
       onSave: (v) {
-        component.onWrite((log) => planNumber(m, d, v, log));
+        component.edits.onWrite([(log) => planNumber(m, d, v, log)]);
         setState(() => _editing = null);
       },
       onClear: () {
-        component.onWrite((log) => planClear(m, d, log));
+        component.edits.onWrite([(log) => planClear(m, d, log)]);
         setState(() => _editing = null);
       },
       onClose: () => setState(() => _editing = null),

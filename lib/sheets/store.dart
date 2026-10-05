@@ -19,10 +19,7 @@ abstract interface class Store {
 
   Future<Snapshot> load();
 
-  /// Reads the latest data, writes the change of [plan] on it, and reads the data again.
-  Future<Snapshot> change(LogWrite? Function(LogTable log) plan);
-
-  /// Runs [plans] one after the other, each on the latest data. So a plan sees the row that an earlier plan added
-  /// for the same day.
-  Future<Snapshot> changeAll(List<LogWrite? Function(LogTable log)> plans);
+  /// Reads the latest data, and runs [plans] one after the other, each on the latest data. So a plan sees the row
+  /// that an earlier plan added for the same day. Returns the data after the last write.
+  Future<Snapshot> change(List<LogPlan> plans);
 }

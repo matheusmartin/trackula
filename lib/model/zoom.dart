@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'day.dart';
+import 'metric.dart';
 
 // The time window of the metric detail screen: bars over time, from the first value to today. A zoom step sets the
 // span in view and the size of one bar. All charts of the screen show the same window. Pure Dart, no browser code.
@@ -41,10 +42,14 @@ enum Aggregate {
 
   /// The average of the values. Days without value are left out.
   average,
-
-  /// The [average] minus the average of the bar before.
-  change,
 }
+
+/// The [Aggregate] of the bars of [metric]: the yes rate, the sum of counts, or the average of numbers.
+Aggregate aggregateOf(Metric metric) => switch (metric) {
+  YesNoMetric() => Aggregate.rate,
+  NumberMetric(isCount: true) => Aggregate.sum,
+  _ => Aggregate.average,
+};
 
 /// One bar: its first day, its value, and the lowest and highest value of its days. A null value draws no bar.
 typedef ZoomBar = ({Day start, num? value, num? low, num? high});
@@ -153,7 +158,7 @@ final class ZoomWindow {
 }
 
 /// One bar for each day of [starts], from the day [values]. Days before [first] and after [today] are not part of a
-/// bar. For [Aggregate.change], the first bar has no value.
+/// bar.
 List<ZoomBar> zoomBars(
   Map<Day, num> values,
   Aggregate aggregate,
@@ -169,16 +174,12 @@ List<ZoomBar> zoomBars(
   }
   num? average(List<num>? vs) => vs == null || vs.isEmpty ? null : vs.reduce((a, b) => a + b) / vs.length;
   final bars = <ZoomBar>[];
-  for (final (i, start) in starts.indexed) {
+  for (final start in starts) {
     final vs = byBar[start];
     final value = switch (aggregate) {
       Aggregate.rate => _rate(vs, start, unit, first, today),
       Aggregate.sum => vs?.fold<num>(0, (a, b) => a + b),
       Aggregate.average => average(vs),
-      Aggregate.change => switch ((i == 0 ? null : average(byBar[starts[i - 1]]), average(vs))) {
-        (final before?, final now?) => now - before,
-        _ => null,
-      },
     };
     bars.add((
       start: start,

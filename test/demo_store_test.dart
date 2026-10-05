@@ -16,12 +16,12 @@ void main() {
     expect(s.log.rows.containsKey(today), isFalse);
   });
 
-  test('changeAll adds one row for today, also for two values', () async {
+  test('change adds one row for today, also for two values', () async {
     final st = store();
     final metrics = (await st.load()).metrics;
     final weight = metrics.firstWhere((m) => m.id == 'weight') as NumberMetric;
     final meditate = metrics.firstWhere((m) => m.id == 'meditate') as YesNoMetric;
-    final s = await st.changeAll([
+    final s = await st.change([
       (log) => planNumber(weight, today, 82.3, log),
       (log) => planYesNo(meditate, today, true, log),
     ]);
@@ -30,7 +30,18 @@ void main() {
     expect(s.log.valueAt('weight', today), 82.3);
     expect(s.log.valueAt('meditate', today), 1);
 
-    final cleared = await st.change((log) => planClear(weight, today, log));
+    final cleared = await st.change([(log) => planClear(weight, today, log)]);
     expect(cleared.log.valueAt('weight', today), isNull);
+  });
+
+  test('change with no plans, or with plans that change nothing, keeps the data', () async {
+    final st = store();
+    final before = await st.load();
+    final none = await st.change([]);
+    final nulls = await st.change([(_) => null, (_) => null]);
+    for (final s in [none, nulls]) {
+      expect(s.log.rows, hasLength(before.log.rows.length));
+      expect(s.log.entries, hasLength(before.log.entries.length));
+    }
   });
 }

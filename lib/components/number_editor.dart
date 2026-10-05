@@ -5,6 +5,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:web/web.dart' as web;
 
+import '../constants/tokens.dart';
 import '../model/format.dart';
 import '../model/metric.dart';
 import '../model/number_input.dart';
@@ -23,19 +24,34 @@ import '../services/wheel_steps.dart';
 /// An empty day starts at the latest earlier value, else at the first later value.
 /// Styles: lib/constants/theme.dart.
 class NumberEditor extends StatefulComponent {
-  const NumberEditor({
+  /// An editor with a Save button, for one cell of the table. It takes the focus.
+  const NumberEditor.form({
     required this.metric,
     required this.label,
     required this.current,
     required this.start,
     required this.busy,
-    required this.onSave,
-    required this.onClear,
-    required this.onClose,
-    this.autofocus = true,
-    this.onChange,
+    required void Function(num value) this.onSave,
+    required VoidCallback this.onClear,
+    required VoidCallback this.onClose,
     super.key,
-  });
+  }) : onChange = null,
+       autofocus = true;
+
+  /// An editor without a Save button, as on the Today tiles: [onChange] gets each value, and the parent saves. It
+  /// does not take the focus: many of them show at the same time.
+  const NumberEditor.live({
+    required this.metric,
+    required this.label,
+    required this.current,
+    required this.start,
+    required void Function(num? value) this.onChange,
+    super.key,
+  }) : busy = false,
+       onSave = null,
+       onClear = null,
+       onClose = null,
+       autofocus = false;
 
   final NumberMetric metric;
 
@@ -48,18 +64,26 @@ class NumberEditor extends StatefulComponent {
 
   /// The value that an empty day starts at. Null if the metric has no value on another day.
   final num? start;
-  final bool busy;
-  final void Function(num value) onSave;
-  final VoidCallback onClear;
-  final VoidCallback onClose;
 
-  /// Focus the ruler at the start. False when many editors show at the same time, as on the Today tiles: else the
-  /// page scrolls to the last one.
+  /// True while a write runs: the Save button is disabled. Only [NumberEditor.form].
+  final bool busy;
+
+  /// Saves a value. Only [NumberEditor.form].
+  final void Function(num value)? onSave;
+
+  /// Clears the day: Save with an empty text field. Only [NumberEditor.form].
+  final VoidCallback? onClear;
+
+  /// Closes the editor: the Escape key. Only [NumberEditor.form].
+  final VoidCallback? onClose;
+
+  /// Focus the ruler at the start. False when many editors show at the same time: else the page scrolls to the last
+  /// one.
   final bool autofocus;
 
   /// Called with the value at each change, and when the user taps the ruler without a move: that confirms the
-  /// value. Null after the text field is emptied. With [onChange], the editor shows no Save button, and Enter does
-  /// nothing: the parent saves.
+  /// value. Null after the text field is emptied. Only [NumberEditor.live]: the editor shows no Save button, and
+  /// Enter does nothing.
   final void Function(num? value)? onChange;
 
   @override
@@ -67,8 +91,8 @@ class NumberEditor extends StatefulComponent {
 }
 
 class _NumberEditorState extends State<NumberEditor> {
-  /// The space between two ruler ticks, in pixels.
-  static const _tick = 9.0;
+  /// The space between two ruler ticks, in pixels. The CSS of `.tick` uses the same value.
+  static const _tick = rulerTick + 0.0;
 
   /// The ruler shows this many ticks on each side of the value.
   static const _ticks = 60;
@@ -139,10 +163,11 @@ class _NumberEditorState extends State<NumberEditor> {
 
   /// Saves the value. An empty text field clears the day.
   void _save() {
-    if (component.onChange != null) return;
+    final onSave = component.onSave;
+    if (onSave == null) return;
     final v = parseDecimal(_text);
-    if (v != null) return component.onSave(v);
-    if (_text.trim().isEmpty && component.current != null) return component.onClear();
+    if (v != null) return onSave(v);
+    if (_text.trim().isEmpty && component.current != null) return component.onClear?.call();
     final example = formatStep(component.start ?? _step * 10, _step);
     setState(() => _error = 'Enter a number, for example $example.');
   }
@@ -152,7 +177,7 @@ class _NumberEditorState extends State<NumberEditor> {
       case 'Enter':
         _save();
       case 'Escape':
-        component.onClose();
+        component.onClose?.call();
       case 'ArrowUp' || 'ArrowDown':
         e.preventDefault();
         _set(_value + (e.key == 'ArrowUp' ? _step : -_step));
@@ -161,7 +186,7 @@ class _NumberEditorState extends State<NumberEditor> {
 
   void _rulerKey(web.KeyboardEvent e) {
     if (e.key == 'Enter') return _save();
-    if (e.key == 'Escape') return component.onClose();
+    if (e.key == 'Escape') return component.onClose?.call();
     final steps = switch (e.key) {
       'ArrowRight' || 'ArrowUp' => 1,
       'ArrowLeft' || 'ArrowDown' => -1,
@@ -232,7 +257,7 @@ class _NumberEditorState extends State<NumberEditor> {
           if (m.unit case final unit?) span(classes: 'unit', [.text(unit)]),
         ]),
         _ruler(),
-        if (component.onChange == null)
+        if (component.onSave != null)
           div(classes: 'actions', [
             button(disabled: component.busy, onClick: _save, [.text('Save')]),
           ]),

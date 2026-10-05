@@ -2,6 +2,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
 import '../model/day.dart';
+import '../model/log_edits.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/number_input.dart';
@@ -27,24 +28,15 @@ import '../services/count_input.dart';
 class TodayTiles extends StatefulComponent {
   const TodayTiles({
     required this.metrics,
-    required this.log,
-    required this.today,
-    required this.busy,
-    required this.onWriteAll,
-    required this.pending,
+    required this.edits,
     super.key,
   });
 
   final List<Metric> metrics;
-  final LogTable log;
-  final Day today;
-  final bool busy;
 
-  /// Saves several values in one task, in order. For the Save button.
-  final void Function(List<LogWrite? Function(LogTable log)> plans) onWriteAll;
-
-  /// Count taps of the table views that are not written yet, per metric id and day. The tiles show them.
-  final Map<(String, Day), List<CountStep>> pending;
+  /// The Save button saves all values with one [LogEdits.onWrite]. The tiles also show the count taps of the table
+  /// views that are not written yet.
+  final LogEdits edits;
 
   @override
   State<TodayTiles> createState() => _TodayTilesState();
@@ -57,7 +49,7 @@ class _TodayTilesState extends State<TodayTiles> {
   /// Values that the Save button sends now, by metric id. The tiles show them until the write ends, not the old values.
   final _saving = <String, num?>{};
 
-  Day get today => component.today;
+  Day get today => component.edits.today;
 
   /// The input of count tiles. Keys are metric ids.
   final _counts = CountInput<String>();
@@ -72,7 +64,7 @@ class _TodayTilesState extends State<TodayTiles> {
   void didUpdateComponent(TodayTiles oldComponent) {
     super.didUpdateComponent(oldComponent);
     // The write ended: the new data has the saved values, or the error shows.
-    if (oldComponent.busy && !component.busy) _saving.clear();
+    if (oldComponent.edits.busy && !component.edits.busy) _saving.clear();
   }
 
   /// The value that a tile shows: unsaved, then being saved, then [saved].
@@ -106,7 +98,7 @@ class _TodayTilesState extends State<TodayTiles> {
       _saving.addAll(_drafts);
       _drafts.clear();
     });
-    component.onWriteAll(plans);
+    component.edits.onWrite(plans);
   }
 
   @override
@@ -119,12 +111,12 @@ class _TodayTilesState extends State<TodayTiles> {
     // from a different parent"), for example when the page changes to the 5-day table.
     return div(classes: 'today-tiles', [
       div(classes: 'tiles', [
-        for (final m in component.metrics) _tile(m, dayValuesWithPending(m, component.log.entries, component.pending)),
+        for (final m in component.metrics) _tile(m, component.edits.valuesOf(m)),
       ]),
       // At the end of the page, below the tiles. See .save-button in theme.dart.
       button(
         classes: 'save-button',
-        disabled: component.busy || unsaved.isEmpty,
+        disabled: component.edits.busy || unsaved.isEmpty,
         attributes: {'title': unsaved.isEmpty ? 'No changes' : 'Save: ${unsaved.join(', ')}'},
         onClick: _save,
         [.text(_saving.isNotEmpty ? 'Saving…' : 'Save')],
@@ -199,18 +191,12 @@ class _TodayTilesState extends State<TodayTiles> {
     final start = near == null ? null : values[near];
     return div(classes: _classes(m, done: v != null, kind: 'wide'), [
       div(classes: 'tile-main', [..._head(m)]),
-      NumberEditor(
+      NumberEditor.live(
         key: ValueKey('${m.id} $today'),
         metric: m,
         label: '${m.name} · today',
         current: saved,
         start: start,
-        busy: component.busy,
-        autofocus: false,
-        // The Save button saves. These run only without onChange.
-        onSave: (_) {},
-        onClear: () {},
-        onClose: () {},
         // On an empty day, a tap on the ruler at the start value is a change: it confirms that value.
         onChange: (value) => _set(m, value, saved),
       ),

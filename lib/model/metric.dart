@@ -33,3 +33,15 @@ final class NumberMetric extends Metric {
   /// Kind `count`: the same as `number`, but the chart shows bars from 0 instead of a line.
   final bool isCount;
 }
+
+/// The group name of [metric] for the group filter. A metric without a group is in "other".
+String groupOf(Metric metric) => metric.group ?? 'other';
+
+/// The group names of [metrics], in the order of their first metric.
+List<String> groupsOf(List<Metric> metrics) => {for (final m in metrics) groupOf(m)}.toList();
+
+/// The metrics of [group], in order. A null [group]: all metrics.
+List<Metric> metricsIn(List<Metric> metrics, String? group) => [
+  for (final m in metrics)
+    if (group == null || groupOf(m) == group) m,
+];

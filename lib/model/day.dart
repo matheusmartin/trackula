@@ -52,3 +52,23 @@ final class Day implements Comparable<Day> {
   @override
   int get hashCode => Object.hash(year, month, day);
 }
+
+/// The earliest day of [days], or null if it is empty.
+Day? earliestDay(Iterable<Day> days) => days.fold<Day?>(null, (f, d) => f == null || d.compareTo(f) < 0 ? d : f);
+
+/// A month of the calendar.
+typedef MonthKey = ({int year, int month});
+
+/// The month of [d].
+MonthKey monthOf(Day d) => (year: d.year, month: d.month);
+
+/// [month] plus [delta] months. Example: (2026, 1) − 1 → (2025, 12).
+MonthKey addMonths(MonthKey month, int delta) {
+  final m = DateTime(month.year, month.month + delta);
+  return (year: m.year, month: m.month);
+}
+
+/// All days of [month], in order.
+List<Day> daysOfMonth(MonthKey month) => [
+  for (var d = Day(month.year, month.month, 1); d.month == month.month; d = d.addDays(1)) d,
+];

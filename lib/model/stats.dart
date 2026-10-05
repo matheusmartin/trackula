@@ -6,9 +6,6 @@ import 'log_entry.dart';
 /// A value on a day, for example the best day of a count.
 typedef DayValue = ({Day day, num value});
 
-/// A month of the calendar.
-typedef MonthKey = ({int year, int month});
-
 /// The yes/no states of [metricId] in [entries]: true for `yes`, false for `no`. Days without entry are left out.
 Map<Day, bool> yesNoStates(String metricId, List<LogEntry> entries) => {
   for (final e in entries)
@@ -92,7 +89,7 @@ YesNoStats yesNoStats(Map<Day, bool> states, List<Day> days, Day today) {
   ];
 
   // The strength starts at the first entry, so a long period does not start with many empty days at 0.
-  final first = states.keys.fold<Day?>(null, (f, d) => f == null || d.compareTo(f) < 0 ? d : f);
+  final first = earliestDay(states.keys);
   final strength = <double>[];
   var s = 0.0;
   if (first != null) {

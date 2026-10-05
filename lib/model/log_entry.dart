@@ -39,6 +39,12 @@ final class LogTable {
   }
 }
 
+/// Plans a change from the latest log: a [LogWrite], or null when nothing must change.
+typedef LogPlan = LogWrite? Function(LogTable log);
+
+/// Count taps that are not written yet, per metric id and day.
+typedef PendingCounts = Map<(String, Day), List<CountStep>>;
+
 /// A change to the `Log` tab.
 sealed class LogWrite {
   const LogWrite();

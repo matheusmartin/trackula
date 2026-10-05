@@ -3,7 +3,9 @@ import 'package:jaspr/jaspr.dart';
 
 import '../components/habit_table.dart';
 import '../components/today_tiles.dart';
+import '../components/ui.dart';
 import '../model/day.dart';
+import '../model/log_edits.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../services/prefs.dart';
@@ -67,10 +69,10 @@ class _TodayPageState extends State<TodayPage> {
   String? _detail;
 
   /// Count taps that wait for a write, per metric id and day, in tap order.
-  final _queued = <(String, Day), List<CountStep>>{};
+  final PendingCounts _queued = {};
 
   /// Count taps in the write that runs now. The table shows them until the new data arrives.
-  final _sending = <(String, Day), List<CountStep>>{};
+  final PendingCounts _sending = {};
 
   /// Opens the detail screen of the metric [id], or closes it with null.
   void _openDetail(String? id) {
@@ -137,12 +139,12 @@ class _TodayPageState extends State<TodayPage> {
     }
   }
 
-  void _write(LogWrite? Function(LogTable log) plan) => _run(() => _store.change(plan));
+  void _write(List<LogPlan> plans) => _run(() => _store.change(plans));
 
   /// Saves the values of the Today tiles. After a successful save, the page shows the last 5 days. It does not save
   /// that range: the app still opens on the saved range, for example Today. After an error, the Today tiles stay.
-  Future<void> _writeAll(List<LogWrite? Function(LogTable log)> plans) async {
-    await _run(() => _store.changeAll(plans));
+  Future<void> _saveTiles(List<LogPlan> plans) async {
+    await _run(() => _store.change(plans));
     if (mounted && _error == null) component.onRange(DayRange.short);
   }
 
@@ -163,13 +165,13 @@ class _TodayPageState extends State<TodayPage> {
       _sending.addAll(_queued);
       _queued.clear();
     });
-    _run(() async {
-      Snapshot? data;
-      for (final MapEntry(key: (id, day), value: steps) in _sending.entries) {
-        if (metrics[id] case final NumberMetric m) data = await _store.change((log) => planCount(m, day, steps, log));
-      }
-      return data ?? _store.load();
-    }, done: _sending.clear);
+    _run(
+      () => _store.change([
+        for (final MapEntry(key: (id, day), value: steps) in _sending.entries)
+          if (metrics[id] case final NumberMetric m) (log) => planCount(m, day, steps, log),
+      ]),
+      done: _sending.clear,
+    );
   }
 
   @override
@@ -178,31 +180,26 @@ class _TodayPageState extends State<TodayPage> {
     final today = Day.today();
     final days = _range.daysUntil(today);
     final metrics = data?.metrics ?? const <Metric>[];
-    final groups = {for (final m in metrics) m.group ?? 'other'}.toList();
+    final groups = groupsOf(metrics);
     final group = groups.contains(_group) ? _group : null;
-    final shown = [
-      for (final m in metrics)
-        if (group == null || (m.group ?? 'other') == group) m,
-    ];
+    final shown = metricsIn(metrics, group);
     final pending = {
       for (final key in {..._sending.keys, ..._queued.keys}) key: [...?_sending[key], ...?_queued[key]],
     };
+    final edits = data == null
+        ? null
+        : LogEdits(log: data.log, today: today, busy: _busy, pending: pending, onWrite: _write, onCount: _count);
 
     // The detail screen of one metric. If the metric is gone from the sheet, the table shows again.
-    if ((data, metrics.where((m) => m.id == _detail).firstOrNull) case (final data?, final metric?)) {
+    if ((edits, metrics.where((m) => m.id == _detail).firstOrNull) case (final edits?, final metric?)) {
       return .fragment([
         MetricDetail(
           key: ValueKey(metric.id),
           metric: metric,
-          log: data.log,
-          today: today,
-          busy: _busy,
-          onWrite: _write,
-          pending: pending,
-          onCount: _count,
+          edits: edits,
           onBack: () => _openDetail(null),
         ),
-        if (_error case final e?) p(classes: 'error-text', [.text(e)]),
+        if (_error case final e?) errorText(e),
       ]);
     }
 
@@ -216,30 +213,18 @@ class _TodayPageState extends State<TodayPage> {
             for (final g in groups) _chip(g, g == group, () => _setGroup(g)),
           ],
         ),
-      if (_error case final e?) p(classes: 'error-text', [.text(e)]),
-      if (data != null) ...[
+      if (_error case final e?) errorText(e),
+      if ((data, edits) case (final data?, final edits?)) ...[
         if (metrics.isEmpty)
           p(classes: 'secondary-text', [.text('No metrics. Add rows to the "Metrics" tab of the sheet.')])
         else if (_range == DayRange.today)
-          TodayTiles(
-            metrics: shown,
-            log: data.log,
-            today: today,
-            busy: _busy,
-            onWriteAll: _writeAll,
-            pending: pending,
-          )
+          TodayTiles(metrics: shown, edits: edits.withOnWrite(_saveTiles))
         else
           HabitTable(
             metrics: shown,
-            log: data.log,
-            today: today,
+            edits: edits,
             days: days,
             layout: _range == DayRange.month ? DayLayout.calendars : DayLayout.table,
-            busy: _busy,
-            onWrite: _write,
-            pending: pending,
-            onCount: _count,
             onOpen: (m) => _openDetail(m.id),
           ),
         if (data.warnings.isNotEmpty)

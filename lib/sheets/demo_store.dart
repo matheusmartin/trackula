@@ -66,10 +66,7 @@ final class DemoStore implements Store {
   }
 
   @override
-  Future<Snapshot> change(LogWrite? Function(LogTable log) plan) => changeAll([plan]);
-
-  @override
-  Future<Snapshot> changeAll(List<LogWrite? Function(LogTable log)> plans) async {
+  Future<Snapshot> change(List<LogPlan> plans) async {
     var data = await load();
     for (final plan in plans) {
       if (plan(data.log) case final w?) {
