@@ -11,7 +11,7 @@ import '../model/summary.dart';
 import '../services/count_input.dart';
 import 'metric_icon.dart';
 import 'number_editor.dart';
-import 'trend_chart.dart';
+import 'charts/trend_chart.dart';
 
 /// How many past days the app shows: today as input tiles (see TodayTiles), a table of the last 5 days on all
 /// screens, or one small calendar per metric for the last 31 days.

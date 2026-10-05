@@ -350,7 +350,7 @@ List<StyleRule> get styles => [
     raw: {'color': 'inherit', 'text-decoration': 'none'},
   ),
 
-  // metric_detail.dart: sections of the detail screen. charts.dart uses inline styles.
+  // metric_detail.dart and metric_detail/: sections of the detail screen. components/charts/ uses inline styles.
   // Wide screens: at most 60rem wide and centered, so that the cards keep their shape.
   css('.metric-detail', [
     css('&').styles(
@@ -411,11 +411,9 @@ List<StyleRule> get styles => [
     css('.metric-detail .chart-wide').styles(raw: {'grid-column': '1 / -1'}),
   ]),
 
-  // trend_chart.dart uses inline styles.
-
   // Phones: smaller cells and less name padding, so the 5 days and the metric icons fit without scrolling.
   css.media(MediaQuery.screen(maxWidth: 480.px), [
-    // charts.dart: more than 8 values above the bars, for example 13 weeks, fit without touching.
+    // charts/bar_chart.dart: more than 8 values above the bars, for example 13 weeks, fit without touching.
     // !important: the values have an inline font size.
     css('.bar-values.dense small').styles(raw: {'font-size': '0.6rem !important', 'letter-spacing': '-0.02em'}),
     css('table.habits .cell').styles(raw: {'inline-size': '1.9rem', 'block-size': '1.9rem'}),
