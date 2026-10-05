@@ -4,10 +4,12 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:web/web.dart' as web;
 
-import '../model/day.dart';
+import '../model/chart.dart';
 import '../model/date_format.dart';
+import '../model/day.dart';
 import '../model/format.dart';
 import '../model/zoom.dart';
+import '../services/pointer.dart';
 
 // Charts of the metric detail screen. Inline styles, not @css rules, as in trend_chart.dart: the charts must
 // render correctly even when the browser has an old main.css. Colors come from the theme variables.
@@ -140,10 +142,10 @@ Component _scroller(int columns, List<Component> children) => columns <= _scroll
 void _wheelToSide(web.Event e) {
   final w = e as web.WheelEvent;
   // Trackpads also send side moves, and the browser scrolls those itself.
-  if (w.deltaY.abs() <= w.deltaX.abs()) return;
+  if (!isVerticalWheel(w)) return;
   final box = w.currentTarget as web.Element;
   final before = box.scrollLeft;
-  box.scrollLeft = before + w.deltaY * (w.deltaMode == web.WheelEvent.DOM_DELTA_LINE ? 16 : 1);
+  box.scrollLeft = before + wheelPixels(w, w.deltaY, 16);
   if (box.scrollLeft != before) w.preventDefault();
 }
 
@@ -241,7 +243,7 @@ List<Component> _barRows(
   final values = [for (final b in bars) ?b.value];
   final top = max ?? (values.isEmpty ? 1 : values.map((v) => v.abs()).fold<num>(0, math.max));
   final lowest = min ?? (values.isEmpty ? 0 : values.reduce(math.min));
-  final floor = fromLowest && values.isNotEmpty ? lowest - math.max((top - lowest) * 0.25, top * 0.01) : 0;
+  final floor = fromLowest && values.isNotEmpty ? barFloor(lowest, top) : 0;
   final scale = top - floor == 0 ? 1 : top - floor;
   const h = 50.0;
   final base = signed ? h / 2 : h;
@@ -332,7 +334,7 @@ class LineChart extends StatelessComponent {
     final w = math.max(1, values.length - 1).toDouble();
     const h = 50.0;
     double x(int i) => values.length == 1 ? w / 2 : i.toDouble();
-    double y(num v) => hi == lo ? h / 2 : 2 + (h - 4) * (hi - v) / (hi - lo);
+    double y(num v) => linearY(v, lo, hi, h, padding: 2);
     String pathOf(List<num?> vs) => [
       for (final (i, v) in vs.indexed)
         if (v != null) '${i == vs.indexWhere((e) => e != null) ? 'M' : 'L'}${x(i)} ${y(v)}',
@@ -557,7 +559,7 @@ class TimeBars extends StatelessComponent {
   Component _rangeRows(num hi, num lo, String u) {
     const h = 50.0;
     final w = bars.length * 10.0;
-    double y(num v) => hi == lo ? h / 2 : 2 + (h - 4) * (hi - v) / (hi - lo);
+    double y(num v) => linearY(v, lo, hi, h, padding: 2);
     return _svg(w, h, label: title, [
       for (final (i, b) in bars.indexed)
         if ((b.low, b.high, b.value) case (final low?, final high?, final avg?)) ...[
@@ -634,7 +636,7 @@ class _OverviewState extends State<Overview> {
     final c = component;
     final values = [for (final b in c.weeks) ?b.value];
     final hi = values.isEmpty ? 1 : values.reduce(math.max);
-    final lo = c.fromZero || values.isEmpty ? 0 : values.reduce(math.min) - (hi - values.reduce(math.min)) * 0.15;
+    final lo = c.fromZero || values.isEmpty ? 0 : barFloor(values.reduce(math.min), hi);
     const h = 30.0;
     final w = c.weeks.length * 10.0;
     double x(Day d) => (d.serial - c.weeks.first.start.serial) / 7 * 10;
@@ -644,7 +646,7 @@ class _OverviewState extends State<Overview> {
       events: {
         'pointerdown': (e) {
           final p = e as web.PointerEvent;
-          _capture(p);
+          capturePointer(p);
           _drag = true;
           _point(p);
         },
@@ -686,14 +688,6 @@ class _OverviewState extends State<Overview> {
       ],
     );
   }
-}
-
-/// Sends the next moves of the pointer of [p] to its element, also outside it. A pointer that is already up throws:
-/// then nothing changes.
-void _capture(web.PointerEvent p) {
-  try {
-    (p.currentTarget as web.Element).setPointerCapture(p.pointerId);
-  } catch (_) {}
 }
 
 /// The days from [from] to [to] in week columns, Monday at the top. A day with a value is filled. A tap on a day

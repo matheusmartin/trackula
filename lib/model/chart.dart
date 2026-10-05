@@ -1,4 +1,15 @@
+import 'dart:math' as math;
+
 import 'day.dart';
+
+/// The y of [v] on a scale from [lo] at the bottom to [hi] at the top, in a box of [height]. The top value is at
+/// [padding] from the top, the lowest at [padding] from the bottom. If [hi] equals [lo], all values are in the middle.
+double linearY(num v, num lo, num hi, double height, {double padding = 0}) =>
+    hi == lo ? height / 2 : padding + (height - 2 * padding) * (hi - v) / (hi - lo);
+
+/// The bottom of a bar scale that does not start at 0: a quarter of the range below [lowest], and at least 1 % of
+/// the size of [top] below it. So small changes show, and the lowest bar is never empty.
+num barFloor(num lowest, num top) => lowest - math.max((top - lowest) * 0.25, top.abs() * 0.01);
 
 /// A point of a line chart, in chart units: x from 0 to [width], y from 0 (top) to [height].
 typedef ChartPoint = ({Day day, num value, double x, double y});
@@ -30,7 +41,7 @@ List<ChartPoint> chartPoints(
         day: p.day,
         value: p.value,
         x: width * p.i / span,
-        y: hi == lo ? height / 2 : padding + (height - 2 * padding) * (hi - p.value) / (hi - lo),
+        y: linearY(p.value, lo, hi, height, padding: padding),
       ),
   ];
 }
