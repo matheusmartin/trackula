@@ -8,6 +8,8 @@ import 'package:web/web.dart' as web;
 import '../model/format.dart';
 import '../model/metric.dart';
 import '../model/number_input.dart';
+import '../services/pointer.dart';
+import '../services/wheel_steps.dart';
 
 /// Editor for one day of a `number` metric. `count` metrics use taps instead. See HabitTable.
 ///
@@ -91,8 +93,8 @@ class _NumberEditorState extends State<NumberEditor> {
   late final JSFunction _onDragMove = ((web.PointerEvent e) => _dragMove(e)).toJS;
   late final JSFunction _onDragEnd = ((web.Event _) => _dragEnd()).toJS;
 
-  /// Wheel movement that is less than one tick, in pixels.
-  double _wheel = 0;
+  /// Wheel moves: one tick is one step.
+  final _wheel = WheelSteps(_tick);
 
   @override
   void initState() {
@@ -203,15 +205,11 @@ class _NumberEditorState extends State<NumberEditor> {
   void _wheelMove(web.WheelEvent e) {
     // On the Today tiles (with onChange), the rulers fill much of the page: a vertical wheel scrolls the page, and only
     // a side wheel or trackpad swipe moves the ruler. Else a page scroll changes values by mistake.
-    if (component.onChange != null && e.deltaY.abs() >= e.deltaX.abs()) return;
+    if (component.onChange != null && !isSideWheel(e)) return;
     e.preventDefault();
-    final delta = e.deltaX.abs() > e.deltaY.abs() ? e.deltaX : e.deltaY;
-    // deltaMode 1: the delta is in lines, not pixels. One line is one tick.
-    _wheel += delta.toDouble() * (e.deltaMode == 1 ? _tick : 1);
-    final steps = (_wheel / _tick).truncate();
-    if (steps == 0) return;
-    _wheel -= steps * _tick;
-    _set(_value + steps * _step, snap: true);
+    // One line of a line-mode wheel is one tick.
+    final steps = _wheel.add(wheelPixels(e, isSideWheel(e) ? e.deltaX : e.deltaY, _tick));
+    if (steps != 0) _set(_value + steps * _step, snap: true);
   }
 
   @override

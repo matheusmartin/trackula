@@ -15,6 +15,8 @@ import '../model/metric.dart';
 import '../model/stats.dart';
 import '../model/summary.dart';
 import '../model/zoom.dart';
+import '../services/pointer.dart';
+import '../services/wheel_steps.dart';
 
 /// All data of one metric: key numbers, charts and day heatmap for one time window, and a month calendar to edit days.
 ///
@@ -74,9 +76,8 @@ class _MetricDetailState extends State<MetricDetail> {
   /// A drag shorter than this many pixels is a tap, for example on a heatmap day.
   static const _dragStart = 8;
 
-  /// The side wheel moves one bar for each this many pixels of scroll.
-  static const _wheelStep = 40.0;
-  double _wheel = 0;
+  /// Side wheel moves: 40 px move the window by one bar.
+  final _wheel = WheelSteps(40);
 
   Metric get _m => component.metric;
   Day get _today => component.today;
@@ -242,9 +243,7 @@ class _MetricDetailState extends State<MetricDetail> {
         final dx = p.pageX - drag.$1;
         if (!drag.$3) {
           if (dx.abs() < _dragStart) return;
-          try {
-            (p.currentTarget as web.Element).setPointerCapture(p.pointerId);
-          } catch (_) {}
+          capturePointer(p);
           _drag = (drag.$1, drag.$2, true);
         }
         final width = (p.currentTarget as web.Element).getBoundingClientRect().width;
@@ -255,13 +254,10 @@ class _MetricDetailState extends State<MetricDetail> {
       'wheel': (e) {
         final ev = e as web.WheelEvent;
         // Vertical wheel moves scroll the page.
-        if (ev.deltaX.abs() <= ev.deltaY.abs()) return;
+        if (!isSideWheel(ev)) return;
         ev.preventDefault();
-        _wheel += ev.deltaX;
-        final bars = _wheel ~/ _wheelStep;
-        if (bars == 0) return;
-        _wheel = _wheel.remainder(_wheelStep);
-        _moveTo(w.moved(bars));
+        final bars = _wheel.add(ev.deltaX);
+        if (bars != 0) _moveTo(w.moved(bars));
       },
     },
     children,
