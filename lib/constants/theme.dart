@@ -1,9 +1,11 @@
 import 'package:jaspr/dom.dart';
 
+import 'tokens.dart';
+
 /// App styles on top of BeerCSS (Material Design 3). The @css annotation adds them to main.css.
 ///
-/// BeerCSS gives the base look. These rules cover only what BeerCSS has no component for: the habit table
-/// and calendars. Colors use the Material theme variables, so they follow the theme and dark mode.
+/// BeerCSS gives the base look. These rules cover only the app's own components, which BeerCSS has no component for.
+/// Colors use the Material theme variables, so they follow the theme and dark mode. Shared values: tokens.dart.
 @css
 List<StyleRule> get styles => [
   // today.dart
@@ -79,14 +81,14 @@ List<StyleRule> get styles => [
       '-webkit-user-select': 'none',
       '-webkit-touch-callout': 'none',
       'color': 'var(--on-surface)',
-      'background-color': 'var(--surface-container-highest)',
+      'background-color': emptyColor,
     },
   ),
   // 70% primary: softer than the full primary. White text still has a contrast of 4:1, and the cell 3:1 to empty cells.
   css('.cell.filled').styles(
     raw: {
       'color': 'var(--on-primary)',
-      'background-color': 'color-mix(in srgb, var(--primary) 70%, var(--surface-container-highest))',
+      'background-color': filledColor,
     },
   ),
   // Today: a soft ring, 40% of the text color. It shows on empty and on filled cells.
@@ -113,7 +115,7 @@ List<StyleRule> get styles => [
     raw: {'transform': 'translateY(-50%)', 'color': 'var(--on-surface-variant)'},
   ),
 
-  // number_editor.dart: value field, ruler and buttons. One ruler tick is 9px, as _tick in number_editor.dart.
+  // number_editor.dart: value field, ruler and buttons. One ruler tick is rulerTick wide.
   css('.number-editor', [
     css('&').styles(flexDirection: .column, alignItems: .stretch),
     css('.value').styles(
@@ -158,7 +160,7 @@ List<StyleRule> get styles => [
       position: .absolute(left: 50.percent, top: .zero),
       raw: {'block-size': '100%'},
     ),
-    css('.tick').styles(position: .relative(), raw: {'flex': '0 0 9px'}),
+    css('.tick').styles(position: .relative(), raw: {'flex': '0 0 ${rulerTick}px'}),
     css('.tick::before').styles(
       position: .absolute(left: 4.px, top: .zero),
       raw: {
@@ -267,7 +269,7 @@ List<StyleRule> get styles => [
       position: .absolute(top: 1.5.rem, left: 4.5.px),
     ),
   ]),
-  css.media(MediaQuery.screen(minWidth: 640.px), [
+  css.media(MediaQuery.screen(minWidth: wideScreen.px), [
     css('.tiles').styles(raw: {'grid-template-columns': 'repeat(4, minmax(0, 1fr))'}),
   ]),
   // The Save button of the Today tiles: at the end of the page, below the tiles, as wide as the tiles. border-box:
@@ -400,7 +402,7 @@ List<StyleRule> get styles => [
     css('.month-pair').styles(display: .grid, raw: {'grid-template-columns': 'minmax(0, 1fr)', 'gap': '0.75rem'}),
     css('.previous-month, .two-months').styles(display: .none),
   ]),
-  css.media(MediaQuery.screen(minWidth: 640.px), [
+  css.media(MediaQuery.screen(minWidth: wideScreen.px), [
     css('.metric-detail .month-pair').styles(raw: {'grid-template-columns': 'repeat(2, minmax(0, 1fr))'}),
     css('.metric-detail .previous-month').styles(display: .block),
     css('.metric-detail .two-months').styles(display: .inline),
