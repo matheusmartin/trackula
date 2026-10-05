@@ -5,7 +5,7 @@
 - Storage is one Google Sheet.
 - The sheet has 2 tabs:
   - `Metrics`: the list of things you track. You edit it by hand.
-  - `Log`: one row for each day, one column for each metric. The app writes it. You can edit it by hand.
+  - `Log`: the values for each day. The app writes it. You can edit it by hand.
 - Row 1 of each tab is the header row. Do not change the header names.
 - The tab names are `Metrics` and `Log`, with a capital first letter. Older app versions used `metrics` and `log`: rename these tabs.
 
@@ -17,7 +17,7 @@ One row for each metric. The row order is the display order in the app.
 |-----------|---------|----------|-------------------------|-------------|
 | `id`      | text    | Yes      | lowercase, `a-z0-9_-`   | Stable key. It is the column header in the `Log` tab. Do not change it after first use. |
 | `name`    | text    | Yes      | any                     | Name that the app shows. You can change it at any time. |
-| `kind`    | text    | Yes      | `yesno`, `number`, `count` | `yesno`: done (`yes`) or not done (`no`). `number`: a value, with a line chart from the lowest to the highest value. In the app, a tap on a `number` cell opens an editor with a ruler, a text field and a Save button. Save with an empty field clears the day. `count`: the same as `number`, but with a bar chart from 0. In the app, a click or tap on a `count` cell adds `step`. A right-click (mouse) or a double-tap (touch) subtracts it. A count goes to empty only with subtractions: there is no reset. |
+| `kind`    | text    | Yes      | `yesno`, `number`, `count` | Type of the metric. See [Metric kinds](#metric-kinds). |
 | `unit`    | text    | No       | any                     | Example: `kg`, `glasses`, `steps`. Empty for `yesno`. |
 | `step`    | number  | No       | > 0                     | Input step for `number` and `count`. Example: `0.1` for weight. Default: `1`. |
 | `group`   | text    | No       | any                     | Groups metrics on the screen. Example: `habits`, `body`. |
@@ -28,6 +28,14 @@ One row for each metric. The row order is the display order in the app.
 - To hide a metric, delete its row. Its `Log` column and values stay in the sheet, and the app ignores them. To show the metric again, add the row again with the same `id`.
 - The app ignores other columns. Older sheets have `per_day` and `active` columns: you can delete them.
 - Older sheets can have no `icon` column. Then the app shows an error. Add the column with an icon in each row.
+
+### Metric kinds
+
+| Kind     | `Log` value                     | Main chart                                      | Input in the app |
+|----------|---------------------------------|-------------------------------------------------|------------------|
+| `yesno`  | `yes` (done) or `no` (not done) | Bar chart of the yes rate, from 0 to 100 %      | A tap writes `yes`, or `no` if the day is `yes`. |
+| `number` | number                          | Line chart, from the lowest to the highest value | A tap opens an editor with a ruler, a text field and a Save button. Save with an empty field clears the day. |
+| `count`  | number                          | Bar chart, from 0                               | A click or tap adds `step`. A right-click (mouse) or a double-tap (touch) subtracts it. A count goes to empty only with subtractions: there is no reset. |
 
 ### Example
 
@@ -46,15 +54,14 @@ One row for each day, one column for each metric. Rows are not sorted. The app s
 | Column          | Type   | Required | Values        | Description |
 |-----------------|--------|----------|---------------|-------------|
 | A: `date`       | date   | Yes      | a date, shown as `YYYY-MM-DD` | The day. Maximum one row for each day. Can be a past day. |
-| B, C, …: metric `id` | number, or `yes` / `no` | No | number, `yes`, `no` | The value of the metric on that day. Empty means no value. For `yesno`: `yes` or `no`. |
+| B, C, …: metric `id` | number or text | No | number, `yes`, `no` | The value of the metric on that day. Empty means no value. |
 
 ### Rules
 
-- The header of each metric column is the metric `id`, not the name.
+- The header of each metric column is the metric `id`, not the `name`.
 - The app adds a column at the end when a metric has no column. The app does this when it loads the sheet.
 - The column order does not matter. You can move columns.
-- `yesno`: `yes` means "done", `no` means "not done". Case does not matter. An empty cell means no entry: the app shows it like `no`.
-  - A tap in the app writes `yes`, or `no` if the day is `yes`.
+- `yesno`: case does not matter. An empty cell means no entry: the app shows it like `no`.
   - Old app versions wrote `1` for `yes`. When the app opens the sheet, it changes these cells to `yes` (and `0` to `no`). It does not change empty cells.
 - `number` and `count`: one value per day. For amounts, for example glasses of water, it is the day total. Single entries are not stored.
 - The app adds a row when a day has no row. It does not delete rows. A row with only a date is valid.
