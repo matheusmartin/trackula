@@ -1,6 +1,8 @@
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
+import 'ui.dart';
+
 /// Material top app bar with the app name and the session actions.
 class Header extends StatelessComponent {
   const Header({this.onReload, this.busy = false, this.onSignOut, this.onDisconnect, super.key});
@@ -23,32 +25,9 @@ class Header extends StatelessComponent {
           if (busy)
             progress(classes: 'circle small', attributes: {'aria-label': 'Loading'}, [])
           else
-            button(
-              classes: 'circle transparent',
-              attributes: {'title': 'Reload'},
-              onClick: onReload,
-              [
-                i([.text('refresh')]),
-              ],
-            ),
-        if (onDisconnect != null)
-          button(
-            classes: 'circle transparent',
-            attributes: {'title': 'Change sheet'},
-            onClick: onDisconnect,
-            [
-              i([.text('swap_horiz')]),
-            ],
-          ),
-        if (onSignOut != null)
-          button(
-            classes: 'circle transparent',
-            attributes: {'title': 'Sign out'},
-            onClick: onSignOut,
-            [
-              i([.text('logout')]),
-            ],
-          ),
+            iconButton('refresh', title: 'Reload', onClick: onReload),
+        if (onDisconnect != null) iconButton('swap_horiz', title: 'Change sheet', onClick: onDisconnect),
+        if (onSignOut != null) iconButton('logout', title: 'Sign out', onClick: onSignOut),
       ]),
     ]);
   }

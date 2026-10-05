@@ -1,6 +1,7 @@
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
+import '../components/ui.dart';
 import '../services/session.dart';
 
 class SignInPage extends StatefulComponent {
@@ -14,23 +15,11 @@ class SignInPage extends StatefulComponent {
   State<SignInPage> createState() => _SignInPageState();
 }
 
-class _SignInPageState extends State<SignInPage> {
-  bool _busy = false;
-  String? _error;
-
-  Future<void> _signIn() async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      component.onSignedIn(await Session.signIn(selectAccount: !component.expired));
-    } catch (e) {
-      setState(() => _error = 'Sign-in failed: $e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
+class _SignInPageState extends State<SignInPage> with BusyState {
+  Future<void> _signIn() => runBusy(
+    () async => component.onSignedIn(await Session.signIn(selectAccount: !component.expired)),
+    describe: (e) => 'Sign-in failed: $e',
+  );
 
   /// Full-screen page: a large logo in the center and the sign-in button at the bottom. Styles: web/theme.css.
   @override
@@ -42,11 +31,11 @@ class _SignInPageState extends State<SignInPage> {
       ]),
       div(classes: 'splash-actions', [
         if (component.expired) p([.text('Google access lasts 1 hour. Sign in again to continue.')]),
-        button(classes: 'round', disabled: _busy, onClick: _signIn, [
+        button(classes: 'round', disabled: busy, onClick: _signIn, [
           i([.text('login')]),
           span([.text('Sign in with Google')]),
         ]),
-        if (_error case final e?) p(classes: 'error-text', [.text(e)]),
+        if (error case final e?) errorText(e),
       ]),
     ]);
   }
