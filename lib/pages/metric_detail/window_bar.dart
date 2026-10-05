@@ -17,8 +17,8 @@ class WindowBar extends StatelessComponent {
     required this.steps,
     required this.stepIndex,
     required this.beforeAll,
-    required this.values,
-    required this.aggregate,
+    required this.weeks,
+    required this.fromZero,
     required this.onZoom,
     required this.onMove,
     super.key,
@@ -33,9 +33,11 @@ class WindowBar extends StatelessComponent {
   /// The step that a tap on the All label goes back to. Null: [defaultStep].
   final int? beforeAll;
 
-  /// The day values for the overview.
-  final Map<Day, num> values;
-  final Aggregate aggregate;
+  /// One bar for each week of all data, for the overview.
+  final List<ZoomBar> weeks;
+
+  /// The overview bars start at 0, for rates and sums.
+  final bool fromZero;
 
   /// Zooms to the step [index]. [beforeAll]: the step that a tap on the All label goes back to.
   final void Function(int index, {int? beforeAll}) onZoom;
@@ -98,15 +100,8 @@ class WindowBar extends StatelessComponent {
         ]),
       ]),
       Overview(
-        weeks: zoomBars(
-          values,
-          aggregate,
-          barStarts(w.first, w.today, BarUnit.week),
-          BarUnit.week,
-          first: w.first,
-          today: w.today,
-        ),
-        fromZero: aggregate != Aggregate.average,
+        weeks: weeks,
+        fromZero: fromZero,
         from: w.from,
         to: w.to,
         onPoint: (d) => onMove(w.centeredOn(d)),

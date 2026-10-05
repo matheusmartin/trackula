@@ -86,6 +86,8 @@ void main() {
       onCount: (_, _, _) => counts++,
     );
     expect(edits.valuesOf(water), {today: 3});
+    expect(identical(edits.valuesOf(water), edits.valuesOf(water)), isTrue);
+    expect(() => edits.valuesOf(water)[today] = 1, throwsUnsupportedError);
     final other = edits.withOnWrite((_) {});
     expect((other.log, other.today, other.busy, other.pending), (edits.log, edits.today, edits.busy, edits.pending));
     other.onWrite([(_) => null]);

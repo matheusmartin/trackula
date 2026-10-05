@@ -74,8 +74,14 @@ class _MetricDetailState extends State<MetricDetail> {
   Metric get _m => component.metric;
   Day get _today => component.edits.today;
 
-  /// The day values, with the count taps that are not written yet. The same values as in the table.
-  Map<Day, num> get _values => component.edits.valuesOf(_m);
+  /// The data that does not depend on the window. See [_MetricData].
+  _MetricData? _data;
+
+  _MetricData get _metricData {
+    final data = _data;
+    if (data != null && data.isFor(_m, component.edits)) return data;
+    return _data = _MetricData(_m, component.edits);
+  }
 
   void _moveTo(Day? end) {
     if (end == _end) return;
@@ -87,13 +93,7 @@ class _MetricDetailState extends State<MetricDetail> {
 
   @override
   Component build(BuildContext context) {
-    final states = _m is YesNoMetric ? yesNoStates(_m.id, component.edits.log.entries) : const <Day, bool>{};
-    // For yes/no metrics: 1 for yes and 0 for no, as the rate bars expect.
-    final values = _m is YesNoMetric
-        ? <Day, num>{for (final MapEntry(key: d, value: yes) in states.entries) d: yes ? 1 : 0}
-        : _values;
-    final first = earliestDay(values.keys) ?? _today;
-    final steps = zoomSteps(first, _today);
+    final _MetricData(:states, :values, :first, :steps) = _metricData;
     final stepIndex = math.min(_step ?? defaultStep(steps), steps.length - 1);
     final w = ZoomWindow(steps[stepIndex], first: first, today: _today, end: _end);
 
@@ -108,8 +108,8 @@ class _MetricDetailState extends State<MetricDetail> {
         steps: steps,
         stepIndex: stepIndex,
         beforeAll: _beforeAll,
-        values: values,
-        aggregate: aggregateOf(_m),
+        weeks: _metricData.weeks,
+        fromZero: aggregateOf(_m) != Aggregate.average,
         onZoom: (index, {beforeAll}) => _zoom(w, index, beforeAll: beforeAll),
         onMove: _moveTo,
       ),
@@ -187,4 +187,49 @@ class _MetricDetailState extends State<MetricDetail> {
     },
     children,
   );
+}
+
+/// The data of [metric] that does not depend on the window. A drag or a wheel move builds the page again many times,
+/// so the page keeps this data until the log, the pending count taps, the metric or today change.
+final class _MetricData {
+  _MetricData(this.metric, this.edits) {
+    final m = metric;
+    states = m is YesNoMetric ? yesNoStates(m.id, edits.log.entries) : const {};
+    // For yes/no metrics: 1 for yes and 0 for no, as the rate bars expect. Else the values with the pending taps, the
+    // same values as in the table.
+    values = m is YesNoMetric
+        ? {for (final MapEntry(key: d, value: yes) in states.entries) d: yes ? 1 : 0}
+        : edits.valuesOf(m);
+    first = earliestDay(values.keys) ?? edits.today;
+    steps = zoomSteps(first, edits.today);
+    weeks = zoomBars(
+      values,
+      aggregateOf(m),
+      barStarts(first, edits.today, BarUnit.week),
+      BarUnit.week,
+      first: first,
+      today: edits.today,
+    );
+  }
+
+  final Metric metric;
+  final LogEdits edits;
+
+  /// Yes/no metrics: the state of each day with an entry. Else empty.
+  late final Map<Day, bool> states;
+  late final Map<Day, num> values;
+
+  /// The first day with a value, or today.
+  late final Day first;
+  late final List<ZoomStep> steps;
+
+  /// One bar for each week of all data, for the overview.
+  late final List<ZoomBar> weeks;
+
+  /// True if this data is still correct for [m] and [e].
+  bool isFor(Metric m, LogEdits e) =>
+      identical(m, metric) &&
+      identical(e.log, edits.log) &&
+      identical(e.pending, edits.pending) &&
+      e.today == edits.today;
 }
