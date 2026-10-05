@@ -4,7 +4,7 @@ import 'package:jaspr/jaspr.dart';
 import '../components/ui.dart';
 import '../services/picker.dart';
 import '../services/session.dart';
-import '../sheets/sheets_store.dart';
+import '../store/sheets_store.dart';
 
 /// Lets the user pick a spreadsheet from their Drive with the Google Picker.
 class SetupPage extends StatefulComponent {

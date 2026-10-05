@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'day.dart';
-import 'log_entry.dart';
+import 'log.dart';
 
 /// A value on a day, for example the best day of a count.
 typedef DayValue = ({Day day, num value});

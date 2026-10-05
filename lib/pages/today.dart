@@ -5,11 +5,12 @@ import '../components/habit_table.dart';
 import '../components/today_tiles.dart';
 import '../components/ui.dart';
 import '../model/day.dart';
+import '../model/day_range.dart';
+import '../model/log.dart';
 import '../model/log_edits.dart';
-import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../services/prefs.dart';
-import '../sheets/store.dart';
+import '../store/store.dart';
 import 'metric_detail.dart';
 
 /// Shows the metrics in a HabitKit-style table and records entries.

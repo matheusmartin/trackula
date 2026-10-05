@@ -3,40 +3,15 @@ import 'package:jaspr/jaspr.dart';
 
 import '../model/date_format.dart';
 import '../model/day.dart';
+import '../model/day_values.dart';
 import '../model/format.dart';
+import '../model/log.dart';
 import '../model/log_edits.dart';
-import '../model/log_entry.dart';
 import '../model/metric.dart';
-import '../model/summary.dart';
 import '../services/count_input.dart';
+import 'charts/trend_chart.dart';
 import 'metric_icon.dart';
 import 'number_editor.dart';
-import 'charts/trend_chart.dart';
-
-/// How many past days the app shows: today as input tiles (see TodayTiles), a table of the last 5 days on all
-/// screens, or one small calendar per metric for the last 31 days.
-enum DayRange {
-  today(1),
-  short(5),
-  month(31);
-
-  const DayRange(this.days);
-
-  final int days;
-
-  /// The label in the bottom navigation bar.
-  String get label => days == 1 ? 'Today' : '$days days';
-
-  /// The Material Symbols icon in the bottom navigation bar.
-  String get icon => switch (this) {
-    DayRange.today => 'today',
-    DayRange.short => 'view_week',
-    DayRange.month => 'calendar_month',
-  };
-
-  /// The days of the range, oldest first, ending on [today].
-  List<Day> daysUntil(Day today) => [for (var i = days - 1; i >= 0; i--) today.addDays(-i)];
-}
 
 /// How [HabitTable] shows its days.
 enum DayLayout {

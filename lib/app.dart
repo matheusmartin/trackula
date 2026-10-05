@@ -1,15 +1,15 @@
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
-import 'components/habit_table.dart';
 import 'components/header.dart';
 import 'config.dart';
+import 'model/day_range.dart';
 import 'pages/setup.dart';
 import 'pages/sign_in.dart';
 import 'pages/today.dart';
 import 'services/session.dart';
-import 'sheets/demo_store.dart';
-import 'sheets/store.dart';
+import 'store/demo_store.dart';
+import 'store/store.dart';
 
 /// Root component. Shows sign-in, then sheet setup, then the Today page.
 class App extends StatefulComponent {

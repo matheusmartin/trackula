@@ -1,7 +1,8 @@
 import 'package:test/test.dart';
 import 'package:trackula/model/day.dart';
+import 'package:trackula/model/day_range.dart';
 import 'package:trackula/model/log_edits.dart';
-import 'package:trackula/model/log_entry.dart';
+import 'package:trackula/model/log.dart';
 import 'package:trackula/model/metric.dart';
 import 'package:trackula/model/zoom.dart';
 
@@ -31,6 +32,19 @@ void main() {
       expect(daysOfMonth((year: 2024, month: 2)).last, const Day(2024, 2, 29));
       expect(daysOfMonth((year: 2026, month: 12)).first, const Day(2026, 12, 1));
     });
+  });
+
+  test('DayRange.daysUntil ends on today, oldest first', () {
+    const today = Day(2026, 3, 1);
+    expect(DayRange.today.daysUntil(today), [today]);
+    expect(DayRange.short.daysUntil(today), [
+      const Day(2026, 2, 25),
+      const Day(2026, 2, 26),
+      const Day(2026, 2, 27),
+      const Day(2026, 2, 28),
+      today,
+    ]);
+    expect(DayRange.month.daysUntil(today), hasLength(31));
   });
 
   test('aggregateOf each kind', () {

@@ -1,5 +1,5 @@
 import 'day.dart';
-import 'log_entry.dart';
+import 'log.dart';
 import 'metric.dart';
 
 /// Returns the value of [metric] for each day that has an entry.

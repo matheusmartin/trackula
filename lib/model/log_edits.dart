@@ -1,7 +1,7 @@
 import 'day.dart';
-import 'log_entry.dart';
+import 'day_values.dart';
+import 'log.dart';
 import 'metric.dart';
-import 'summary.dart';
 
 /// The log and the ways to change it, as the Today page gives them to its views.
 final class LogEdits {

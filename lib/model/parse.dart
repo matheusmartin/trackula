@@ -1,5 +1,5 @@
 import 'day.dart';
-import 'log_entry.dart';
+import 'log.dart';
 import 'metric.dart';
 
 /// The tab titles. Exact case: the app finds the tabs by title. See docs/data-model.md.

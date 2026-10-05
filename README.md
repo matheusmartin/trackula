@@ -50,11 +50,14 @@ Web app to track habits and body measurements.
 
 ## Project structure
 
-- `lib/model/`: data model, parsing, validation and write planning. Also the numbers (`stats.dart`) and zoom bars (`zoom.dart`) of the detail screen. Pure Dart, no browser code.
-- `lib/sheets/`: Google Sheets access (`SheetsStore`) and the demo mode data (`DemoStore`). Both implement `Store`.
-- `lib/services/`: Google sign-in and browser storage.
-- `lib/pages/`, `lib/components/`: UI.
-- `lib/constants/theme.dart`: app CSS (`@css`) on top of BeerCSS, only for the app's own components. Use Material theme variables (`var(--primary)`…) for colors.
+- `lib/model/`: data model, parsing, validation and write planning. Pure Dart, no browser code.
+  - Number and date formats: `format.dart` and `date_format.dart`.
+  - The numbers and zoom bars of the detail screen: `stats.dart` and `zoom.dart`.
+- `lib/store/`: data access. `SheetsStore` reads and writes Google Sheets. `DemoStore` keeps the demo data in memory. Both implement `Store`.
+- `lib/services/`: Google sign-in, the Google Picker and browser storage.
+  - Input helpers: taps (`count_input.dart`, `double_tap.dart`), pointer and wheel (`pointer.dart`, `wheel_steps.dart`).
+- `lib/pages/`, `lib/components/`: UI. The parts of the detail screen are in `lib/pages/metric_detail/`, the charts in `lib/components/charts/`, and small shared parts in `lib/components/ui.dart`.
+- `lib/constants/theme.dart`: app CSS (`@css`) on top of BeerCSS, only for the app's own components. Use Material theme variables (`var(--primary)`…) for colors. Values that the CSS and the inline chart styles share are in `lib/constants/tokens.dart`.
   - Do not put `@css` in files that import browser-only code (`package:web`, `googleapis_auth/auth_browser`). Jaspr runs `@css` code on the Dart VM to create `main.css`, and browser-only imports make it fail.
 - `lib/config.dart`: reads the OAuth client ID and the Picker API key from the build defines.
 - `test/`: unit tests.

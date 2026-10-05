@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import '../model/day.dart';
-import '../model/log_entry.dart';
+import '../model/log.dart';
 import '../model/parse.dart';
 import 'store.dart';
 

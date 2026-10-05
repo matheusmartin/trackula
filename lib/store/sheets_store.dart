@@ -1,7 +1,7 @@
 import 'package:googleapis/sheets/v4.dart';
 
 import '../model/day.dart';
-import '../model/log_entry.dart';
+import '../model/log.dart';
 import '../model/metric.dart';
 import '../model/parse.dart';
 import 'store.dart';

@@ -1,4 +1,4 @@
-import '../model/log_entry.dart';
+import '../model/log.dart';
 import '../model/metric.dart';
 
 /// The data of the spreadsheet at one point in time.

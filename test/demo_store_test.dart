@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'package:trackula/model/day.dart';
-import 'package:trackula/model/log_entry.dart';
+import 'package:trackula/model/log.dart';
 import 'package:trackula/model/metric.dart';
-import 'package:trackula/sheets/demo_store.dart';
+import 'package:trackula/store/demo_store.dart';
 
 void main() {
   const today = Day(2026, 10, 3);

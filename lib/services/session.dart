@@ -3,7 +3,7 @@ import 'package:googleapis_auth/auth_browser.dart';
 import 'package:http/browser_client.dart';
 
 import '../config.dart';
-import '../sheets/sheets_store.dart';
+import '../store/sheets_store.dart';
 import 'prefs.dart';
 
 /// A signed-in Google user. The access token stays in memory only.

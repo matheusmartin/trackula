@@ -2,14 +2,14 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
 import '../model/day.dart';
+import '../model/day_values.dart';
+import '../model/log.dart';
 import '../model/log_edits.dart';
-import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/number_input.dart';
-import '../model/summary.dart';
+import '../services/count_input.dart';
 import 'metric_icon.dart';
 import 'number_editor.dart';
-import '../services/count_input.dart';
 
 /// Today input mode: one tile for each metric, for today only. The fewest taps for each input.
 ///

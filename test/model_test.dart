@@ -1,11 +1,11 @@
 import 'package:test/test.dart';
 import 'package:trackula/model/chart.dart';
 import 'package:trackula/model/day.dart';
-import 'package:trackula/model/log_entry.dart';
+import 'package:trackula/model/log.dart';
 import 'package:trackula/model/metric.dart';
 import 'package:trackula/model/number_input.dart';
 import 'package:trackula/model/parse.dart';
-import 'package:trackula/model/summary.dart';
+import 'package:trackula/model/day_values.dart';
 import 'package:trackula/services/double_tap.dart';
 
 void main() {
