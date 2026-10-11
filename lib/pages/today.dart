@@ -143,18 +143,17 @@ class _TodayPageState extends State<TodayPage> {
     _notifyBusy(busy: true);
     try {
       final data = await task();
-      setState(() {
-        _data = data;
-        done?.call();
-      });
+      setState(() => _data = data);
     } on Exception catch (e) {
-      setState(() {
-        _error = '$e';
-        done?.call();
-      });
+      setState(() => _error = '$e');
     } finally {
       if (mounted) {
-        setState(() => _busy = false);
+        // In the same update as the new data or the error. Also after an Error, so that the taps of a failed write
+        // are not written again.
+        setState(() {
+          _busy = false;
+          done?.call();
+        });
         _notifyBusy(busy: false);
         _writeCounts();
       }

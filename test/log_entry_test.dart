@@ -77,7 +77,7 @@ void main() {
 
     test('throws if the metric has no column', () {
       const steps = NumberMetric(id: 'steps', name: 'Steps', icon: 'footprint');
-      expect(() => planNumber(steps, d30, 1, log), throwsStateError);
+      expect(() => planNumber(steps, d30, 1, log), throwsA(isA<MissingColumnException>()));
     });
   });
 

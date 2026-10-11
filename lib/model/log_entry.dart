@@ -39,6 +39,17 @@ final class LogTable {
   }
 }
 
+/// Thrown when the `Log` tab has no column for a metric. This occurs when someone deletes the metric row in the sheet
+/// while the app is open.
+final class MissingColumnException implements Exception {
+  const MissingColumnException(this.metricId);
+
+  final String metricId;
+
+  @override
+  String toString() => 'The log tab has no column "$metricId".';
+}
+
 /// A change to the `Log` tab.
 sealed class LogWrite {
   const LogWrite();
@@ -79,6 +90,8 @@ Object? cellValue(Metric metric, num? value) => value == null
       };
 
 /// Returns the change that sets [metric] to `yes` ([done]) or `no` on [date].
+///
+/// This function and the other `plan` functions throw a [MissingColumnException] if [log] has no column for [metric].
 LogWrite? planYesNo(YesNoMetric metric, Day date, LogTable log, {required bool done}) =>
     _plan(metric, date, done ? 1 : 0, log);
 
@@ -118,7 +131,7 @@ LogWrite? planCount(NumberMetric metric, Day date, List<CountStep> steps, LogTab
 /// Returns null if the cell already has [value]. The app compares the value, not the text: `yes` and 1 are equal.
 LogWrite? _plan(Metric metric, Day date, num? value, LogTable log) {
   final column = log.columns[metric.id];
-  if (column == null) throw StateError('The log tab has no column "${metric.id}".');
+  if (column == null) throw MissingColumnException(metric.id);
   if (log.valueAt(metric.id, date) == value) return null;
   final row = log.rows[date];
   final cell = cellValue(metric, value);

@@ -281,7 +281,7 @@ class _NumberEditorState extends State<NumberEditor> {
                 if (k == startTick) 'start',
               ].join(' '),
               [
-                if (k % 10 == 0) span([.text(formatShort(roundToStep(k * _step, _step)))]),
+                if (k % 10 == 0) span([.text(formatTrimmed(roundToStep(k * _step, _step)))]),
               ],
             ),
         ]),

@@ -48,10 +48,21 @@ Future<PickedSheet?> pickSpreadsheet(String accessToken) async {
   return result.future;
 }
 
+/// The load of the Picker. Null before the first load, and after a failed load.
 Future<void>? _loading;
 
-/// Loads https://apis.google.com/js/api.js and then the `picker` module, once.
-Future<void> _loadPicker() => _loading ??= () async {
+/// Loads the Picker once. After a failed load, the next call tries again.
+Future<void> _loadPicker() async {
+  try {
+    await (_loading ??= _loadScripts());
+  } on PickerException {
+    _loading = null;
+    rethrow;
+  }
+}
+
+/// Loads https://apis.google.com/js/api.js and then the `picker` module.
+Future<void> _loadScripts() async {
   final script = web.HTMLScriptElement()..src = 'https://apis.google.com/js/api.js';
   final loaded = Completer<void>();
   script.onload = ((web.Event _) => loaded.complete()).toJS;
@@ -66,7 +77,7 @@ Future<void> _loadPicker() => _loading ??= () async {
   // ignore: unnecessary_lambdas
   _gapiLoad('picker', (() => picker.complete()).toJS);
   await picker.future;
-}();
+}
 
 @JS('gapi.load')
 external void _gapiLoad(String module, JSFunction callback);

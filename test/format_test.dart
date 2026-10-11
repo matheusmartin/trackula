@@ -8,16 +8,15 @@ void main() {
     expect(shortDay(const Day(2026, 9, 28)), 'Sep 28');
   });
 
-  test('formatShort removes zeros at the end and float noise', () {
-    expect(
-      [formatShort(82.0), formatShort(2.5), formatShort(2500), formatShort(82.10000000000001)],
-      [
-        '82',
-        '2.5',
-        '2500',
-        '82.1',
-      ],
-    );
+  test('formatTrimmed removes zeros at the end and float noise', () {
+    expect([82.0, 2.5, 2500, 82.10000000000001, 82.00000000000001, -3.9999999999999996].map(formatTrimmed), [
+      '82',
+      '2.5',
+      '2500',
+      '82.1',
+      '82',
+      '-4',
+    ]);
   });
 
   test('formatNumber rounds to the decimals', () {

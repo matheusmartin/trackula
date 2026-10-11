@@ -22,7 +22,7 @@ int stepDecimals(num step) {
 
 /// Rounds [value] to the decimals of [step]. With [snap], also to the nearest multiple of [step]. Never below 0.
 ///
-/// This removes float noise, for example 81.9 + 0.1 = 82.00000000000001.
+/// This removes float noise, for example 0.1 + 0.2 = 0.30000000000000004.
 num roundToStep(num value, num step, {bool snap = false}) {
   final x = snap ? (value / step).round() * step : value;
   final decimals = stepDecimals(step);

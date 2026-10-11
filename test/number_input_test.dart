@@ -13,7 +13,7 @@ void main() {
     });
 
     test('roundToStep removes float noise, snaps to the step, and is never below 0', () {
-      expect(roundToStep(81.9 + 0.1, 0.1), 82.0);
+      expect(roundToStep(0.1 + 0.2, 0.1), 0.3);
       expect(roundToStep(81.93, 0.1, snap: true), 81.9);
       expect(roundToStep(1237, 250, snap: true), 1250);
       expect(roundToStep(-0.3, 0.1), 0);
