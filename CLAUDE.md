@@ -18,6 +18,8 @@ adds the rules for the code.
 - This project differs from Effective Dart in these points:
   - The maximum line length is 120, not 80. `analysis_options.yaml` sets it for `dart format`.
   - Write all docs, comments and commit messages in ASD-STE100 Simplified Technical English, as in `README.md`.
+  - The doc comment of a boolean starts with "True if", "True while" or a similar phrase, not with "Whether".
+    Example: "True if the window shows the newest bar."
 - `dart analyze` must show no issues, and `dart test` must pass.
 
 ## Imports between folders
