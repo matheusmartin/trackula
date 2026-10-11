@@ -5,6 +5,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:web/web.dart' as web;
 
+import '../model/format.dart';
 import '../model/metric.dart';
 import '../model/number_input.dart';
 
@@ -19,7 +20,7 @@ import '../model/number_input.dart';
 ///
 /// An empty day starts at the latest earlier value, else at the first later value.
 /// Styles: lib/constants/theme.dart.
-class NumberEditor extends StatefulComponent {
+final class NumberEditor extends StatefulComponent {
   const NumberEditor({
     required this.metric,
     required this.label,
@@ -50,8 +51,8 @@ class NumberEditor extends StatefulComponent {
   final VoidCallback onClear;
   final VoidCallback onClose;
 
-  /// Focus the ruler at the start. False when many editors show at the same time, as on the Today tiles: else the
-  /// page scrolls to the last one.
+  /// True if the ruler gets the focus at the start. False when many editors show at the same time, as on the Today
+  /// tiles: else the page scrolls to the last one.
   final bool autofocus;
 
   /// Called with the value at each change, and when the user taps the ruler without a move: that confirms the
@@ -67,12 +68,10 @@ class _NumberEditorState extends State<NumberEditor> {
   /// The space between two ruler ticks, in pixels.
   static const _tick = 9.0;
 
-  /// The ruler shows this many ticks on each side of the value.
+  /// The number of ticks that the ruler shows on each side of the value.
   static const _ticks = 60;
 
   num get _step => component.metric.step;
-
-  String get _unit => component.metric.unit == null ? '' : ' ${component.metric.unit}';
 
   late num _value = component.current ?? component.start ?? 0;
 
@@ -84,10 +83,10 @@ class _NumberEditorState extends State<NumberEditor> {
   ///
   /// The x is `pageX`, not `clientX`: package:web declares `clientX` as an int, but a real mouse gives fractional
   /// positions, for example 546.76. The int check then throws, and the drag does not start.
-  (double, num)? _drag;
+  ({double startX, num startValue})? _drag;
 
   /// Window listeners during a ruler drag. They also work when the pointer leaves the ruler.
-  late final JSFunction _onDragMove = ((web.PointerEvent e) => _dragMove(e)).toJS;
+  late final JSFunction _onDragMove = _dragMove.toJS;
   late final JSFunction _onDragEnd = ((web.Event _) => _dragEnd()).toJS;
 
   /// Wheel movement that is less than one tick, in pixels.
@@ -179,7 +178,7 @@ class _NumberEditorState extends State<NumberEditor> {
     _dragEnd();
     // A tap on the ruler confirms the value, also without a move.
     component.onChange?.call(_value);
-    _drag = (e.pageX, _value);
+    _drag = (startX: e.pageX, startValue: _value);
     web.window.addEventListener('pointermove', _onDragMove);
     web.window.addEventListener('pointerup', _onDragEnd);
     web.window.addEventListener('pointercancel', _onDragEnd);
@@ -189,7 +188,7 @@ class _NumberEditorState extends State<NumberEditor> {
   void _dragMove(web.PointerEvent e) {
     final drag = _drag;
     if (drag == null) return;
-    _set(drag.$2 - (e.pageX - drag.$1) / _tick * _step, snap: true);
+    _set(drag.startValue - (e.pageX - drag.startX) / _tick * _step, snap: true);
   }
 
   void _dragEnd() {
@@ -215,7 +214,7 @@ class _NumberEditorState extends State<NumberEditor> {
 
   @override
   Component build(BuildContext context) {
-    final m = component.metric;
+    final metric = component.metric;
     return div(
       classes: 'editor number-editor',
       attributes: {'role': 'group', 'aria-label': component.label},
@@ -224,13 +223,17 @@ class _NumberEditorState extends State<NumberEditor> {
           input(
             type: .text,
             value: _text,
-            attributes: {'inputmode': 'decimal', 'autocomplete': 'off', 'aria-label': '${m.name}$_unit'},
+            attributes: {
+              'inputmode': 'decimal',
+              'autocomplete': 'off',
+              'aria-label': withUnit(metric.name, metric.unit),
+            },
             events: {
               'input': (e) => _type((e.target as web.HTMLInputElement).value),
               'keydown': (e) => _fieldKey(e as web.KeyboardEvent),
             },
           ),
-          if (m.unit case final unit?) span(classes: 'unit', [.text(unit)]),
+          if (metric.unit case final unit?) span(classes: 'unit', [.text(unit)]),
         ]),
         _ruler(),
         if (component.onChange == null)
@@ -262,7 +265,7 @@ class _NumberEditorState extends State<NumberEditor> {
         'aria-label': '${component.metric.name} ruler',
         'aria-valuemin': '0',
         'aria-valuenow': '$_value',
-        'aria-valuetext': '${formatStep(_value, _step)}$_unit',
+        'aria-valuetext': withUnit(formatStep(_value, _step), component.metric.unit),
       },
       events: {
         'pointerdown': (e) => _dragStart(e as web.PointerEvent),
@@ -280,7 +283,7 @@ class _NumberEditorState extends State<NumberEditor> {
                 if (k == startTick) 'start',
               ].join(' '),
               [
-                if (k % 10 == 0) span([.text(formatShort(roundToStep(k * _step, _step)))]),
+                if (k % 10 == 0) span([.text(formatTrimmed(roundToStep(k * _step, _step)))]),
               ],
             ),
         ]),

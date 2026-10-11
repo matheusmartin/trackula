@@ -9,8 +9,8 @@ import 'store.dart';
 /// starts again from the sample data. Open the app with `?demo`. See README.md.
 ///
 /// It keeps the tabs as rows of cells, as the Sheets API returns them, and uses the same parsers and write plans as
-/// [SheetsStore]. Today has no values, so that all inputs can be tried. Each call waits [delay], as a network call.
-final class DemoStore implements Store {
+/// `SheetsStore`. Today has no values, so that all inputs can be tried. Each call waits [delay], as a network call.
+final class DemoStore extends Store {
   DemoStore({Day? today, this.delay = const Duration(milliseconds: 400)}) : _log = _sampleLog(today ?? Day.today());
 
   final Duration delay;
@@ -31,7 +31,7 @@ final class DemoStore implements Store {
 
   /// One row for each of the 120 days before [today]. Values are random, with a fixed seed: the same each time.
   static List<List<Object?>> _sampleLog(Day today) {
-    final r = math.Random(7);
+    final random = math.Random(7);
     final ids = [for (final m in _metrics) m[0]];
     var weight = 84.0;
     return [
@@ -40,15 +40,15 @@ final class DemoStore implements Store {
         [
           today.addDays(-i).toString(),
           for (final m in _metrics)
-            if (r.nextDouble() < 0.15)
+            if (random.nextDouble() < 0.15)
               ''
             else
               switch (m) {
-                ['weight', ...] => double.parse((weight += (r.nextDouble() - 0.55) * 0.4).toStringAsFixed(1)),
+                ['weight', ...] => double.parse((weight += (random.nextDouble() - 0.55) * 0.4).toStringAsFixed(1)),
                 ['waist', ...] => i % 7 == 0 ? ((95 - (120 - i) / 40) * 2).round() / 2 : '',
-                [_, _, 'yesno', ...] => r.nextDouble() < 0.75 ? 'yes' : 'no',
-                ['water', ...] => 3 + r.nextInt(6),
-                _ => 10 * (1 + r.nextInt(6)),
+                [_, _, 'yesno', ...] => random.nextDouble() < 0.75 ? 'yes' : 'no',
+                ['water', ...] => 3 + random.nextInt(6),
+                _ => 10 * (1 + random.nextInt(6)),
               },
         ],
     ];
@@ -66,25 +66,11 @@ final class DemoStore implements Store {
   }
 
   @override
-  Future<Snapshot> change(LogWrite? Function(LogTable log) plan) => changeAll([plan]);
-
-  @override
-  Future<Snapshot> changeAll(List<LogWrite? Function(LogTable log)> plans) async {
-    var data = await load();
-    for (final plan in plans) {
-      if (plan(data.log) case final w?) {
-        await Future<void>.delayed(delay);
-        _apply(w);
-        data = await load();
-      }
-    }
-    return data;
-  }
-
-  void _apply(LogWrite w) {
-    switch (w) {
+  Future<void> apply(LogWrite write) async {
+    await Future<void>.delayed(delay);
+    switch (write) {
       case AppendRow():
-        _log.add(w.toCells());
+        _log.add(write.toCells());
       case SetCell(:final row, :final column, :final value):
         final cells = _log[row - 1];
         while (cells.length <= column) {

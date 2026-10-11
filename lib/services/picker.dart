@@ -5,22 +5,29 @@ import 'package:web/web.dart' as web;
 
 import '../config.dart';
 
-/// A spreadsheet that the user picked.
-typedef PickedSheet = ({String id, String name});
+/// Thrown when the browser cannot load the Google Picker, for example without a network connection.
+final class PickerException implements Exception {
+  const PickerException(this.message);
 
-/// Opens the Google Picker with the user's spreadsheets. Returns null if the user cancels.
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+/// Opens the Google Picker with the user's spreadsheets. Returns the ID of the picked spreadsheet, or null if the user
+/// cancels. Throws a [PickerException] if the Picker cannot load.
 ///
 /// Picking a file gives this app `drive.file` access to it. See
 /// https://developers.google.com/workspace/drive/picker/guides/overview
-Future<PickedSheet?> pickSpreadsheet(String accessToken) async {
+Future<String?> pickSpreadsheet(String accessToken) async {
   await _loadPicker();
-  final result = Completer<PickedSheet?>();
+  final result = Completer<String?>();
 
   void onPick(_PickerResult r) {
     switch (r.action) {
       case 'picked':
-        final doc = r.docs!.toDart.first;
-        result.complete((id: doc.id, name: doc.name));
+        result.complete(r.docs!.toDart.first.id);
       case 'cancel':
         result.complete(null);
     }
@@ -38,21 +45,36 @@ Future<PickedSheet?> pickSpreadsheet(String accessToken) async {
   return result.future;
 }
 
+/// The load of the Picker. Null before the first load, and after a failed load.
 Future<void>? _loading;
 
-/// Loads https://apis.google.com/js/api.js and then the `picker` module, once.
-Future<void> _loadPicker() => _loading ??= () async {
+/// Loads the Picker once. After a failed load, the next call tries again.
+Future<void> _loadPicker() async {
+  try {
+    await (_loading ??= _loadScripts());
+  } on PickerException {
+    _loading = null;
+    rethrow;
+  }
+}
+
+/// Loads https://apis.google.com/js/api.js and then the `picker` module.
+Future<void> _loadScripts() async {
   final script = web.HTMLScriptElement()..src = 'https://apis.google.com/js/api.js';
   final loaded = Completer<void>();
   script.onload = ((web.Event _) => loaded.complete()).toJS;
-  script.onerror = ((web.Event _) => loaded.completeError('Cannot load the Google Picker.')).toJS;
+  script.onerror = ((web.Event _) => loaded.completeError(
+    const PickerException('Cannot load the Google Picker.'),
+  )).toJS;
   web.document.head!.append(script);
   await loaded.future;
 
   final picker = Completer<void>();
+  // A closure, not a tear-off: toJS cannot convert the optional FutureOr parameter of complete.
+  // ignore: unnecessary_lambdas
   _gapiLoad('picker', (() => picker.complete()).toJS);
   await picker.future;
-}();
+}
 
 @JS('gapi.load')
 external void _gapiLoad(String module, JSFunction callback);
@@ -76,6 +98,8 @@ extension type _PickerBuilder._(JSObject _) implements JSObject {
 }
 
 extension type _Picker._(JSObject _) implements JSObject {
+  // The JavaScript API has a positional bool.
+  // ignore: avoid_positional_boolean_parameters
   external void setVisible(bool visible);
 }
 
@@ -86,5 +110,4 @@ extension type _PickerResult._(JSObject _) implements JSObject {
 
 extension type _PickerDoc._(JSObject _) implements JSObject {
   external String get id;
-  external String get name;
 }

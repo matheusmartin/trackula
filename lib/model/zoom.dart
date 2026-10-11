@@ -1,9 +1,10 @@
+/// The time window of the metric detail screen: bars over time, from the first value to today. A zoom step sets the
+/// span in view and the size of one bar. All charts of the screen show the same window.
+library;
+
 import 'dart:math' as math;
 
 import 'day.dart';
-
-// The time window of the metric detail screen: bars over time, from the first value to today. A zoom step sets the
-// span in view and the size of one bar. All charts of the screen show the same window. Pure Dart, no browser code.
 
 /// The days of one bar.
 enum BarUnit { day, week, month, quarter }
@@ -41,9 +42,6 @@ enum Aggregate {
 
   /// The average of the values. Days without value are left out.
   average,
-
-  /// The [average] minus the average of the bar before.
-  change,
 }
 
 /// One bar: its first day, its value, and the lowest and highest value of its days. A null value draws no bar.
@@ -76,19 +74,19 @@ List<ZoomStep> zoomSteps(Day first, Day today) {
   final steps = <ZoomStep>[];
   for (final s in ZoomStep.values) {
     steps.add(s);
-    if (showsAll(s, first, today)) break;
+    if (_showsAll(s, first, today)) break;
   }
   return steps;
 }
 
-/// The step that the detail screen opens with: 3 months, or the last of [steps] if there are fewer.
-int defaultStep(List<ZoomStep> steps) => switch (steps.indexOf(ZoomStep.month3)) {
+/// The index in [steps] of the step that the detail screen opens with: 3 months, or the last step if there are fewer.
+int defaultStepIndex(List<ZoomStep> steps) => switch (steps.indexOf(ZoomStep.month3)) {
   -1 => steps.length - 1,
   final i => i,
 };
 
 /// True if [step] shows all bars from [first] to [today].
-bool showsAll(ZoomStep step, Day first, Day today) => barStarts(first, today, step.unit).length <= step.bars;
+bool _showsAll(ZoomStep step, Day first, Day today) => barStarts(first, today, step.unit).length <= step.bars;
 
 /// The time window in view: whole bars of [step], from the bar of [first] to the bar of [today].
 final class ZoomWindow {
@@ -130,7 +128,7 @@ final class ZoomWindow {
   }
 
   /// All days in view, oldest first.
-  List<Day> get days => [for (var d = from; d.compareTo(to) <= 0; d = d.addDays(1)) d];
+  List<Day> get days => daysBetween(from, to);
 
   /// True if the window shows the newest bar.
   bool get atEnd => _to == allStarts.length;
@@ -139,13 +137,13 @@ final class ZoomWindow {
   bool get atStart => _from == 0;
 
   /// The `end` day of the window that is [bars] bars later (or earlier, if negative). Null: the newest bar.
-  Day? moved(int bars) {
+  Day? endMovedBy(int bars) {
     final last = (_to + bars).clamp(_to - _from, allStarts.length);
     return last == allStarts.length ? null : allStarts[last - 1];
   }
 
   /// The `end` day of the window with its middle on [day]. Null: the newest bar.
-  Day? centeredOn(Day day) {
+  Day? endCenteredOn(Day day) {
     final count = _to - _from;
     final last = (allStarts.indexOf(barStart(day, unit)) + 1 + count ~/ 2).clamp(count, allStarts.length);
     return last == allStarts.length ? null : allStarts[last - 1];
@@ -153,7 +151,7 @@ final class ZoomWindow {
 }
 
 /// One bar for each day of [starts], from the day [values]. Days before [first] and after [today] are not part of a
-/// bar. For [Aggregate.change], the first bar has no value.
+/// bar.
 List<ZoomBar> zoomBars(
   Map<Day, num> values,
   Aggregate aggregate,
@@ -167,34 +165,25 @@ List<ZoomBar> zoomBars(
     if (day.compareTo(first) < 0 || day.compareTo(today) > 0) continue;
     (byBar[barStart(day, unit)] ??= []).add(v);
   }
-  num? average(List<num>? vs) => vs == null || vs.isEmpty ? null : vs.reduce((a, b) => a + b) / vs.length;
   final bars = <ZoomBar>[];
-  for (final (i, start) in starts.indexed) {
-    final vs = byBar[start];
+  for (final start in starts) {
+    // A list in byBar has at least one value.
+    final barValues = byBar[start];
     final value = switch (aggregate) {
-      Aggregate.rate => _rate(vs, start, unit, first, today),
-      Aggregate.sum => vs?.fold<num>(0, (a, b) => a + b),
-      Aggregate.average => average(vs),
-      Aggregate.change => switch ((i == 0 ? null : average(byBar[starts[i - 1]]), average(vs))) {
-        (final before?, final now?) => now - before,
-        _ => null,
-      },
+      Aggregate.rate => _rate(barValues, start, unit, first, today),
+      Aggregate.sum => barValues?.fold<num>(0, (a, b) => a + b),
+      Aggregate.average => barValues == null ? null : barValues.fold<num>(0, (a, b) => a + b) / barValues.length,
     };
-    bars.add((
-      start: start,
-      value: value,
-      low: vs == null || vs.isEmpty ? null : vs.reduce(math.min),
-      high: vs == null || vs.isEmpty ? null : vs.reduce(math.max),
-    ));
+    bars.add((start: start, value: value, low: barValues?.reduce(math.min), high: barValues?.reduce(math.max)));
   }
   return bars;
 }
 
-/// The share of yes days among the days of the bar from [first] to [today].
-double? _rate(List<num>? vs, Day start, BarUnit unit, Day first, Day today) {
+/// The share of yes days among the days of the bar from [first] to [today]. [values] holds 1 for each yes day.
+double? _rate(List<num>? values, Day start, BarUnit unit, Day first, Day today) {
   final from = math.max(start.serial, first.serial);
   final to = math.min(nextBarStart(start, unit).serial - 1, today.serial);
   final days = to - from + 1;
   if (days <= 0) return null;
-  return (vs?.where((v) => v == 1).length ?? 0) / days;
+  return (values?.where((v) => v == 1).length ?? 0) / days;
 }

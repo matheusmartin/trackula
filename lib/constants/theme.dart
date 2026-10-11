@@ -59,7 +59,7 @@ List<StyleRule> get styles => [
   ),
   css('.icon i').styles(fontSize: 1.25.rem),
   // The title of the detail screen: a larger chip.
-  css('.icon.large').styles(width: 2.75.rem, height: 2.75.rem, fontSize: 1.5.rem, radius: .circular(10.px)),
+  css('.icon.large').styles(width: 2.75.rem, height: 2.75.rem, radius: .circular(10.px), fontSize: 1.5.rem),
   css('.icon.large i').styles(fontSize: 1.75.rem),
   // Day cells. Empty cells use the strongest container color. Cells with a value use one fixed color.
   // BeerCSS styles every <button>, so reset its size and padding here.
@@ -212,12 +212,12 @@ List<StyleRule> get styles => [
     // touch-action: no double-tap zoom, so that a double-tap on a count tile subtracts at once.
     css('.tile-main').styles(
       display: .flex,
-      flexDirection: .column,
-      alignItems: .start,
-      justifyContent: .spaceBetween,
-      gap: .all(0.75.rem),
-      margin: .zero,
       padding: .all(0.75.rem),
+      margin: .zero,
+      flexDirection: .column,
+      justifyContent: .spaceBetween,
+      alignItems: .start,
+      gap: .all(0.75.rem),
       textAlign: .left,
       raw: {
         // border-box: BeerCSS buttons are content-box, so 100% plus the padding goes past the tile.
@@ -236,10 +236,10 @@ List<StyleRule> get styles => [
       },
     ),
     css('.tile.wide .tile-main').styles(
-      flexDirection: .row,
-      alignItems: .center,
-      justifyContent: .start,
       padding: .zero,
+      flexDirection: .row,
+      justifyContent: .start,
+      alignItems: .center,
       raw: {'min-block-size': '0'},
     ),
     css('.tile-text').styles(display: .flex, flexDirection: .column, raw: {'min-width': '0'}),
@@ -368,17 +368,17 @@ List<StyleRule> get styles => [
     // The time window: stays in view below the app bar while the page scrolls. Opaque, so that charts go behind it.
     css('.window-bar').styles(
       display: .flex,
+      padding: .symmetric(vertical: 0.5.rem),
       flexDirection: .column,
       gap: .all(0.5.rem),
-      padding: .symmetric(vertical: 0.5.rem),
       raw: {'position': 'sticky', 'top': '4rem', 'z-index': '2', 'background-color': 'var(--surface)'},
     ),
     // Zoom buttons on the left, dates with arrows on the right. Narrow screens: the dates go below the zoom buttons.
     css('.window-row').styles(
       display: .flex,
       flexWrap: .wrap,
-      alignItems: .center,
       justifyContent: .spaceBetween,
+      alignItems: .center,
       gap: .all(0.5.rem),
     ),
     css('.window-zoom').styles(gap: .all(0.25.rem)),

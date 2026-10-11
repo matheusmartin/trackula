@@ -48,7 +48,7 @@
 
 - `lib/model/`: data model, parsing, validation and write planning. Pure Dart, no browser code.
 - `lib/sheets/`: Google Sheets access (`SheetsStore`) and the demo mode data (`DemoStore`). Both implement `Store`.
-- `lib/services/`: Google sign-in and browser storage.
+- `lib/services/`: browser code: Google sign-in, the Google Picker, browser storage and pointer input.
 - `lib/pages/`, `lib/components/`: UI. `lib/model/stats.dart` and `lib/model/zoom.dart`: the numbers and zoom bars of the detail screen.
 - `lib/constants/theme.dart`: app CSS (`@css`) on top of BeerCSS. Only the habit table and editor. Use Material theme variables (`var(--primary)`…) for colors.
   - Do not put `@css` in files that import browser-only code (`package:web`, `googleapis_auth/auth_browser`). Jaspr runs `@css` code on the Dart VM to create `main.css`, and browser-only imports make it fail.

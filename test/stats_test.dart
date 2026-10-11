@@ -61,7 +61,7 @@ void main() {
     test('weekday averages, distribution, running total', () {
       final s = countStats(values, range(8));
       expect(s.weekdayAverages, [2.5, 5, null, 5, null, null, null]);
-      expect(s.distribution, [(2, 1), (3, 1), (5, 2)]);
+      expect(s.distribution, [(value: 2, days: 1), (value: 3, days: 1), (value: 5, days: 2)]);
       expect(s.running, [3, 8, 8, 13, 13, 13, 13, 15]);
     });
 
@@ -100,5 +100,9 @@ void main() {
       final s = numberStats({day(0): 70}, range(3));
       expect((s.change, s.histogram.length), (null, 1));
     });
+  });
+
+  test('streakLengths', () {
+    expect(streakLengths([1, 2, 2, 5, 40]), [1, 2, 0, 1, 0, 0, 1]);
   });
 }

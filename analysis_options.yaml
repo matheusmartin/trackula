@@ -1,25 +1,41 @@
-# This file configures the static analysis results for your project (errors,
-# warnings, and lints).
-#
-# This enables the 'recommended' set of lints from `package:lints`.
-# This set helps identify many issues that may lead to problems when running
-# or consuming Dart code, and enforces writing Dart using a single, idiomatic
-# style and format.
-#
-# If you want a smaller set of lints you can change this to specify
-# 'package:lints/core.yaml'. These are just the most critical lints
-# (the recommended set includes the core lints).
-# The core lints are also what is used by pub.dev for scoring packages.
-
 include: package:lints/recommended.yaml
 
-analyzer:
-#   exclude:
-#     - path/to/excluded/files/**
+# Lints for the Effective Dart rules that package:lints/recommended.yaml does not include. See CLAUDE.md.
+# Two Effective Dart lints stay off:
+# - lines_longer_than_80_chars: this project uses 120 characters. See formatter.page_width.
+# - public_member_api_docs: it asks for a doc comment on every public member. Effective Dart asks for most of them.
+linter:
+  rules:
+    # Style
+    - directives_ordering
+    - prefer_relative_imports
+    - unnecessary_underscores
+    # Documentation
+    - comment_references
+    # Usage
+    - avoid_catches_without_on_clauses
+    - avoid_catching_errors
+    - prefer_expression_function_bodies
+    - prefer_iterable_whereType
+    - unnecessary_lambdas
+    - unnecessary_type_name_in_constructor
+    # Design
+    - avoid_classes_with_only_static_members
+    - avoid_equals_and_hash_code_on_mutable_classes
+    - avoid_null_checks_in_equality_operators
+    - avoid_positional_boolean_parameters
+    - avoid_private_typedef_functions
+    - avoid_returning_this
+    - avoid_setters_without_getters
+    - avoid_types_on_closure_parameters
+    - omit_local_variable_types
+    - one_member_abstracts
+    - prefer_mixin
+    - type_annotate_public_apis
+    - use_setters_to_change_properties
+    - use_to_and_as_if_applicable
 
-# Jaspr has a custom analyzer plugin 'jaspr_lints', which is enabled here.
-#
-# You can toggle Jaspr specific lint rules in the 'diagnostics' section below.
+# The Jaspr lints.
 plugins:
   jaspr_lints:
     version: ^0.7.2
@@ -28,19 +44,6 @@ plugins:
       sort_children_last: true
       styles_ordering: true
 
-# Uncomment the following section to enable or disable additional rules.
-
-# linter:
-#   rules:
-#     camel_case_types: true
-
-# For more information about the core and recommended set of lints, see
-# https://dart.dev/go/core-lints
-
 formatter:
-  # Change this to your preferred line length.
   page_width: 120
   trailing_commas: preserve
-
-# For additional information about configuring this file, see
-# https://dart.dev/guides/language/analysis-options

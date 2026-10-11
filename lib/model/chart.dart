@@ -1,6 +1,8 @@
+import 'dart:math' as math;
+
 import 'day.dart';
 
-/// A point of a line chart, in chart units: x from 0 to [width], y from 0 (top) to [height].
+/// A point of a line chart, in chart units: x from 0 to the chart width, y from 0 (top) to the chart height.
 typedef ChartPoint = ({Day day, num value, double x, double y});
 
 /// Places each day of [days] that has a value in [values] on a [width] × [height] chart.
@@ -16,26 +18,23 @@ List<ChartPoint> chartPoints(
   double height = 40,
   double padding = 4,
 }) {
-  final present = [
-    for (final (i, d) in days.indexed)
-      if (values[d] case final v?) (i: i, day: d, value: v),
-  ];
+  final present = _present(days, values);
   if (present.isEmpty) return const [];
-  final lo = present.map((p) => p.value).reduce((a, b) => a < b ? a : b);
-  final hi = present.map((p) => p.value).reduce((a, b) => a > b ? a : b);
-  final span = days.length > 1 ? days.length - 1 : 1;
+  final low = present.map((p) => p.value).reduce(math.min);
+  final high = present.map((p) => p.value).reduce(math.max);
+  final span = math.max(1, days.length - 1);
   return [
     for (final p in present)
       (
         day: p.day,
         value: p.value,
-        x: width * p.i / span,
-        y: hi == lo ? height / 2 : padding + (height - 2 * padding) * (hi - p.value) / (hi - lo),
+        x: width * p.index / span,
+        y: high == low ? height / 2 : padding + (height - 2 * padding) * (high - p.value) / (high - low),
       ),
   ];
 }
 
-/// A bar of a bar chart, in chart units: from x to x + w, and from y (top) to [height].
+/// A bar of a bar chart, in chart units: from x to x + w, and from y (top) to the chart height.
 typedef ChartBar = ({Day day, num value, double x, double w, double y});
 
 /// Places a bar for each day of [days] that has a value in [values] on a [width] × [height] chart.
@@ -51,21 +50,24 @@ List<ChartBar> chartBars(
   double padding = 4,
   double fill = 0.6,
 }) {
-  final present = [
-    for (final (i, d) in days.indexed)
-      if (values[d] case final v?) (i: i, day: d, value: v),
-  ];
+  final present = _present(days, values);
   if (present.isEmpty) return const [];
-  final hi = present.map((b) => b.value).fold<num>(0, (m, v) => v > m ? v : m);
+  final high = present.map((b) => b.value).fold<num>(0, math.max);
   final slot = width / days.length;
   return [
     for (final b in present)
       (
         day: b.day,
         value: b.value,
-        x: slot * b.i + slot * (1 - fill) / 2,
+        x: slot * b.index + slot * (1 - fill) / 2,
         w: slot * fill,
-        y: hi <= 0 ? height : height - (height - padding) * (b.value < 0 ? 0 : b.value) / hi,
+        y: high <= 0 ? height : height - (height - padding) * math.max(0, b.value) / high,
       ),
   ];
 }
+
+/// The days of [days] that have a value in [values], with their index in [days].
+List<({int index, Day day, num value})> _present(List<Day> days, Map<Day, num> values) => [
+  for (final (i, d) in days.indexed)
+    if (values[d] case final v?) (index: i, day: d, value: v),
+];

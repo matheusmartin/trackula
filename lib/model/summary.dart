@@ -22,8 +22,11 @@ Map<Day, num> dayValuesWithPending(Metric metric, List<LogEntry> log, Map<(Strin
   final values = dayValues(metric, log);
   for (final MapEntry(key: (id, day), value: steps) in pending.entries) {
     if (id != metric.id) continue;
-    final v = applyCountSteps(values[day], steps);
-    v == null ? values.remove(day) : values[day] = v;
+    if (applyCountSteps(values[day], steps) case final value?) {
+      values[day] = value;
+    } else {
+      values.remove(day);
+    }
   }
   return values;
 }

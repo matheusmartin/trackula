@@ -6,9 +6,6 @@ import 'log_entry.dart';
 /// A value on a day, for example the best day of a count.
 typedef DayValue = ({Day day, num value});
 
-/// A month of the calendar.
-typedef MonthKey = ({int year, int month});
-
 /// The yes/no states of [metricId] in [entries]: true for `yes`, false for `no`. Days without entry are left out.
 Map<Day, bool> yesNoStates(String metricId, List<LogEntry> entries) => {
   for (final e in entries)
@@ -22,7 +19,6 @@ final class YesNoStats {
     required this.yes,
     required this.no,
     required this.currentStreak,
-    required this.longestStreak,
     required this.streaks,
     required this.weekdayRates,
     required this.strength,
@@ -44,11 +40,11 @@ final class YesNoStats {
   /// Consecutive `yes` days up to today. If today has no `yes` yet, up to yesterday.
   final int currentStreak;
 
-  /// The longest run of `yes` days in the period.
-  final int longestStreak;
-
   /// The lengths of the runs of `yes` days in the period, oldest first.
   final List<int> streaks;
+
+  /// The longest run of `yes` days in the period.
+  int get longestStreak => streaks.fold(0, math.max);
 
   /// The share of `yes` days for each weekday, Monday first. Null if the period has no such weekday.
   final List<double?> weekdayRates;
@@ -62,10 +58,20 @@ final class YesNoStats {
 const strengthWeight = 0.05;
 
 /// The yes/no numbers of [states] for the period [days]. [today] is the last day of the period.
-YesNoStats yesNoStats(Map<Day, bool> states, List<Day> days, Day today) {
-  final yes = days.where((d) => states[d] == true).length;
-  final no = days.where((d) => states[d] == false).length;
+YesNoStats yesNoStats(Map<Day, bool> states, List<Day> days, Day today) => YesNoStats(
+  days: days.length,
+  yes: days.where((d) => states[d] == true).length,
+  no: days.where((d) => states[d] == false).length,
+  currentStreak: _currentStreak(states, today),
+  streaks: _streaks(states, days),
+  weekdayRates: [
+    for (var weekday = DateTime.monday; weekday <= DateTime.sunday; weekday++) _weekdayRate(states, days, weekday),
+  ],
+  strength: _strength(states, days),
+);
 
+/// The lengths of the runs of `yes` days in [days], oldest first.
+List<int> _streaks(Map<Day, bool> states, List<Day> days) {
   final streaks = <int>[];
   var run = 0;
   for (final d in days) {
@@ -77,44 +83,45 @@ YesNoStats yesNoStats(Map<Day, bool> states, List<Day> days, Day today) {
     }
   }
   if (run > 0) streaks.add(run);
+  return streaks;
+}
 
-  var current = 0;
+/// Consecutive `yes` days up to [today]. If [today] has no `yes` yet, up to the day before.
+int _currentStreak(Map<Day, bool> states, Day today) {
+  var streak = 0;
   for (var d = states[today] == true ? today : today.addDays(-1); states[d] == true; d = d.addDays(-1)) {
-    current++;
+    streak++;
+  }
+  return streak;
+}
+
+/// The share of `yes` days among the days of [days] on [weekday]. Null if [days] has no such weekday.
+double? _weekdayRate(Map<Day, bool> states, List<Day> days, int weekday) {
+  final onWeekday = days.where((d) => d.weekday == weekday).toList();
+  if (onWeekday.isEmpty) return null;
+  return onWeekday.where((d) => states[d] == true).length / onWeekday.length;
+}
+
+/// The habit strength of each day of [days]. See [strengthWeight].
+///
+/// The strength starts at the first entry, so a long period does not start with many empty days at 0.
+List<double> _strength(Map<Day, bool> states, List<Day> days) {
+  final first = earliestDay(states.keys);
+  if (first == null) return [for (final _ in days) 0.0];
+  var strength = 0.0;
+  void addDay(Day d) {
+    strength += strengthWeight * ((states[d] == true ? 1 : 0) - strength);
   }
 
-  final weekdayRates = [
-    for (var w = DateTime.monday; w <= DateTime.sunday; w++)
-      switch (days.where((d) => d.weekday == w).toList()) {
-        final ds when ds.isEmpty => null,
-        final ds => ds.where((d) => states[d] == true).length / ds.length,
-      },
-  ];
-
-  // The strength starts at the first entry, so a long period does not start with many empty days at 0.
-  final first = states.keys.fold<Day?>(null, (f, d) => f == null || d.compareTo(f) < 0 ? d : f);
-  final strength = <double>[];
-  var s = 0.0;
-  if (first != null) {
-    for (var d = first; d.compareTo(days.first) < 0; d = d.addDays(1)) {
-      s += strengthWeight * ((states[d] == true ? 1 : 0) - s);
-    }
+  for (var d = first; d.compareTo(days.first) < 0; d = d.addDays(1)) {
+    addDay(d);
   }
+  final result = <double>[];
   for (final d in days) {
-    if (first != null && d.compareTo(first) >= 0) s += strengthWeight * ((states[d] == true ? 1 : 0) - s);
-    strength.add(s);
+    if (d.compareTo(first) >= 0) addDay(d);
+    result.add(strength);
   }
-
-  return YesNoStats(
-    days: days.length,
-    yes: yes,
-    no: no,
-    currentStreak: current,
-    longestStreak: streaks.fold(0, math.max),
-    streaks: streaks,
-    weekdayRates: weekdayRates,
-    strength: strength,
-  );
+  return result;
 }
 
 /// The numbers and charts of a count metric in a period.
@@ -143,7 +150,7 @@ final class CountStats {
   final List<num?> weekdayAverages;
 
   /// For each value (rounded to a whole number), the number of days with it, from the lowest value.
-  final List<(int, int)> distribution;
+  final List<({int value, int days})> distribution;
 
   /// The total up to each day of the period.
   final List<num> running;
@@ -151,10 +158,7 @@ final class CountStats {
 
 /// The count numbers of [values] for the period [days].
 CountStats countStats(Map<Day, num> values, List<Day> days) {
-  final present = [
-    for (final d in days)
-      if (values[d] case final v?) (day: d, value: v),
-  ];
+  final present = _present(values, days);
   num total = 0;
   final running = <num>[];
   for (final d in days) {
@@ -168,11 +172,13 @@ CountStats countStats(Map<Day, num> values, List<Day> days) {
   return CountStats(
     total: total,
     logged: present.length,
-    best: present.fold<DayValue?>(null, (b, p) => b == null || p.value > b.value ? p : b),
+    best: _highest(present),
     weekdayAverages: [
-      for (var w = DateTime.monday; w <= DateTime.sunday; w++) _average(present.where((p) => p.day.weekday == w)),
+      for (var weekday = DateTime.monday; weekday <= DateTime.sunday; weekday++)
+        _average(present.where((p) => p.day.weekday == weekday)),
     ],
-    distribution: (counts.entries.map((e) => (e.key, e.value)).toList()..sort((a, b) => a.$1.compareTo(b.$1))),
+    distribution: [for (final e in counts.entries) (value: e.key, days: e.value)]
+      ..sort((a, b) => a.value.compareTo(b.value)),
     running: running,
   );
 }
@@ -187,8 +193,6 @@ final class NumberStats {
     required this.change,
     required this.low,
     required this.high,
-    required this.average,
-    required this.logged,
     required this.values,
     required this.trend,
     required this.histogram,
@@ -201,13 +205,15 @@ final class NumberStats {
   final num? change;
   final DayValue? low;
   final DayValue? high;
-  final num? average;
-
-  /// The number of days with a value.
-  final int logged;
 
   /// The value of each day of the period. Null if the day has no value.
   final List<num?> values;
+
+  /// The number of days with a value.
+  int get logged => values.nonNulls.length;
+
+  /// The average of the days with a value. Null if no day has a value.
+  num? get average => logged == 0 ? null : values.nonNulls.fold<num>(0, (total, v) => total + v) / logged;
 
   /// The smooth trend of each day: an exponential moving average. Null before the first value. See [trendWeight].
   final List<num?> trend;
@@ -222,52 +228,71 @@ const trendWeight = 0.25;
 /// The number of ranges in [NumberStats.histogram].
 const histogramBins = 8;
 
-/// The number numbers of [values] for the period [days].
+/// The numbers of a number metric: [values] in the period [days].
 NumberStats numberStats(Map<Day, num> values, List<Day> days) {
-  final present = [
-    for (final d in days)
-      if (values[d] case final v?) (day: d, value: v),
-  ];
-  num? t;
-  final trend = <num?>[
-    for (final d in days)
-      if (values[d] case final v?) t = t == null ? v : t + trendWeight * (v - t) else t,
-  ];
-
-  final histogram = <Bin>[];
-  if (present.isNotEmpty) {
-    final lo = present.map((p) => p.value).reduce(math.min);
-    final hi = present.map((p) => p.value).reduce(math.max);
-    final width = hi == lo ? 1 : (hi - lo) / histogramBins;
-    final counts = List.filled(hi == lo ? 1 : histogramBins, 0);
-    for (final p in present) {
-      counts[math.min(counts.length - 1, ((p.value - lo) / width).floor())]++;
-    }
-    for (final (i, n) in counts.indexed) {
-      histogram.add((from: lo + i * width, to: lo + (i + 1) * width, days: n));
-    }
-  }
-
+  final present = _present(values, days);
   return NumberStats(
-    latest: present.isEmpty ? null : present.last,
+    latest: present.lastOrNull,
     change: present.length < 2 ? null : present.last.value - present.first.value,
-    low: present.fold<DayValue?>(null, (b, p) => b == null || p.value < b.value ? p : b),
-    high: present.fold<DayValue?>(null, (b, p) => b == null || p.value > b.value ? p : b),
-    average: _average(present),
-    logged: present.length,
+    low: _lowest(present),
+    high: _highest(present),
     values: [for (final d in days) values[d]],
-    trend: trend,
-    histogram: histogram,
+    trend: _trend(values, days),
+    histogram: _histogram(present),
   );
 }
 
+/// The trend of each day of [days]. See [NumberStats.trend].
+List<num?> _trend(Map<Day, num> values, List<Day> days) {
+  num? trend;
+  return [
+    for (final d in days)
+      if (values[d] case final v?) trend = trend == null ? v : trend + trendWeight * (v - trend) else trend,
+  ];
+}
+
+/// The values of [present] in [histogramBins] ranges. One range if all values are equal. Empty if [present] is empty.
+List<Bin> _histogram(List<DayValue> present) {
+  if (present.isEmpty) return const [];
+  final low = present.map((p) => p.value).reduce(math.min);
+  final high = present.map((p) => p.value).reduce(math.max);
+  final width = high == low ? 1 : (high - low) / histogramBins;
+  final counts = List.filled(high == low ? 1 : histogramBins, 0);
+  for (final p in present) {
+    counts[math.min(counts.length - 1, ((p.value - low) / width).floor())]++;
+  }
+  return [for (final (i, n) in counts.indexed) (from: low + i * width, to: low + (i + 1) * width, days: n)];
+}
+
+/// The days of [days] that have a value in [values], oldest first.
+List<DayValue> _present(Map<Day, num> values, List<Day> days) => [
+  for (final d in days)
+    if (values[d] case final v?) (day: d, value: v),
+];
+
+/// The first day with the highest value of [values]. Null if [values] is empty.
+DayValue? _highest(List<DayValue> values) =>
+    values.fold<DayValue?>(null, (high, p) => high == null || p.value > high.value ? p : high);
+
+/// The first day with the lowest value of [values]. Null if [values] is empty.
+DayValue? _lowest(List<DayValue> values) =>
+    values.fold<DayValue?>(null, (low, p) => low == null || p.value < low.value ? p : low);
+
 num? _average(Iterable<DayValue> values) =>
-    values.isEmpty ? null : values.fold<num>(0, (t, p) => t + p.value) / values.length;
+    values.isEmpty ? null : values.fold<num>(0, (total, p) => total + p.value) / values.length;
 
 /// The ranges of streak lengths in days, for [streakLengths]. The last range has no end.
-const streakRanges = [(1, 1), (2, 2), (3, 3), (4, 6), (7, 13), (14, 29), (30, null)];
+const streakRanges = [
+  (from: 1, to: 1),
+  (from: 2, to: 2),
+  (from: 3, to: 3),
+  (from: 4, to: 6),
+  (from: 7, to: 13),
+  (from: 14, to: 29),
+  (from: 30, to: null),
+];
 
 /// The number of [streaks] in each range of [streakRanges]. Example: streaks 1, 2, 2, 5 → 1, 2, 0, 1, 0, 0, 0.
 List<int> streakLengths(List<int> streaks) => [
-  for (final (from, to) in streakRanges) streaks.where((s) => s >= from && (to == null || s <= to)).length,
+  for (final (:from, :to) in streakRanges) streaks.where((s) => s >= from && (to == null || s <= to)).length,
 ];
