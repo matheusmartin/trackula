@@ -16,18 +16,5 @@
       "Edit(./build/**)",
       "Edit(./.dart_tool/**)"
     ]
-  },
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-dart-file.sh"
-          }
-        ]
-      }
-    ]
   }
 }
