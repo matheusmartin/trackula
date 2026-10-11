@@ -6,17 +6,10 @@ adds the rules for the code.
 ## Standards
 
 - Read and follow [Effective Dart](https://dart.dev/effective-dart): Style, Documentation, Usage and Design.
-  `analysis_options.yaml` turns on lints for many of its rules.
-- Follow Clean Code (Robert C. Martin):
-  - A name tells why the thing exists and what it does. Use short names, such as `m` or `d`, only in a small
-    scope, for example a lambda or a loop of a few lines.
-  - A function does one thing, at one level of abstraction. If a function is long, split it into named parts.
-  - A class has one responsibility.
-  - Do not repeat code. Put shared logic in one place and use it from all callers.
-  - A comment tells why, not what. Remove comments that only repeat the code, and remove commented-out code.
-  - Remove dead code: unused functions, parameters and files.
+- Follow *Clean Code* by Robert C. Martin. If Clean Code and Effective Dart give different rules, follow Effective
+  Dart. Example: Effective Dart lets you write doc comments for private members.
 - This project differs from Effective Dart in these points:
-  - The maximum line length is 120, not 80. `analysis_options.yaml` sets it for `dart format`.
+  - The maximum line length is 120, not 80. See `formatter` in `analysis_options.yaml`.
   - Write all docs, comments and commit messages in ASD-STE100 Simplified Technical English, as in `README.md`.
   - The doc comment of a boolean starts with "True if", "True while" or a similar phrase, not with "Whether".
     Example: "True if the window shows the newest bar."
@@ -31,7 +24,7 @@ adds the rules for the code.
 - `lib/services/` can import `lib/model/`, `lib/sheets/` and `lib/config.dart`.
 - `lib/components/` can import `lib/model/` and `lib/services/`.
 - `lib/pages/` can import all the folders above, and other pages.
-- `lib/constants/` can import only `package:jaspr`. It must not import browser-only code: see `@css` in `README.md`.
+- `lib/constants/` can import only `package:jaspr`. See `@css` in `README.md`.
 - If you add a folder in `lib/`, add it to this list and to "Project structure" in `README.md`.
 
 ## Tests
@@ -47,7 +40,6 @@ adds the rules for the code.
 
 ## Dependencies
 
-- Add or change a package with `dart pub add`.
 - The Jaspr version in `pubspec.yaml` and the `jaspr_cli` version in `.github/workflows/deploy.yml` must be the same.
 
 ## Commits
