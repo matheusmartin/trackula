@@ -94,6 +94,13 @@ List<StyleRule> get styles => [
     raw: {'box-shadow': 'inset 0 0 0 2px color-mix(in srgb, var(--on-surface) 40%, transparent)'},
   ),
   css('.cell.selected').styles(raw: {'outline': '2px solid var(--tertiary)', 'outline-offset': '1px'}),
+  // Score cells: read-only text, not buttons. They center the text as a button does.
+  css('.cell.score').styles(
+    display: .inlineFlex,
+    justifyContent: .center,
+    alignItems: .center,
+    raw: {'vertical-align': 'middle', 'cursor': 'default'},
+  ),
   // Days after today: shown in full months, but faded and not editable.
   css('.cell.future').styles(
     raw: {

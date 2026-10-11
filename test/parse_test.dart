@@ -53,8 +53,8 @@ void main() {
     test('ignores rows that contain only unchecked checkboxes, for example of an old active column', () {
       final p = parseMetrics([
         [...metricsHeader, 'active'],
-        ['c', 'C', 'yesno', '', '', '', 'check', true],
-        ['', '', '', '', '', '', '', false],
+        ['c', 'C', 'yesno', '', '', '', 'check', '', true],
+        ['', '', '', '', '', '', '', '', false],
       ]);
       expect(p.items.map((m) => m.id), ['c']);
       expect(p.warnings, isEmpty);
@@ -87,6 +87,46 @@ void main() {
         ]),
         throwsA(isA<HeaderException>()),
       );
+    });
+
+    test('reads the goal: yes or no for yesno, a minimum or a maximum for number and count', () {
+      final p = parseMetrics([
+        metricsHeader,
+        ['meditate', 'Meditate', 'yesno', '', '', '', 'check', 'Yes'],
+        ['smoke', 'Smoke', 'yesno', '', '', '', 'check', 'no'],
+        ['read', 'Read', 'yesno', '', '', '', 'check'],
+        ['water', 'Water', 'count', '', '', '', 'water_drop', 8],
+        ['steps', 'Steps', 'number', '', '', '', 'footprint', '>= 8000'],
+        ['weight', 'Weight', 'number', 'kg', 0.1, '', 'monitor_weight', '<=75.5'],
+        ['waist', 'Waist', 'number', 'cm', 0.5, '', 'straighten', ''],
+      ]);
+      expect(p.warnings, isEmpty);
+      expect([for (final m in p.items.whereType<YesNoMetric>()) m.goalIsYes], [true, false, true]);
+      expect(
+        [for (final m in p.items.whereType<NumberMetric>()) (m.goal?.value, m.goal?.isMaximum)],
+        [(8, false), (8000, false), (75.5, true), (null, null)],
+      );
+    });
+
+    test('skips a row with an invalid goal with a warning', () {
+      final p = parseMetrics([
+        metricsHeader,
+        ['meditate', 'Meditate', 'yesno', '', '', '', 'check', 'maybe'],
+        ['weight', 'Weight', 'number', 'kg', 0.1, '', 'monitor_weight', '< 75'],
+      ]);
+      expect(p.items, isEmpty);
+      expect(p.warnings, [contains('use yes or no'), contains('<= 75 (at most 75)')]);
+    });
+
+    test('reads a sheet without the goal column: no goal', () {
+      final p = parseMetrics([
+        ['id', 'name', 'kind', 'unit', 'step', 'group', 'icon'],
+        ['meditate', 'Meditate', 'yesno', '', '', '', 'check'],
+        ['water', 'Water', 'count', '', '', '', 'water_drop'],
+      ]);
+      expect(p.warnings, isEmpty);
+      expect(p.items[0], isA<YesNoMetric>().having((m) => m.goalIsYes, 'goalIsYes', isTrue));
+      expect(p.items[1], isA<NumberMetric>().having((m) => m.goal, 'goal', isNull));
     });
 
     test('reads kind count as a number metric with bars', () {

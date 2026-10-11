@@ -117,10 +117,11 @@ num? applyCountSteps(num? current, Iterable<CountStep> steps) {
   for (final step in steps) {
     value = math.max(0, value + step.delta);
   }
-  if (value <= 0) return null;
-  // Removes float noise from decimal steps, for example 0.30000000000000004.
-  return value is int ? value : double.parse(value.toStringAsFixed(6));
+  return value <= 0 ? null : withoutFloatNoise(value);
 }
+
+/// [value] without the float noise of decimal steps. Example: 0.30000000000000004 → 0.3.
+num withoutFloatNoise(num value) => value is int ? value : double.parse(value.toStringAsFixed(6));
 
 /// Returns the change that applies [steps] to the current value of [metric] on [date] in [log].
 ///

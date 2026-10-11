@@ -10,21 +10,22 @@ import 'store.dart';
 ///
 /// It keeps the tabs as rows of cells, as the Sheets API returns them, and uses the same parsers and write plans as
 /// `SheetsStore`. Today has no values, so that all inputs can be tried. Each call waits [delay], as a network call.
+/// It has no `Score` column: the app calculates the scores that it shows from the values.
 final class DemoStore extends Store {
   DemoStore({Day? today, this.delay = const Duration(milliseconds: 400)}) : _log = _sampleLog(today ?? Day.today());
 
   final Duration delay;
 
   static const _metrics = [
-    ['weight', 'Weight', 'number', 'kg', 0.1, 'Health', 'monitor_weight'],
-    ['waist', 'Waist', 'number', 'cm', 0.5, 'Health', 'straighten'],
-    ['teeth', 'Morning teeth', 'yesno', '', '', 'Hygiene', 'dentistry'],
-    ['shower', 'Morning shower', 'yesno', '', '', 'Hygiene', 'shower'],
-    ['meditate', 'Meditate', 'yesno', '', '', 'Activities', 'self_improvement'],
-    ['read', 'Read', 'yesno', '', '', 'Activities', 'menu_book'],
-    ['water', 'Water', 'count', 'glasses', 1, 'Nutrition', 'water_drop'],
-    ['walk', 'Walk', 'count', 'min', 10, 'Activities', 'directions_walk'],
-    ['vitamins', 'Vitamins', 'yesno', '', '', 'Nutrition', 'pill'],
+    ['weight', 'Weight', 'number', 'kg', 0.1, 'Health', 'monitor_weight', '<= 83'],
+    ['waist', 'Waist', 'number', 'cm', 0.5, 'Health', 'straighten', '<= 94'],
+    ['teeth', 'Morning teeth', 'yesno', '', '', 'Hygiene', 'dentistry', 'yes'],
+    ['shower', 'Morning shower', 'yesno', '', '', 'Hygiene', 'shower', 'yes'],
+    ['meditate', 'Meditate', 'yesno', '', '', 'Activities', 'self_improvement', 'yes'],
+    ['read', 'Read', 'yesno', '', '', 'Activities', 'menu_book', 'yes'],
+    ['water', 'Water', 'count', 'glasses', 1, 'Nutrition', 'water_drop', 8],
+    ['walk', 'Walk', 'count', 'min', 10, 'Activities', 'directions_walk', 30],
+    ['vitamins', 'Vitamins', 'yesno', '', '', 'Nutrition', 'pill', 'yes'],
   ];
 
   final List<List<Object?>> _log;

@@ -6,6 +6,7 @@
 
 - Web app to track habits and body measurements.
 - Detail screen: tap a metric name to see all its data. It has numbers and charts for a period (week, month, year or all), a month calendar to edit any day and a year heatmap.
+- Score: the app calculates a score for each day from the values and the `goal` of each metric, and writes it in the `Score` column of the sheet. The 5-day table and the 31-day calendars show it first. Tap "Score" to see its detail screen. Rules: [docs/data-model.md](docs/data-model.md#score).
 - Charts over time have zoom buttons: 1 month to 5 years. Short spans show weeks, middle spans months, long spans quarters. A small chart below shows all data. Drag or use the mouse wheel to move.
 - Storage: one Google Sheet in your Google Drive. You pick it with the Google Picker. You can edit the data by hand.
 - If the picked sheet has no `Metrics` and `Log` tabs, the app adds them.
@@ -49,7 +50,7 @@
 - `lib/model/`: data model, parsing, validation and write planning. Pure Dart, no browser code.
 - `lib/sheets/`: Google Sheets access (`SheetsStore`) and the demo mode data (`DemoStore`). Both implement `Store`.
 - `lib/services/`: browser code: Google sign-in, the Google Picker, browser storage and pointer input.
-- `lib/pages/`, `lib/components/`: UI. `lib/model/stats.dart` and `lib/model/zoom.dart`: the numbers and zoom bars of the detail screen.
+- `lib/pages/`, `lib/components/`: UI. `lib/model/stats.dart` and `lib/model/zoom.dart`: the numbers and zoom bars of the detail screen. `lib/model/score.dart`: the day score.
 - `lib/constants/theme.dart`: app CSS (`@css`) on top of BeerCSS. Only the habit table and editor. Use Material theme variables (`var(--primary)`…) for colors.
   - Do not put `@css` in files that import browser-only code (`package:web`, `googleapis_auth/auth_browser`). Jaspr runs `@css` code on the Dart VM to create `main.css`, and browser-only imports make it fail.
 - `lib/config.dart`: reads the OAuth client ID and the Picker API key from the build defines.

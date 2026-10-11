@@ -7,11 +7,13 @@ import '../model/day.dart';
 import '../model/day_range.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
+import '../model/score.dart';
 import '../services/prefs.dart';
 import '../sheets/store.dart';
 import 'metric_detail.dart';
 
 /// The main page: the metrics in Today tiles, a HabitKit-style table or calendars, where the user records entries.
+/// The table and the calendars also show the score of each day, first. The Today tiles do not show it.
 final class TodayPage extends StatefulComponent {
   const TodayPage({
     required this.store,
@@ -184,9 +186,12 @@ class _TodayPageState extends State<TodayPage> {
     final error = [
       if (_error case final e?) p(classes: 'error-text', [.text(e)]),
     ];
+    // The scores of all metrics, also with a group filter.
+    final scores = data == null ? const <Day, num>{} : dayScores(metrics, data.log.entries, pending);
 
-    // The detail screen of one metric. If the metric is gone from the sheet, the table shows again.
-    if ((data, metrics.where((m) => m.id == _detailId).firstOrNull) case (final data?, final metric?)) {
+    // The detail screen of one metric, or of the score. If the metric is gone from the sheet, the table shows again.
+    final detail = [scoreMetric, ...metrics].where((m) => m.id == _detailId).firstOrNull;
+    if ((data, detail) case (final data?, final metric?)) {
       return .fragment([
         MetricDetail(
           key: ValueKey(metric.id),
@@ -197,6 +202,7 @@ class _TodayPageState extends State<TodayPage> {
           onWrite: _write,
           pending: pending,
           onCount: _count,
+          scores: scores,
           onBack: _closeDetail,
         ),
         ...error,
@@ -220,6 +226,7 @@ class _TodayPageState extends State<TodayPage> {
             ],
             today,
             pending,
+            scores,
           ),
         if (data.warnings.isNotEmpty) _warnings(data.warnings),
       ],
@@ -228,9 +235,15 @@ class _TodayPageState extends State<TodayPage> {
 
   static String _groupOf(Metric m) => m.group ?? 'other';
 
-  /// The days of [_range] for [metrics]: the Today tiles, the 5-day table or the 31-day calendars.
-  Component _days(Snapshot data, List<Metric> metrics, Day today, Map<(String, Day), List<CountStep>> pending) =>
-      _range == DayRange.today
+  /// The days of [_range] for [metrics]: the Today tiles, the 5-day table or the 31-day calendars. The table and the
+  /// calendars start with the [scores].
+  Component _days(
+    Snapshot data,
+    List<Metric> metrics,
+    Day today,
+    Map<(String, Day), List<CountStep>> pending,
+    Map<Day, num> scores,
+  ) => _range == DayRange.today
       ? TodayTiles(
           metrics: metrics,
           log: data.log,
@@ -240,7 +253,7 @@ class _TodayPageState extends State<TodayPage> {
           pending: pending,
         )
       : HabitTable(
-          metrics: metrics,
+          metrics: [scoreMetric, ...metrics],
           log: data.log,
           today: today,
           days: _range.daysUntil(today),
@@ -249,6 +262,7 @@ class _TodayPageState extends State<TodayPage> {
           onWrite: _write,
           pending: pending,
           onCount: _count,
+          scores: scores,
           onOpen: (m) => _openDetail(m.id),
         );
 

@@ -4,15 +4,16 @@ import '../model/day.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/parse.dart';
+import '../model/score.dart';
 import 'store.dart';
 
 export 'store.dart';
 
 /// Rows for a new `Metrics` tab. Edit or delete them in the sheet.
 const _exampleMetrics = [
-  ['weight', 'Weight', 'number', 'kg', 0.1, 'body', 'monitor_weight'],
-  ['meditate', 'Meditate', 'yesno', '', '', 'habits', 'self_improvement'],
-  ['water', 'Water', 'number', 'glasses', 1, 'habits', 'water_drop'],
+  ['weight', 'Weight', 'number', 'kg', 0.1, 'body', 'monitor_weight', '<= 80'],
+  ['meditate', 'Meditate', 'yesno', '', '', 'habits', 'self_improvement', 'yes'],
+  ['water', 'Water', 'number', 'glasses', 1, 'habits', 'water_drop', 8],
 ];
 
 /// A tab of the spreadsheet: its ID in the Sheets API, and its number of columns.
@@ -143,31 +144,64 @@ final class SheetsStore extends Store {
 
   /// Reads both tabs and validates each row.
   ///
-  /// Before it parses the `Log` tab, it brings the tab up to date. See [_migrate].
+  /// Before it parses the `Log` tab, it brings the tab up to date (see [_migrate]) and writes the scores that changed
+  /// (see [staleScoreCells]). So each load after a change in the app or in the sheet, for example a new goal, also
+  /// updates the scores. [Store.change] loads after each write.
   @override
-  Future<Snapshot> load() async {
+  Future<Snapshot> load() => _load(mayWriteScores: true);
+
+  /// [load]. It writes the scores at most once, so a score that does not stay in the sheet cannot cause a loop.
+  Future<Snapshot> _load({required bool mayWriteScores}) async {
     final (metricRows, logRows) = await _read();
     final metrics = parseMetrics(metricRows);
     final byId = {for (final m in metrics.items) m.id: m};
-    if (await _migrate(logRows, byId)) return load();
+    if (await _migrate(logRows, byId)) return _load(mayWriteScores: mayWriteScores);
+    if (mayWriteScores && await _writeScores(logRows, metrics.items)) return _load(mayWriteScores: false);
     final log = parseLog(logRows, byId);
     return Snapshot(metrics.items, log.table, [...metrics.warnings, ...log.warnings]);
+  }
+
+  /// Writes the score cells of [logRows] that do not show the score of their row. Returns true after a write: then
+  /// read the data again. [_migrate] adds the score column before.
+  Future<bool> _writeScores(List<List<Object?>> logRows, List<Metric> metrics) async {
+    final column = scoreColumn(logRows.firstOrNull ?? const <Object?>[]);
+    if (column == null) return false;
+    final cells = staleScoreCells(logRows, metrics, column);
+    if (cells.isEmpty) return false;
+    await _api.spreadsheets.values.batchUpdate(
+      BatchUpdateValuesRequest(
+        valueInputOption: 'RAW',
+        data: [
+          for (final c in cells)
+            ValueRange(
+              range: _cell(c.row, column),
+              values: [
+                // An empty string clears the cell.
+                [c.score ?? ''],
+              ],
+            ),
+        ],
+      ),
+      spreadsheetId,
+    );
+    return true;
   }
 
   /// Makes one change to bring the `Log` tab up to date, if it needs one. Returns true after a change: then read the
   /// data again.
   ///
-  /// The changes, in this order: add a column for each metric without one, change text dates to real dates (see
-  /// [textDateRows]), and change yesno values of old app versions to `yes` or `no` (see [legacyYesNoCells]).
+  /// The changes, in this order: add a column for each metric without one and the score column, change text dates to
+  /// real dates (see [textDateRows]), and change yesno values of old app versions to `yes` or `no` (see
+  /// [legacyYesNoCells]).
   Future<bool> _migrate(List<List<Object?>> logRows, Map<String, Metric> metrics) async {
     final header = logRows.firstOrNull ?? const <Object?>[];
     final present = {for (final c in header) '${c ?? ''}'.trim()};
     final missing = [
-      for (final m in metrics.values)
-        if (!present.contains(m.id)) m,
+      for (final id in [...metrics.keys, scoreHeader])
+        if (!present.contains(id)) id,
     ];
     if (missing.isNotEmpty) {
-      await _addColumns(missing, header.length);
+      await _addColumns(missing, header.length, metrics);
       return true;
     }
     final textDates = _mayHaveTextDates ? textDateRows(logRows) : const <({int row, Day date})>[];
@@ -265,23 +299,24 @@ final class SheetsStore extends Store {
     }
   }
 
-  /// Adds a header cell and a validation rule for each metric in [metrics], after [width] columns.
-  Future<void> _addColumns(List<Metric> metrics, int width) async {
+  /// Adds a column with each of [headers] and its validation rule, after [width] columns. A header is a metric id of
+  /// [metrics], or [scoreHeader].
+  Future<void> _addColumns(List<String> headers, int width, Map<String, Metric> metrics) async {
     final logTab = (await _tabs())[logTitle]!;
     // Column A is always `date`, even if the header row is empty.
     final start = width == 0 ? 1 : width;
-    final needed = start + metrics.length - logTab.columnCount;
+    final needed = start + headers.length - logTab.columnCount;
     await _batchUpdate([
       if (needed > 0)
         Request(
           appendDimension: AppendDimensionRequest(sheetId: logTab.tabId, dimension: 'COLUMNS', length: needed),
         ),
-      for (final (i, m) in metrics.indexed) _valueRule(logTab.tabId, start + i, m),
+      for (final (i, header) in headers.indexed) ?_logColumnRule(logTab.tabId, start + i, header, metrics),
     ]);
     await _api.spreadsheets.values.update(
       ValueRange(
         values: [
-          [if (width == 0) 'date', for (final m in metrics) m.id],
+          [if (width == 0) 'date', ...headers],
         ],
       ),
       spreadsheetId,
@@ -352,6 +387,13 @@ List<Request> _metricsRules(int tabId, List<String> header) {
     ?at('kind', (_) => _oneOf(['yesno', 'number', 'count'])),
     // A Material Symbols name, or a short text such as an emoji. Some emojis have up to 11 characters in Sheets.
     ?at('icon', (c) => _formula('=OR(REGEXMATCH($c, "^[a-z0-9_]+\$"), LEN($c) <= 16)')),
+    // `yes` or `no` for yesno metrics. A number, or a number after `<=` or `>=`, for number and count metrics.
+    ?at(
+      'goal',
+      (c) => _formula(
+        '=OR(ISNUMBER($c), REGEXMATCH(LOWER(TO_TEXT($c)), "^ *(yes|no|(<=|>=)? *-?[0-9]+([.][0-9]+)?) *\$"))',
+      ),
+    ),
   ];
 }
 
@@ -378,19 +420,23 @@ Request _dateFormat(int tabId) => Request(
   ),
 );
 
-/// The rules of the metric columns of the `Log` tab [tabId], from its [header]. Columns with no metric get no rule.
+/// The rules of the metric columns and of the score column of the `Log` tab [tabId], from its [header]. Other columns
+/// get no rule.
 List<Request> _logValueRules(int tabId, List<Object?> header, Map<String, Metric> metrics) => [
-  for (var c = 1; c < header.length; c++)
-    if (metrics['${header[c] ?? ''}'.trim()] case final metric?) _valueRule(tabId, c, metric),
+  for (var c = 1; c < header.length; c++) ?_logColumnRule(tabId, c, '${header[c] ?? ''}'.trim(), metrics),
 ];
 
-/// The rule for a metric column: a `yes` / `no` dropdown for yesno, a number for number metrics.
+/// The rule for the `Log` column [column] with [header]: a `yes` / `no` dropdown for yesno, a number for number
+/// metrics and for the score. Null for other columns, for example of a deleted metric.
 ///
 /// [SheetsStore.refreshRules] sets it again each time the app opens the sheet, so it follows kind changes.
-Request _valueRule(int tabId, int column, Metric metric) => _rule(
-  _columnRange(tabId, column),
-  switch (metric) {
+Request? _logColumnRule(int tabId, int column, String header, Map<String, Metric> metrics) {
+  final isNumber = _formula('=ISNUMBER(${columnLetter(column)}2)');
+  final condition = switch (metrics[header]) {
     YesNoMetric() => _oneOf(['yes', 'no']),
-    NumberMetric() => _formula('=ISNUMBER(${columnLetter(column)}2)'),
-  },
-);
+    NumberMetric() => isNumber,
+    null when header == scoreHeader => isNumber,
+    null => null,
+  };
+  return condition == null ? null : _rule(_columnRange(tabId, column), condition);
+}
