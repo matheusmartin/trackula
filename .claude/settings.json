@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(dart test:*)",
+      "Bash(dart analyze:*)",
+      "Bash(dart format:*)",
+      "Bash(dart pub get)",
+      "Bash(dart pub add:*)",
+      "Bash(jaspr build:*)"
+    ],
+    "deny": [
+      "Read(./config.env)",
+      "Edit(./config.env)",
+      "Edit(./pubspec.lock)",
+      "Edit(./build/**)",
+      "Edit(./.dart_tool/**)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-dart-file.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
