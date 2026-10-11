@@ -10,6 +10,7 @@ dependencies:
   googleapis_auth: ^2.3.4
   http: ^1.6.0
   jaspr: ^0.23.5
+  meta: ^1.19.0
   web: ^1.1.1
 
 dev_dependencies:

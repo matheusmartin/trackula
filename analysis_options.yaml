@@ -1,23 +1,38 @@
 include: package:lints/recommended.yaml
 
-# Lints for Effective Dart rules that package:lints/recommended.yaml does not include. See CLAUDE.md.
+# Lints for the Effective Dart rules that package:lints/recommended.yaml does not include. See CLAUDE.md.
+# Two Effective Dart lints stay off:
+# - lines_longer_than_80_chars: this project uses 120 characters. See formatter.page_width.
+# - public_member_api_docs: it asks for a doc comment on every public member. Effective Dart asks for most of them.
 linter:
   rules:
     # Style
     - directives_ordering
     - prefer_relative_imports
+    - unnecessary_underscores
     # Documentation
     - comment_references
     # Usage
-    - prefer_interpolation_to_compose_strings
+    - avoid_catches_without_on_clauses
+    - avoid_catching_errors
+    - prefer_expression_function_bodies
+    - prefer_iterable_whereType
     - unnecessary_lambdas
+    - unnecessary_type_name_in_constructor
     # Design
     - avoid_classes_with_only_static_members
+    - avoid_equals_and_hash_code_on_mutable_classes
+    - avoid_null_checks_in_equality_operators
     - avoid_positional_boolean_parameters
+    - avoid_private_typedef_functions
     - avoid_returning_this
     - avoid_setters_without_getters
+    - avoid_types_on_closure_parameters
     - omit_local_variable_types
+    - one_member_abstracts
+    - prefer_mixin
     - type_annotate_public_apis
+    - use_setters_to_change_properties
     - use_to_and_as_if_applicable
 
 # The Jaspr lints.

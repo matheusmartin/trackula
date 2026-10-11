@@ -16,19 +16,17 @@ class Header extends StatelessComponent {
   final VoidCallback? onDisconnect;
 
   @override
-  Component build(BuildContext context) {
-    return header(classes: 'fixed primary', [
-      nav([
-        img(classes: 'app-logo', src: 'images/logo.svg', alt: ''),
-        h6(classes: 'max', [.text('Trackula')]),
-        if (onReload != null)
-          if (busy)
-            progress(classes: 'circle small', attributes: {'aria-label': 'Loading'}, [])
-          else
-            iconButton(icon: 'refresh', title: 'Reload', onClick: onReload),
-        if (onDisconnect != null) iconButton(icon: 'swap_horiz', title: 'Change sheet', onClick: onDisconnect),
-        if (onSignOut != null) iconButton(icon: 'logout', title: 'Sign out', onClick: onSignOut),
-      ]),
-    ]);
-  }
+  Component build(BuildContext context) => header(classes: 'fixed primary', [
+    nav([
+      img(classes: 'app-logo', src: 'images/logo.svg', alt: ''),
+      h6(classes: 'max', [.text('Trackula')]),
+      if (onReload != null)
+        if (busy)
+          progress(classes: 'circle small', attributes: {'aria-label': 'Loading'}, [])
+        else
+          iconButton(icon: 'refresh', title: 'Reload', onClick: onReload),
+      if (onDisconnect != null) iconButton(icon: 'swap_horiz', title: 'Change sheet', onClick: onDisconnect),
+      if (onSignOut != null) iconButton(icon: 'logout', title: 'Sign out', onClick: onSignOut),
+    ]),
+  ]);
 }

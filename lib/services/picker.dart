@@ -8,6 +8,16 @@ import '../config.dart';
 /// A spreadsheet that the user picked.
 typedef PickedSheet = ({String id, String name});
 
+/// Thrown when the browser cannot load the Google Picker, for example without a network connection.
+final class PickerException implements Exception {
+  const PickerException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 /// Opens the Google Picker with the user's spreadsheets. Returns null if the user cancels.
 ///
 /// Picking a file gives this app `drive.file` access to it. See
@@ -45,7 +55,9 @@ Future<void> _loadPicker() => _loading ??= () async {
   final script = web.HTMLScriptElement()..src = 'https://apis.google.com/js/api.js';
   final loaded = Completer<void>();
   script.onload = ((web.Event _) => loaded.complete()).toJS;
-  script.onerror = ((web.Event _) => loaded.completeError('Cannot load the Google Picker.')).toJS;
+  script.onerror = ((web.Event _) => loaded.completeError(
+    const PickerException('Cannot load the Google Picker.'),
+  )).toJS;
   web.document.head!.append(script);
   await loaded.future;
 

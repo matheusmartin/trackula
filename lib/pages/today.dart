@@ -147,7 +147,7 @@ class _TodayPageState extends State<TodayPage> {
         _data = data;
         done?.call();
       });
-    } catch (e) {
+    } on Exception catch (e) {
       setState(() {
         _error = '$e';
         done?.call();

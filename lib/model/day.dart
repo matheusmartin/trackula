@@ -1,4 +1,7 @@
+import 'package:meta/meta.dart';
+
 /// A calendar day without time or time zone. Stored as `YYYY-MM-DD`.
+@immutable
 final class Day implements Comparable<Day> {
   const Day(this.year, this.month, this.day);
 

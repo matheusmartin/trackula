@@ -5,6 +5,8 @@ import 'package:web/web.dart' as web;
 void capturePointer(web.PointerEvent event) {
   try {
     (event.currentTarget as web.Element).setPointerCapture(event.pointerId);
+    // The browser throws a DOMException. See readPref in prefs.dart.
+    // ignore: avoid_catches_without_on_clauses
   } catch (_) {
     // The pointer is already up.
   }
