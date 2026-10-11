@@ -2,25 +2,26 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
 import '../components/habit_table.dart';
+import '../components/score_chart.dart';
 import '../components/today_tiles.dart';
 import '../model/day.dart';
-import '../model/day_range.dart';
 import '../model/log_entry.dart';
+import '../model/main_view.dart';
 import '../model/metric.dart';
 import '../model/score.dart';
 import '../services/prefs.dart';
 import '../sheets/store.dart';
 import 'metric_detail.dart';
 
-/// The main page: the metrics in Today tiles, a HabitKit-style table or calendars, where the user records entries.
-/// The table and the calendars also show the score of each day, first. The Today tiles do not show it.
+/// The main page: the metrics in Today tiles, a HabitKit-style table or calendars, where the user records entries, or
+/// the score only. The table and the calendars start with a line chart of the score. The Today tiles do not show it.
 final class TodayPage extends StatefulComponent {
   const TodayPage({
     required this.store,
     required this.expired,
     required this.onExpired,
-    required this.range,
-    required this.onRange,
+    required this.view,
+    required this.onView,
     required this.onDetail,
     required this.reload,
     required this.onBusy,
@@ -34,12 +35,12 @@ final class TodayPage extends StatefulComponent {
   final bool Function() expired;
   final VoidCallback onExpired;
 
-  /// The view: the Today tiles, the 5-day table or the 31-day calendars. The App owns it, because the bottom
-  /// navigation bar is a child of `<body>`, outside this page. See App.
-  final DayRange range;
+  /// The view: the Today tiles, the 5-day table, the 31-day calendars or the score. The App owns it, because the
+  /// bottom navigation bar is a child of `<body>`, outside this page. See App.
+  final MainView view;
 
-  /// Changes [range].
-  final void Function(DayRange range) onRange;
+  /// Changes [view].
+  final void Function(MainView view) onView;
 
   /// Called when a metric detail screen opens or closes. The App hides the bottom navigation bar on the detail screen.
   final void Function({required bool open}) onDetail;
@@ -60,7 +61,7 @@ class _TodayPageState extends State<TodayPage> {
   bool _busy = false;
   String? _error;
 
-  DayRange get _range => component.range;
+  MainView get _view => component.view;
 
   /// The selected group, or null for all groups.
   String? _group = readPref('group');
@@ -144,11 +145,11 @@ class _TodayPageState extends State<TodayPage> {
 
   void _write(LogWrite? Function(LogTable log) plan) => _run(() => _store.change(plan));
 
-  /// Saves the values of the Today tiles. After a successful save, the page shows the last 5 days. It does not save
-  /// that range: the app still opens on the saved range, for example Today. After an error, the Today tiles stay.
+  /// Saves the values of the Today tiles. After a successful save, the page shows the last 5 days. The app still
+  /// opens on the Today tiles. After an error, the Today tiles stay.
   Future<void> _writeAll(List<LogWrite? Function(LogTable log)> plans) async {
     await _run(() => _store.changeAll(plans));
-    if (mounted && _error == null) component.onRange(DayRange.short);
+    if (mounted && _error == null) component.onView(MainView.short);
   }
 
   /// Adds a count tap. The table shows it at once. The write starts when no other write runs.
@@ -189,22 +190,10 @@ class _TodayPageState extends State<TodayPage> {
     // The scores of all metrics, also with a group filter.
     final scores = data == null ? const <Day, num>{} : dayScores(metrics, data.log.entries, pending);
 
-    // The detail screen of one metric, or of the score. If the metric is gone from the sheet, the table shows again.
-    final detail = [scoreMetric, ...metrics].where((m) => m.id == _detailId).firstOrNull;
-    if ((data, detail) case (final data?, final metric?)) {
+    // The detail screen of one metric. If the metric is gone from the sheet, the table shows again.
+    if ((data, metrics.where((m) => m.id == _detailId).firstOrNull) case (final data?, final metric?)) {
       return .fragment([
-        MetricDetail(
-          key: ValueKey(metric.id),
-          metric: metric,
-          log: data.log,
-          today: today,
-          busy: _busy,
-          onWrite: _write,
-          pending: pending,
-          onCount: _count,
-          scores: scores,
-          onBack: _closeDetail,
-        ),
+        _detail(metric, data, today, pending, scores, onBack: _closeDetail),
         ...error,
       ]);
     }
@@ -212,13 +201,14 @@ class _TodayPageState extends State<TodayPage> {
     final groups = {for (final m in metrics) _groupOf(m)}.toList();
     final group = groups.contains(_group) ? _group : null;
     return .fragment([
-      if (groups.length > 1) _groupChips(groups, group),
+      // The score view shows all metrics: no group filter.
+      if (groups.length > 1 && _view != MainView.score) _groupChips(groups, group),
       ...error,
       if (data != null) ...[
         if (metrics.isEmpty)
           p(classes: 'secondary-text', [.text('No metrics. Add rows to the "Metrics" tab of the sheet.')])
         else
-          _days(
+          ..._days(
             data,
             [
               for (final m in metrics)
@@ -235,36 +225,65 @@ class _TodayPageState extends State<TodayPage> {
 
   static String _groupOf(Metric m) => m.group ?? 'other';
 
-  /// The days of [_range] for [metrics]: the Today tiles, the 5-day table or the 31-day calendars. The table and the
-  /// calendars start with the [scores].
-  Component _days(
+  /// The content of [_view] for [metrics]: the Today tiles, the 5-day table or the 31-day calendars after the score
+  /// chart, or the detail screen of the score.
+  ///
+  /// A list, not a fragment: Jaspr fails when it replaces a fragment inside a fragment with another component.
+  List<Component> _days(
     Snapshot data,
     List<Metric> metrics,
     Day today,
     Map<(String, Day), List<CountStep>> pending,
     Map<Day, num> scores,
-  ) => _range == DayRange.today
-      ? TodayTiles(
-          metrics: metrics,
-          log: data.log,
-          today: today,
-          busy: _busy,
-          onWriteAll: _writeAll,
-          pending: pending,
-        )
-      : HabitTable(
-          metrics: [scoreMetric, ...metrics],
-          log: data.log,
-          today: today,
-          days: _range.daysUntil(today),
-          layout: _range == DayRange.month ? DayLayout.calendars : DayLayout.table,
-          busy: _busy,
-          onWrite: _write,
-          pending: pending,
-          onCount: _count,
-          scores: scores,
-          onOpen: (m) => _openDetail(m.id),
-        );
+  ) => switch (_view) {
+    MainView.today => [
+      TodayTiles(
+        metrics: metrics,
+        log: data.log,
+        today: today,
+        busy: _busy,
+        onWriteAll: _writeAll,
+        pending: pending,
+      ),
+    ],
+    MainView.score => [_detail(scoreMetric, data, today, pending, scores)],
+    MainView.short || MainView.month => [
+      ScoreChart(days: _view.daysUntil(today), scores: scores, onOpen: () => component.onView(MainView.score)),
+      HabitTable(
+        metrics: metrics,
+        log: data.log,
+        today: today,
+        days: _view.daysUntil(today),
+        layout: _view == MainView.month ? DayLayout.calendars : DayLayout.table,
+        busy: _busy,
+        onWrite: _write,
+        pending: pending,
+        onCount: _count,
+        onOpen: (m) => _openDetail(m.id),
+      ),
+    ],
+  };
+
+  /// The detail screen of [metric], or of [scoreMetric] for the score view. Without [onBack], it has no back button.
+  Component _detail(
+    Metric metric,
+    Snapshot data,
+    Day today,
+    Map<(String, Day), List<CountStep>> pending,
+    Map<Day, num> scores, {
+    VoidCallback? onBack,
+  }) => MetricDetail(
+    key: ValueKey(metric.id),
+    metric: metric,
+    log: data.log,
+    today: today,
+    busy: _busy,
+    onWrite: _write,
+    pending: pending,
+    onCount: _count,
+    scores: scores,
+    onBack: onBack,
+  );
 
   /// The group filter: All, and one chip for each of [groups]. [selected] is null for All.
   Component _groupChips(List<String> groups, String? selected) => nav(

@@ -94,13 +94,6 @@ List<StyleRule> get styles => [
     raw: {'box-shadow': 'inset 0 0 0 2px color-mix(in srgb, var(--on-surface) 40%, transparent)'},
   ),
   css('.cell.selected').styles(raw: {'outline': '2px solid var(--tertiary)', 'outline-offset': '1px'}),
-  // Score cells: read-only text, not buttons. They center the text as a button does.
-  css('.cell.score').styles(
-    display: .inlineFlex,
-    justifyContent: .center,
-    alignItems: .center,
-    raw: {'vertical-align': 'middle', 'cursor': 'default'},
-  ),
   // Days after today: shown in full months, but faded and not editable.
   css('.cell.future').styles(
     raw: {
@@ -345,6 +338,18 @@ List<StyleRule> get styles => [
     ),
     css('.cell').styles(raw: {'inline-size': '1.6rem', 'block-size': '1.6rem'}),
     css('.editor').styles(margin: .only(top: 0.75.rem)),
+  ]),
+
+  // score_chart.dart and the Score view: the score uses the green of done tiles (--done in web/theme.css), not the
+  // theme red. The charts and the icons use --primary, so they follow it.
+  css('.score-theme').styles(raw: {'--primary': 'var(--done)'}),
+  // score_chart.dart: the score card above the 5-day table and the 31-day calendars.
+  css('article.score-card', [
+    css('&').styles(margin: .only(bottom: 0.75.rem)),
+    // Left, as the titles of the calendars. A link alone in a BeerCSS card is centered.
+    css('a.metric-link').styles(raw: {'justify-content': 'flex-start', 'inline-size': 'fit-content'}),
+    // Room above the chart for the value labels.
+    css('.chart').styles(raw: {'margin-top': '1.5rem !important'}),
   ]),
 
   // habit_table.dart: a metric name that opens the detail screen.

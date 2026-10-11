@@ -6,7 +6,7 @@
 
 - Web app to track habits and body measurements.
 - Detail screen: tap a metric name to see all its data. It has numbers and charts for a period (week, month, year or all), a month calendar to edit any day and a year heatmap.
-- Score: the app calculates a score for each day from the values and the `goal` of each metric, and writes it in the `Score` column of the sheet. The 5-day table and the 31-day calendars show it first. Tap "Score" to see its detail screen. Rules: [docs/data-model.md](docs/data-model.md#score).
+- Score: the app calculates a score for each day from the values and the `goal` of each metric, and writes it in the `Score` column of the sheet. A green line chart of the score is at the top of the "5 days" and "31 days" views. The "Score" view of the bottom navigation bar shows only the score: numbers and charts for a period, as the detail screen. Rules: [docs/data-model.md](docs/data-model.md#score).
 - Charts over time have zoom buttons: 1 month to 5 years. Short spans show weeks, middle spans months, long spans quarters. A small chart below shows all data. Drag or use the mouse wheel to move.
 - Storage: one Google Sheet in your Google Drive. You pick it with the Google Picker. You can edit the data by hand.
 - If the picked sheet has no `Metrics` and `Log` tabs, the app adds them.

@@ -98,8 +98,9 @@ Rules:
 - If you change the sheet by hand while the app is open, the scores change at the next load. Use the reload button.
 - The app does not read the `Score` column. It shows the scores that it calculates, also for count taps that it did not
   write yet. Demo mode has no `Score` column.
-- In the app, the `Score` row is the first row of the 5-day table and of the 31-day calendars. Its cells are
-  read-only. A tap on "Score" opens its detail screen. The Today tiles do not show the score.
+- In the app, a green line chart of the score is at the top of the "5 days" and "31 days" views. A tap on "Score"
+  opens the "Score" view of the bottom navigation bar: the numbers and charts of the score only, in green. The Today
+  tiles do not show the score.
 
 ## Consistency
 

@@ -9,7 +9,8 @@ typedef ChartPoint = ({Day day, num value, double x, double y});
 ///
 /// - x: the position of the day in [days]. The first day is at 0, the last at [width].
 /// - y: the value between the lowest and highest value. The highest is at [padding], the lowest at
-///   [height] − [padding]. If all values are equal, they are in the middle.
+///   [height] − [padding]. If all values are equal, they are in the middle. With [fromZero], the lowest is 0: 0 is
+///   always at [height] − [padding].
 /// - Days without a value get no point, so the line connects the days before and after them.
 List<ChartPoint> chartPoints(
   List<Day> days,
@@ -17,10 +18,11 @@ List<ChartPoint> chartPoints(
   double width = 100,
   double height = 40,
   double padding = 4,
+  bool fromZero = false,
 }) {
   final present = _present(days, values);
   if (present.isEmpty) return const [];
-  final low = present.map((p) => p.value).reduce(math.min);
+  final low = present.map((p) => p.value).fold<num>(fromZero ? 0 : double.infinity, math.min);
   final high = present.map((p) => p.value).reduce(math.max);
   final span = math.max(1, days.length - 1);
   return [
@@ -29,7 +31,9 @@ List<ChartPoint> chartPoints(
         day: p.day,
         value: p.value,
         x: width * p.index / span,
-        y: high == low ? height / 2 : padding + (height - 2 * padding) * (high - p.value) / (high - low),
+        y: high == low
+            ? (fromZero ? height - padding : height / 2)
+            : padding + (height - 2 * padding) * (high - p.value) / (high - low),
       ),
   ];
 }

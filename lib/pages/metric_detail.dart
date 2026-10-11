@@ -28,8 +28,8 @@ import '../services/pointer.dart';
 /// - Day heatmap: the days of the window. A tap on a day shows its month in the calendar.
 /// - Edit days: any month, with the same day cells and inputs as the Today page. It shows the month of the window end
 ///   until the arrows, a swipe or a heatmap tap change it. Wide screens also show the month before.
-/// - Score ([scoreMetric]): the numbers and charts of a count, from [scores]. It has no Edit days section: the app
-///   calculates the scores.
+/// - Score ([scoreMetric]): the numbers and charts of a count, from [scores], in green. It has no Edit days section:
+///   the app calculates the scores.
 ///
 /// Styles: lib/constants/theme.dart (layout) and lib/components/charts.dart (charts).
 final class MetricDetail extends StatefulComponent {
@@ -42,7 +42,7 @@ final class MetricDetail extends StatefulComponent {
     required this.pending,
     required this.onCount,
     required this.scores,
-    required this.onBack,
+    this.onBack,
     super.key,
   });
 
@@ -56,7 +56,9 @@ final class MetricDetail extends StatefulComponent {
 
   /// The score of each day. The values of the detail screen of [scoreMetric].
   final Map<Day, num> scores;
-  final VoidCallback onBack;
+
+  /// Closes the screen. Null: the screen has no back button, for example the Score view of the bottom navigation bar.
+  final VoidCallback? onBack;
 
   @override
   State<MetricDetail> createState() => _MetricDetailState();
@@ -124,9 +126,9 @@ class _MetricDetailState extends State<MetricDetail> {
     final stepIndex = math.min(_stepIndex ?? defaultStepIndex(steps), steps.length - 1);
     final window = ZoomWindow(steps[stepIndex], first: first, today: _today, end: _end);
 
-    return div(classes: 'metric-detail', [
+    return div(classes: isScore(_metric) ? 'metric-detail score-theme' : 'metric-detail', [
       nav(classes: 'detail-head', [
-        iconButton(icon: 'arrow_back', title: 'Back', onClick: component.onBack),
+        if (component.onBack case final back?) iconButton(icon: 'arrow_back', title: 'Back', onClick: back),
         metricIcon(_metric, large: true),
         h5(classes: 'max', [.text(_metric.name)]),
       ]),

@@ -5,7 +5,6 @@ import '../model/day.dart';
 import '../model/format.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
-import '../model/score.dart';
 import '../model/summary.dart';
 import '../services/count_input.dart';
 import 'metric_icon.dart';
@@ -27,7 +26,6 @@ enum DayLayout {
 /// - Count: see [CountInput]. A count has no reset: it goes to empty with subtractions.
 /// - Number: a cell click opens the [NumberEditor] for that metric and day, below the metric: a ruler, a text field
 ///   and a Save button. A second click closes it.
-/// - Score ([scoreMetric]): the cells show the [HabitTable.scores]. A click does nothing.
 final class HabitTable extends StatefulComponent {
   const HabitTable({
     required this.metrics,
@@ -39,7 +37,6 @@ final class HabitTable extends StatefulComponent {
     required this.onWrite,
     required this.pending,
     required this.onCount,
-    this.scores = const {},
     this.onOpen,
     this.showsTitleAndChart = true,
     super.key,
@@ -59,9 +56,6 @@ final class HabitTable extends StatefulComponent {
   /// Count taps that are not written yet, per metric id and day. The table shows them at once.
   final Map<(String, Day), List<CountStep>> pending;
   final void Function(NumberMetric metric, Day day, CountStep step) onCount;
-
-  /// The score of each day, for the cells of [scoreMetric] in [metrics].
-  final Map<Day, num> scores;
 
   /// Opens the detail screen of a metric. Null: the metric names are not links.
   final void Function(Metric metric)? onOpen;
@@ -95,9 +89,8 @@ class _HabitTableState extends State<HabitTable> {
   /// Adds the step of [m] to the day [d] ([sign] +1), or subtracts it ([sign] −1).
   void _addCount(NumberMetric m, Day d, int sign) => component.onCount(m, d, CountStep.add(sign * m.step));
 
-  /// The day values of [m], with the count taps that are not written yet. For [scoreMetric], the scores.
-  Map<Day, num> _values(Metric m) =>
-      isScore(m) ? component.scores : dayValuesWithPending(m, component.log.entries, component.pending);
+  /// The day values of [m], with the count taps that are not written yet.
+  Map<Day, num> _values(Metric m) => dayValuesWithPending(m, component.log.entries, component.pending);
 
   @override
   Component build(BuildContext context) {
@@ -201,7 +194,6 @@ class _HabitTableState extends State<HabitTable> {
       return button(classes: 'cell future', disabled: true, attributes: {'title': '$day'}, []);
     }
     final value = values[day];
-    if (isScore(metric)) return _scoreCell(day, value);
     return button(
       classes: [
         'cell',
@@ -224,13 +216,6 @@ class _HabitTableState extends State<HabitTable> {
       ],
     );
   }
-
-  /// A read-only cell of [scoreMetric]. See .cell.score in theme.dart.
-  Component _scoreCell(Day day, num? score) => span(
-    classes: ['cell', 'score', if (score != null) 'filled', if (day == component.today) 'today'].join(' '),
-    attributes: {'title': '${scoreMetric.name}, $day${_valueText(scoreMetric, score)}'},
-    [if (score != null) .text(formatCompact(score))],
-  );
 
   /// The editor of a `number` metric. An empty day starts at the latest earlier value, else at the first later
   /// value. See [NumberEditor].

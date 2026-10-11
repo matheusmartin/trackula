@@ -3,7 +3,7 @@ import 'package:jaspr/jaspr.dart';
 
 import 'components/header.dart';
 import 'config.dart';
-import 'model/day_range.dart';
+import 'model/main_view.dart';
 import 'pages/setup.dart';
 import 'pages/sign_in.dart';
 import 'pages/today.dart';
@@ -25,7 +25,7 @@ class _AppState extends State<App> {
   bool _expired = false;
 
   /// The view of the Today page. The app always opens on the Today tiles.
-  DayRange _range = DayRange.today;
+  MainView _view = MainView.today;
 
   /// The reload button in the app bar reloads the Today page with this handle.
   final _reload = ReloadHandle();
@@ -36,46 +36,46 @@ class _AppState extends State<App> {
   /// True while the Today page shows a metric detail screen: then the bottom navigation bar is hidden.
   bool _showsDetail = false;
 
-  void _setRange(DayRange r) => setState(() => _range = r);
+  void _setView(MainView v) => setState(() => _view = v);
 
   void _setDetail({required bool open}) => setState(() => _showsDetail = open);
 
   void _reloadToday() => _reload.run?.call();
 
-  /// The Today page with the range of the bottom navigation bar.
+  /// The Today page with the view of the bottom navigation bar.
   TodayPage _todayPage({required Store store, required bool Function() expired, VoidCallback? onExpired, Key? key}) =>
       TodayPage(
         key: key,
         store: store,
         expired: expired,
         onExpired: onExpired ?? () {},
-        range: _range,
-        onRange: _setRange,
+        view: _view,
+        onView: _setView,
         onDetail: _setDetail,
         reload: _reload,
         onBusy: ({required busy}) => setState(() => _busy = busy),
       );
 
-  /// The bottom navigation bar: Today, 5 days, 31 days. A direct child of `<body>`, as the BeerCSS layout expects:
-  /// BeerCSS keeps it at the bottom of the screen.
+  /// The bottom navigation bar: Today, 5 days, 31 days, Score. A direct child of `<body>`, as the BeerCSS layout
+  /// expects: BeerCSS keeps it at the bottom of the screen.
   Component _bottomNav() => nav(
     classes: 'bottom',
     attributes: {'aria-label': 'Views'},
     [
-      for (final r in DayRange.values)
+      for (final v in MainView.values)
         a(
           href: '#',
-          classes: r == _range ? 'active' : null,
-          attributes: {if (r == _range) 'aria-current': 'page'},
+          classes: v == _view ? 'active' : null,
+          attributes: {if (v == _view) 'aria-current': 'page'},
           events: {
             'click': (e) {
               e.preventDefault();
-              _setRange(r);
+              _setView(v);
             },
           },
           [
-            i([.text(r.icon)]),
-            span([.text(r.label)]),
+            i([.text(v.icon)]),
+            span([.text(v.label)]),
           ],
         ),
     ],
