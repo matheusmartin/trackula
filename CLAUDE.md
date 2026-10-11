@@ -41,7 +41,7 @@ Rules:
 
 ## Code
 
-- Format with `dart format` (line width 120, from `analysis_options.yaml`).
+- Format with `dart format`. It reads the settings (line width 120) from `analysis_options.yaml`. Do not pass `--line-length`.
 - `dart analyze` must show no issues.
 - `dart test` must pass. Add or change tests when you change `lib/model/` or `lib/sheets/demo_store.dart`.
 - Colors: use the Material theme variables (`var(--primary)`…). Put new colors in `web/theme.css`, not in Dart code.

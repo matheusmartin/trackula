@@ -11,7 +11,7 @@ esac
 rel=${file#"$CLAUDE_PROJECT_DIR"/}
 
 if command -v dart >/dev/null 2>&1; then
-  dart format --line-length 120 "$file" >/dev/null 2>&1
+  dart format "$file" >/dev/null 2>&1
 fi
 
 errors=()
