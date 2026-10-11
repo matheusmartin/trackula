@@ -13,7 +13,7 @@ export 'store.dart';
 const _exampleMetrics = [
   ['weight', 'Weight', 'number', 'kg', 0.1, 'body', 'monitor_weight', '<= 80'],
   ['meditate', 'Meditate', 'yesno', '', '', 'habits', 'self_improvement', 'yes'],
-  ['water', 'Water', 'number', 'glasses', 1, 'habits', 'water_drop', 8],
+  ['water', 'Water', 'count', 'glasses', 1, 'habits', 'water_drop', 8],
 ];
 
 /// A tab of the spreadsheet: its ID in the Sheets API, and its number of columns.
@@ -144,30 +144,46 @@ final class SheetsStore extends Store {
 
   /// Reads both tabs and validates each row.
   ///
-  /// Before it parses the `Log` tab, it brings the tab up to date (see [_migrate]) and writes the scores that changed
-  /// (see [staleScoreCells]). So each load after a change in the app or in the sheet, for example a new goal, also
-  /// updates the scores. [Store.change] loads after each write.
+  /// Before it parses the `Log` tab, it brings the tab up to date (see [_migrate]). With [writesScores], it also
+  /// writes the scores that changed (see [staleScoreCells]). So each load after a change in the app or in the sheet,
+  /// for example a new goal, also updates the scores. [Store.changeAll] writes them after its last write.
   @override
-  Future<Snapshot> load() => _load(mayWriteScores: true);
+  Future<Snapshot> load({bool writesScores = true}) => _load(writesScores: writesScores);
 
   /// [load]. It writes the scores at most once, so a score that does not stay in the sheet cannot cause a loop.
-  Future<Snapshot> _load({required bool mayWriteScores}) async {
+  Future<Snapshot> _load({required bool writesScores}) async {
     final (metricRows, logRows) = await _read();
     final metrics = parseMetrics(metricRows);
     final byId = {for (final m in metrics.items) m.id: m};
-    if (await _migrate(logRows, byId)) return _load(mayWriteScores: mayWriteScores);
-    if (mayWriteScores && await _writeScores(logRows, metrics.items)) return _load(mayWriteScores: false);
+    if (await _migrate(logRows, byId)) return _load(writesScores: writesScores);
+    final scoreWarnings = <String>[];
+    if (writesScores && await _writeScores(logRows, metrics.items, scoreWarnings)) return _load(writesScores: false);
     final log = parseLog(logRows, byId);
-    return Snapshot(metrics.items, log.table, [...metrics.warnings, ...log.warnings]);
+    return Snapshot(metrics.items, log.table, [...metrics.warnings, ...log.warnings, ...scoreWarnings]);
   }
 
   /// Writes the score cells of [logRows] that do not show the score of their row. Returns true after a write: then
   /// read the data again. [_migrate] adds the score column before.
-  Future<bool> _writeScores(List<List<Object?>> logRows, List<Metric> metrics) async {
+  ///
+  /// The score comes from the other values, so a failed write does not stop the load. Examples: a view-only sheet, or
+  /// the request limit of the Sheets API. Then it adds a warning to [warnings] and returns false. The next load tries
+  /// again.
+  Future<bool> _writeScores(List<List<Object?>> logRows, List<Metric> metrics, List<String> warnings) async {
     final column = scoreColumn(logRows.firstOrNull ?? const <Object?>[]);
     if (column == null) return false;
     final cells = staleScoreCells(logRows, metrics, column);
     if (cells.isEmpty) return false;
+    try {
+      await _writeScoreCells(cells, column);
+      return true;
+    } on ApiRequestError catch (e) {
+      warnings.add('The app could not write ${cells.length} scores in the "$scoreHeader" column: ${e.message}');
+      return false;
+    }
+  }
+
+  /// Writes the new score of each of [cells] in the score [column].
+  Future<void> _writeScoreCells(List<ScoreCell> cells, int column) async {
     await _api.spreadsheets.values.batchUpdate(
       BatchUpdateValuesRequest(
         valueInputOption: 'RAW',
@@ -184,7 +200,6 @@ final class SheetsStore extends Store {
       ),
       spreadsheetId,
     );
-    return true;
   }
 
   /// Makes one change to bring the `Log` tab up to date, if it needs one. Returns true after a change: then read the

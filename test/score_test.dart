@@ -31,9 +31,10 @@ void main() {
       expect(metricPoints(smoke, 1), 0);
     });
 
-    test('count: 1 for each step, also above the goal', () {
+    test('count: 1 for each step, also above the goal. A value below 0 gives 0', () {
       expect(metricPoints(water, 3), 3);
       expect(metricPoints(walk, 30), 3);
+      expect(metricPoints(water, -3), 0);
     });
 
     test('number: 1 if the value reaches the goal, 0 without goal', () {
@@ -57,11 +58,11 @@ void main() {
     ).table;
 
     test('adds the points of all metrics of each day', () {
-      expect(dayScores(metrics, log.entries), {d29: 6, d30: 0});
+      expect(dayScores(metrics, log), {d29: 6, d30: 0});
     });
 
     test('a day without a value has no score', () {
-      expect(dayScores(metrics, log.entries).containsKey(const Day(2026, 9, 28)), isFalse);
+      expect(dayScores(metrics, log).containsKey(const Day(2026, 9, 28)), isFalse);
     });
 
     test('includes count taps that are not written yet', () {
@@ -69,12 +70,24 @@ void main() {
         ('water', d30): [const CountStep.add(1), const CountStep.add(1)],
         ('water', d29): [const CountStep.add(-1)],
       };
-      expect(dayScores(metrics, log.entries, pending), {d29: 5, d30: 2});
+      expect(dayScores(metrics, log, pending), {d29: 5, d30: 2});
     });
 
     test('a goal change changes the score', () {
       const meditateNo = YesNoMetric(id: 'meditate', name: 'Meditate', icon: 'self_improvement', goalIsYes: false);
-      expect(dayScores([meditateNo], log.entries), {d29: 0, d30: 1});
+      expect(dayScores([meditateNo], log), {d29: 0, d30: 1});
+    });
+
+    test('a day with more than one row: only the last row counts, as for its Score cell', () {
+      final duplicate = parseLog(
+        [
+          ['date', 'weight', 'meditate'],
+          ['2026-09-29', 79, 'yes'],
+          ['2026-09-29', '', 'yes'],
+        ],
+        {for (final m in metrics) m.id: m},
+      ).table;
+      expect(dayScores(metrics, duplicate), {d29: 1});
     });
 
     test('removes float noise of decimal steps', () {
@@ -86,7 +99,7 @@ void main() {
         ],
         {'water': sips},
       ).table;
-      expect(dayScores([sips], sipLog.entries), {d29: 3});
+      expect(dayScores([sips], sipLog), {d29: 3});
     });
   });
 
@@ -136,17 +149,18 @@ void main() {
       expect(staleScoreCells(rows, [water, meditateNo], 3), [(row: 2, score: 3)]);
     });
 
-    test('reads a score stored as text', () {
+    test('replaces a score stored as text with the number', () {
       expect(
         staleScoreCells(
           [
             ['date', 'water', 'Score'],
             ['2026-09-29', 3, '3'],
+            ['2026-09-30', '', ' '],
           ],
           metrics,
           2,
         ),
-        isEmpty,
+        [(row: 2, score: 3)],
       );
     });
   });

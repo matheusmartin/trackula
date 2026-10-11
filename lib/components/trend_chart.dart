@@ -48,7 +48,8 @@ final class TrendChart extends StatelessComponent {
     final low = showsBars || fromZero ? 0 : points.map((pt) => pt.value).reduce(math.min);
 
     return div(classes: 'chart', styles: _chart, [
-      div(styles: _yAxis, [
+      // All values 0 on a scale from 0: the only label is at the bottom, with the line or the bars.
+      div(styles: high == 0 && (showsBars || fromZero) ? _yAxis.combine(_bottom) : _yAxis, [
         small(styles: _text, [.text(_format(high))]),
         if (high != low) small(styles: _text, [.text(_format(low))]),
       ]),
@@ -88,6 +89,7 @@ final class TrendChart extends StatelessComponent {
       'text-align': 'right',
     },
   );
+  static const _bottom = Styles(raw: {'justify-content': 'flex-end'});
   static const _xAxis = Styles(raw: {'grid-column': '2', 'display': 'flex', 'justify-content': 'space-between'});
   // The value labels are HTML on top of the SVG, so that the stretched SVG does not stretch the text.
   static const _plot = Styles(raw: {'grid-row': '1', 'grid-column': '2', 'position': 'relative'});

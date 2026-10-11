@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'day.dart';
 import 'log_entry.dart';
 import 'metric.dart';
@@ -17,26 +19,28 @@ bool isScore(Metric metric) => metric.id == scoreHeader;
 ///
 /// - Yes/no: 1 if [value] is the goal: `yes` (1), or `no` (0) for the goal `no`.
 /// - Count: 1 for each step, also above the goal. Example: 3 glasses with step 1 give 3 points. 30 minutes with
-///   step 10 give 3 points.
+///   step 10 give 3 points. A value below 0, typed in the sheet, gives 0 points.
 /// - Number: 1 if [value] reaches the goal. 0 if the metric has no goal.
 num metricPoints(Metric metric, num value) => switch (metric) {
   YesNoMetric(:final goalIsYes) => (value == 1) == goalIsYes ? 1 : 0,
-  NumberMetric(isCount: true, :final step) => value / step,
+  NumberMetric(isCount: true, :final step) => math.max(0, value) / step,
   NumberMetric(:final goal) => goal != null && goal.isReachedBy(value) ? 1 : 0,
 };
 
-/// The score of each day of [entries]: the sum of the points of the [metrics] on that day. It includes the count taps
-/// in [pending] that are not written yet. Keys of [pending] are metric id and day. A day without a value has no score.
+/// The score of each day of [log]: the sum of the points of the [metrics] on that day. It includes the count taps in
+/// [pending] that are not written yet. Keys of [pending] are metric id and day. A day without a value has no score.
+///
+/// If a day has more than one row, only the last row counts, as in [LogTable.rows]. So the score is the same as the
+/// `Score` cell of that row.
 Map<Day, num> dayScores(
   List<Metric> metrics,
-  List<LogEntry> entries, [
+  LogTable log, [
   Map<(String, Day), List<CountStep>> pending = const {},
 ]) {
   final byId = {for (final m in metrics) m.id: m};
-  // If a day has more than one row, the value of the last row: entries are in row order.
   final values = <(String, Day), num>{
-    for (final e in entries)
-      if (byId.containsKey(e.metricId)) (e.metricId, e.date): e.value,
+    for (final e in log.entries)
+      if (byId.containsKey(e.metricId) && log.rows[e.date] == e.row) (e.metricId, e.date): e.value,
   };
   for (final MapEntry(:key, value: steps) in pending.entries) {
     if (byId[key.$1] is! NumberMetric) continue;
@@ -94,10 +98,9 @@ num _total(Iterable<num> points) {
   return total == total.round() ? total.round() : total;
 }
 
-/// True if the score [cell] shows [score]. An empty cell shows no score. Text that is not a number shows no score
-/// and is not empty, so the app replaces it.
+/// True if the score [cell] shows [score]. An empty cell shows no score. Other text never shows a score, also a
+/// number as text, so the app replaces it with a number. The `Score` rule accepts only numbers.
 bool _shows(Object? cell, num? score) => switch (cell) {
-  String s when s.trim().isEmpty => score == null,
-  String s => score != null && num.tryParse(s.trim()) == score,
+  String s => s.trim().isEmpty && score == null,
   _ => cell == score,
 };

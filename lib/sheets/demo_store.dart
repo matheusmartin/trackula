@@ -58,8 +58,9 @@ final class DemoStore extends Store {
   @override
   Future<void> refreshRules() => Future.delayed(delay);
 
+  /// Reads the sample data. Demo mode has no `Score` column, so [writesScores] does nothing.
   @override
-  Future<Snapshot> load() async {
+  Future<Snapshot> load({bool writesScores = true}) async {
     await Future<void>.delayed(delay);
     final metrics = parseMetrics([metricsHeader, ..._metrics]);
     final log = parseLog(_log, {for (final m in metrics.items) m.id: m});

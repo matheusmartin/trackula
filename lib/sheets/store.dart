@@ -18,7 +18,10 @@ abstract base class Store {
   Future<void> refreshRules();
 
   /// Reads the metrics and the log, and validates each row.
-  Future<Snapshot> load();
+  ///
+  /// [writesScores]: true if the load also writes the scores that changed in the `Score` column. Only `SheetsStore`
+  /// writes them. See docs/data-model.md.
+  Future<Snapshot> load({bool writesScores = true});
 
   /// Writes [write]. Callers use [change] or [changeAll], which plan the write on the latest data.
   Future<void> apply(LogWrite write);
@@ -30,14 +33,21 @@ abstract base class Store {
 
   /// Runs [plans] one after the other, each on the latest data. So a plan sees the row that an earlier plan added
   /// for the same day.
+  ///
+  /// It writes the scores once, after the last write: not after each plan. Example: the Save button of 9 Today tiles
+  /// writes the score of today once, not 9 times.
   Future<Snapshot> changeAll(List<LogWrite? Function(LogTable log)> plans) async {
-    var data = await load();
-    for (final plan in plans) {
+    var data = await load(writesScores: false);
+    // True if a write came after the last load that wrote the scores.
+    var scoresStale = false;
+    for (final (i, plan) in plans.indexed) {
       if (plan(data.log) case final write?) {
         await apply(write);
-        data = await load();
+        final isLast = i == plans.length - 1;
+        data = await load(writesScores: isLast);
+        scoresStale = !isLast;
       }
     }
-    return data;
+    return scoresStale ? load() : data;
   }
 }

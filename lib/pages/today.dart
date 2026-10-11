@@ -188,7 +188,7 @@ class _TodayPageState extends State<TodayPage> {
       if (_error case final e?) p(classes: 'error-text', [.text(e)]),
     ];
     // The scores of all metrics, also with a group filter.
-    final scores = data == null ? const <Day, num>{} : dayScores(metrics, data.log.entries, pending);
+    final scores = data == null ? const <Day, num>{} : dayScores(metrics, data.log, pending);
 
     // The detail screen of one metric. If the metric is gone from the sheet, the table shows again.
     if ((data, metrics.where((m) => m.id == _detailId).firstOrNull) case (final data?, final metric?)) {

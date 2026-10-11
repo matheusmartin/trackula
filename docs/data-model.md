@@ -81,7 +81,7 @@ the values and the goals.
 | Kind     | Points | Example |
 |----------|--------|---------|
 | `yesno`  | 1 if the value is the goal. 0 for the other value or for no value. | Goal `yes`: `yes` gives 1. Goal `no`: `no` gives 1. |
-| `count`  | 1 for each `step`, also above the goal. The goal does not change the points. | `water` 5 with step 1 gives 5. `walk` 30 min with step 10 gives 3. |
+| `count`  | 1 for each `step`, also above the goal. The goal does not change the points. A value below 0 gives 0. | `water` 5 with step 1 gives 5. `walk` 30 min with step 10 gives 3. |
 | `number` | 1 if the value reaches the goal. 0 without goal. | Goal `<= 80`: 79.5 gives 1, 82.1 gives 0. Goal `20`: 25 gives 1. |
 
 Example, with the metrics above, for 2026-09-30: weight 82.1 is above 80 (0), meditate `yes` (1), water 5 (5),
@@ -90,12 +90,18 @@ reading 25 ≥ 20 (1). The score is 7.
 Rules:
 
 - The app writes the score in the `Score` column of each `Log` row. A row without a metric value has an empty score.
+  A score as text, for example `'3`, changes to the number.
+- If a day has 2 or more rows, each row has the score of its own values. The app shows the score of the last row, as
+  it does for the values.
 - The app calculates all scores again each time it loads the sheet: when it opens the sheet, after the reload button,
-  and after each value that you log in the app. It writes only the cells that changed. So the scores follow:
+  and after the values that you log in the app (one time for each save or tap). It writes only the cells that
+  changed. So the scores follow:
   - a new or changed value, also of a past day, in the app or by hand in the sheet,
   - a new goal, a new `step` or a new `kind` in the `Metrics` tab,
   - a deleted metric: its values do not give points.
 - If you change the sheet by hand while the app is open, the scores change at the next load. Use the reload button.
+- If the app cannot write the scores, for example in a view-only sheet or at the request limit of the Sheets API, it
+  shows a warning and continues. The next load tries again.
 - The app does not read the `Score` column. It shows the scores that it calculates, also for count taps that it did not
   write yet. Demo mode has no `Score` column.
 - In the app, a green line chart of the score is at the top of the "5 days" and "31 days" views. A tap on "Score"
