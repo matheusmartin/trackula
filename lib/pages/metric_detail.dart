@@ -154,6 +154,7 @@ class _MetricDetailState extends State<MetricDetail> {
       NumberMetric(isCount: true) => Aggregate.sum,
       _ => Aggregate.average,
     };
+    final box = window.boxOn(BarUnit.week);
     return div(classes: 'window-bar', [
       div(classes: 'window-row', [
         _zoomButtons(window, steps, stepIndex),
@@ -169,8 +170,8 @@ class _MetricDetailState extends State<MetricDetail> {
           today: window.today,
         ),
         fromZero: aggregate != Aggregate.average,
-        from: window.from,
-        to: window.to,
+        from: box.from,
+        to: box.to,
         onPoint: (d) => _moveTo(window.endCenteredOn(d)),
       ),
     ]);

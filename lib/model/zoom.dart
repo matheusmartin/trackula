@@ -136,6 +136,15 @@ final class ZoomWindow {
   /// True if the window shows the oldest bar.
   bool get atStart => _from == 0;
 
+  /// The days in view, as a box on a chart of all data with one column for each [unit] bar. At the oldest bar, the box
+  /// starts with the first column, not on [first]. At the newest bar, it ends with the last column, not on [today].
+  /// The days before [first] and after [today] have no data, so the box can include them. Example: at All, the box
+  /// covers all columns.
+  ({Day from, Day to}) boxOn(BarUnit unit) => (
+    from: atStart ? barStart(first, unit) : from,
+    to: atEnd ? nextBarStart(barStart(today, unit), unit).addDays(-1) : to,
+  );
+
   /// The `end` day of the window that is [bars] bars later (or earlier, if negative). Null: the newest bar.
   Day? endMovedBy(int bars) {
     final last = (_to + bars).clamp(_to - _from, allStarts.length);

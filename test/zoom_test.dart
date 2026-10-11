@@ -95,5 +95,25 @@ void main() {
       expect(w.starts, [const Day(2026, 8, 1), const Day(2026, 9, 1)]);
       expect((w.from, w.atStart, w.atEnd), (first, true, true));
     });
+
+    test('boxOn covers the first and last columns fully only at the ends of the data', () {
+      // Data from a Friday to a Wednesday: 13 week columns, from 2026-07-06 to 2026-10-04.
+      const friday = Day(2026, 7, 10), wednesday = Day(2026, 9, 30);
+      const firstColumn = Day(2026, 7, 6), lastColumnEnd = Day(2026, 10, 4);
+      ZoomWindow window(ZoomStep step, {Day? end}) => ZoomWindow(step, first: friday, today: wednesday, end: end);
+
+      final all = window(zoomSteps(friday, wednesday).last);
+      expect((all.from, all.to), (friday, wednesday));
+      expect(all.boxOn(BarUnit.week), (from: firstColumn, to: lastColumnEnd));
+      // Month bars start on 2026-07-01, but the box starts with the first week column.
+      expect(window(ZoomStep.year1).boxOn(BarUnit.week), (from: firstColumn, to: lastColumnEnd));
+
+      final newest = window(ZoomStep.month1);
+      expect(newest.boxOn(BarUnit.week), (from: const Day(2026, 8, 31), to: lastColumnEnd));
+      final oldest = window(ZoomStep.month1, end: newest.endMovedBy(-100));
+      expect(oldest.boxOn(BarUnit.week), (from: firstColumn, to: const Day(2026, 8, 9)));
+      final middle = window(ZoomStep.month1, end: newest.endMovedBy(-3));
+      expect(middle.boxOn(BarUnit.week), (from: const Day(2026, 8, 10), to: const Day(2026, 9, 13)));
+    });
   });
 }
