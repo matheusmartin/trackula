@@ -20,16 +20,18 @@ adds the rules for the code.
   - Write all docs, comments and commit messages in ASD-STE100 Simplified Technical English, as in `README.md`.
   - The doc comment of a boolean starts with "True if", "True while" or a similar phrase, not with "Whether".
     Example: "True if the window shows the newest bar."
+  - A doc comment can have more than one short sentence before its first blank `///` line, as STE text does.
 - `dart analyze` must show no issues, and `dart test` must pass.
 
 ## Imports between folders
 
-- `lib/model/` can import only `dart:*` and other `lib/model/` files. It is pure Dart: you can test it with
-  `dart test`. Put logic here when you can.
+- `lib/model/` can import only `dart:*`, `package:meta` and other `lib/model/` files. It is pure Dart: you can test
+  it with `dart test`. Put logic here when you can.
 - `lib/sheets/` can import `lib/model/` and the Google Sheets packages.
 - `lib/services/` can import `lib/model/`, `lib/sheets/` and `lib/config.dart`.
 - `lib/components/` can import `lib/model/` and `lib/services/`.
 - `lib/pages/` can import all the folders above, and other pages.
+- `lib/constants/` can import only `package:jaspr`. It must not import browser-only code: see `@css` in `README.md`.
 - If you add a folder in `lib/`, add it to this list and to "Project structure" in `README.md`.
 
 ## Tests
