@@ -52,3 +52,9 @@ final class Day implements Comparable<Day> {
   @override
   int get hashCode => Object.hash(year, month, day);
 }
+
+/// All days from [first] to [last], oldest first. Empty if [last] is before [first].
+List<Day> daysBetween(Day first, Day last) => [for (var d = first; d.compareTo(last) <= 0; d = d.addDays(1)) d];
+
+/// The earliest day of [days]. Null if [days] is empty.
+Day? earliestDay(Iterable<Day> days) => days.isEmpty ? null : days.reduce((a, b) => a.compareTo(b) <= 0 ? a : b);

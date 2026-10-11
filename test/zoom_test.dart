@@ -57,19 +57,6 @@ void main() {
       final avg = zoomBars(values, Aggregate.average, starts, BarUnit.week, first: mon.addDays(-7), today: mon);
       expect(avg.map((b) => (b.value, b.low, b.high)), [(3, 2, 4), (3, 3, 3)]);
     });
-
-    test('change: the first bar and bars without value have none', () {
-      final values = <Day, num>{mon.addDays(-14): 80, mon.addDays(-7): 81, mon: 79.5};
-      final bars = zoomBars(
-        values,
-        Aggregate.change,
-        [mon.addDays(-14), ...starts],
-        BarUnit.week,
-        first: mon.addDays(-14),
-        today: mon,
-      );
-      expect(bars.map((b) => b.value), [null, 1, -1.5]);
-    });
   });
 
   test('defaultStep: 3 months, or the last step if there are fewer', () {

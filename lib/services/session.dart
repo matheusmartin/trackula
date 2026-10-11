@@ -33,8 +33,6 @@ final class Session {
 }
 
 /// The spreadsheet ID in this browser's local storage. Not secret: access needs a signed-in user.
-abstract final class SavedSheet {
-  static String? get id => LocalPrefs.get('spreadsheetId');
+String? get savedSheetId => readPref('spreadsheetId');
 
-  static set id(String? value) => LocalPrefs.set('spreadsheetId', value);
-}
+set savedSheetId(String? id) => writePref('spreadsheetId', id);

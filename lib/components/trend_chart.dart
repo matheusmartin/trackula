@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
 import '../model/chart.dart';
 import '../model/day.dart';
+import '../model/format.dart';
 
 /// A small chart of one number metric over [days], with the first and last day below it.
 /// The SVG stretches to the card width.
@@ -17,15 +20,15 @@ class TrendChart extends StatelessComponent {
   final String? unit;
   final bool bars;
 
-  static const _w = 100.0;
-  static const _h = 40.0;
+  /// The size of the chart, in chart units.
+  static const _width = 100.0, _height = 40.0;
 
   @override
   Component build(BuildContext context) {
-    final points = chartPoints(days, values, width: _w, height: _h);
+    final points = chartPoints(days, values, width: _width, height: _height);
     if (points.isEmpty) return .fragment([]);
-    final high = points.map((pt) => pt.value).reduce((x, y) => x > y ? x : y);
-    final low = bars ? 0 : points.map((pt) => pt.value).reduce((x, y) => x < y ? x : y);
+    final high = points.map((pt) => pt.value).reduce(math.max);
+    final low = bars ? 0 : points.map((pt) => pt.value).reduce(math.min);
 
     return div(classes: 'chart', styles: _chart, [
       div(styles: _yAxis, [
@@ -33,14 +36,14 @@ class TrendChart extends StatelessComponent {
         if (high != low) small(styles: _text, [.text(_format(low))]),
       ]),
       svg(
-        viewBox: '0 0 ${_n(_w)} ${_n(_h)}',
+        viewBox: '0 0 ${_coordinate(_width)} ${_coordinate(_height)}',
         styles: _svg,
         attributes: {'preserveAspectRatio': 'none', 'role': 'img', 'aria-label': _label(low, high)},
         bars ? _bars() : _line(points),
       ),
       div(styles: _xAxis, [
-        small(styles: _text, [.text(_short(days.first))]),
-        small(styles: _text, [.text(_short(days.last))]),
+        small(styles: _text, [.text(shortDay(days.first))]),
+        small(styles: _text, [.text(shortDay(days.last))]),
       ]),
     ]);
   }
@@ -93,17 +96,20 @@ class TrendChart extends StatelessComponent {
 
   List<Component> _line(List<ChartPoint> points) => [
     path(
-      d: [for (final (i, pt) in points.indexed) '${i == 0 ? 'M' : 'L'}${_n(pt.x)} ${_n(pt.y)}'].join(' '),
+      d: [
+        for (final (i, pt) in points.indexed) '${i == 0 ? 'M' : 'L'}${_coordinate(pt.x)} ${_coordinate(pt.y)}',
+      ].join(' '),
       styles: _lineStyle,
       [],
     ),
-    for (final pt in points) path(d: 'M${_n(pt.x)} ${_n(pt.y)} h0', styles: _dotStyle, [_title(pt.day, pt.value)]),
+    for (final pt in points)
+      path(d: 'M${_coordinate(pt.x)} ${_coordinate(pt.y)} h0', styles: _dotStyle, [_title(pt.day, pt.value)]),
   ];
 
   List<Component> _bars() => [
-    for (final b in chartBars(days, values, width: _w, height: _h))
+    for (final b in chartBars(days, values, width: _width, height: _height))
       path(
-        d: 'M${_n(b.x)} ${_n(_h)} V${_n(b.y)} h${_n(b.w)} V${_n(_h)} Z',
+        d: 'M${_coordinate(b.x)} ${_coordinate(_height)} V${_coordinate(b.y)} h${_coordinate(b.w)} V${_coordinate(_height)} Z',
         styles: _barStyle,
         [_title(b.day, b.value)],
       ),
@@ -114,15 +120,10 @@ class TrendChart extends StatelessComponent {
       Component.element(tag: 'title', children: [.text('$day: ${_format(value)} ${unit ?? ''}'.trim())]);
 
   String _label(num low, num high) =>
-      'Values from ${_format(low)} to ${_format(high)} ${unit ?? ''}, ${_short(days.first)} to ${_short(days.last)}';
+      'Values from ${_format(low)} to ${_format(high)} ${unit ?? ''}, ${shortDay(days.first)} to ${shortDay(days.last)}';
 
-  static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  /// A coordinate in the SVG path.
+  static String _coordinate(double value) => value.toStringAsFixed(2);
 
-  static String _short(Day d) => '${_months[d.month - 1]} ${d.day}';
-
-  static String _n(double v) => v.toStringAsFixed(2);
-
-  /// Removes float noise, for example 82.10000000000001.
-  static String _format(num v) =>
-      v == v.roundToDouble() ? v.toInt().toString() : double.parse(v.toStringAsFixed(3)).toString();
+  static String _format(num value) => formatNumber(value, 3);
 }

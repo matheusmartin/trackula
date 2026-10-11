@@ -9,7 +9,7 @@ import 'store.dart';
 /// starts again from the sample data. Open the app with `?demo`. See README.md.
 ///
 /// It keeps the tabs as rows of cells, as the Sheets API returns them, and uses the same parsers and write plans as
-/// [SheetsStore]. Today has no values, so that all inputs can be tried. Each call waits [delay], as a network call.
+/// `SheetsStore`. Today has no values, so that all inputs can be tried. Each call waits [delay], as a network call.
 final class DemoStore implements Store {
   DemoStore({Day? today, this.delay = const Duration(milliseconds: 400)}) : _log = _sampleLog(today ?? Day.today());
 

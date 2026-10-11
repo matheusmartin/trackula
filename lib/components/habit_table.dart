@@ -1,40 +1,15 @@
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
-import 'package:web/web.dart' as web;
 
 import '../model/day.dart';
+import '../model/format.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/summary.dart';
-import '../services/double_tap.dart';
+import '../services/count_input.dart';
 import 'metric_icon.dart';
 import 'number_editor.dart';
 import 'trend_chart.dart';
-
-/// How many past days the app shows: today as input tiles (see TodayTiles), a table of the last 5 days on all
-/// screens, or one small calendar per metric for the last 31 days.
-enum DayRange {
-  today(1),
-  short(5),
-  month(31);
-
-  const DayRange(this.days);
-
-  final int days;
-
-  /// The label in the bottom navigation bar.
-  String get label => days == 1 ? 'Today' : '$days days';
-
-  /// The Material Symbols icon in the bottom navigation bar.
-  String get icon => switch (this) {
-    DayRange.today => 'today',
-    DayRange.short => 'view_week',
-    DayRange.month => 'calendar_month',
-  };
-
-  /// The days of the range, oldest first, ending on [today].
-  List<Day> daysUntil(Day today) => [for (var i = days - 1; i >= 0; i--) today.addDays(-i)];
-}
 
 /// How [HabitTable] shows its days.
 enum DayLayout {
@@ -45,15 +20,10 @@ enum DayLayout {
   calendars,
 }
 
-const _weekdays = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
-const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 /// HabitKit-style input table: one row per metric, one column per day, today on the right.
 ///
 /// - Yes/no: a cell click writes `yes`, or `no` if the day is `yes`. A `no` day shows like an empty day.
-/// - Count: a mouse click adds the step, a right-click subtracts it. A touch tap adds the step after a short wait,
-///   and a double-tap subtracts it instead. Keys on a focused cell: `+` and `-`. A count has no reset: it goes to
-///   empty with subtractions.
+/// - Count: see [CountInput]. A count has no reset: it goes to empty with subtractions.
 /// - Number: a cell click opens the [NumberEditor] for that metric and day, below the metric: a ruler, a text field
 ///   and a Save button. A second click closes it.
 class HabitTable extends StatefulComponent {
@@ -101,69 +71,23 @@ class _HabitTableState extends State<HabitTable> {
   /// The metric and day open in the editor.
   (String, Day)? _editing;
 
-  /// Touch taps on count cells: a tap waits 300 ms for a second tap on the same cell. Keys are metric id and day.
-  final _taps = DoubleTap<(String, Day)>();
-
-  /// The pointer type of the last press on a count cell: 'mouse', 'touch' or 'pen'. Null after the click, so a
-  /// keyboard click (Enter or Space) works like a mouse click.
-  String? _pressType;
-
-  bool get _touchPress => _pressType == 'touch' || _pressType == 'pen';
+  /// The inputs on count cells. Keys are metric id and day.
+  final _countInput = CountInput<(String, Day)>();
 
   @override
   void dispose() {
-    _taps.dispose();
+    _countInput.dispose();
     super.dispose();
   }
 
   void _click(Metric m, Day d, Map<Day, num> values) => switch (m) {
-    YesNoMetric() => component.onWrite((log) => planYesNo(m, d, values[d] == null, log)),
-    NumberMetric(isCount: true) => _countClick(m, d),
+    YesNoMetric() => component.onWrite((log) => planYesNo(m, d, log, done: values[d] == null)),
+    NumberMetric(isCount: true) => _countInput.click((m.id, d), (sign) => _addCount(m, d, sign)),
     NumberMetric() => setState(() => _editing = _editing == (m.id, d) ? null : (m.id, d)),
   };
 
-  /// Mouse and keyboard: a click adds the step at once, so two quick clicks add two steps.
-  /// Touch: a tap adds the step after the double-tap wait, and a double-tap subtracts it. See [DoubleTap].
-  void _countClick(NumberMetric m, Day d) {
-    final touch = _touchPress;
-    _pressType = null;
-    if (touch) {
-      _taps.tap(
-        (m.id, d),
-        onSingle: () => component.onCount(m, d, CountStep.add(m.step)),
-        onDouble: () => component.onCount(m, d, CountStep.add(-m.step)),
-      );
-    } else {
-      _addCount(m, d, m.step);
-    }
-  }
-
-  /// Right-click: subtracts the step. A touch long-press also opens the context menu on Android: it does nothing.
-  /// The browser menu never opens on a count cell.
-  void _countMenu(NumberMetric m, Day d, web.Event e) {
-    e.preventDefault();
-    final touch = _touchPress;
-    _pressType = null;
-    if (!touch) _addCount(m, d, -m.step);
-  }
-
-  /// Keys on a focused count cell: `+` adds the step, `-` subtracts it.
-  void _countKey(NumberMetric m, Day d, web.KeyboardEvent e) {
-    final sign = switch (e.key) {
-      '+' || '=' => 1,
-      '-' => -1,
-      _ => 0,
-    };
-    if (sign == 0) return;
-    e.preventDefault();
-    _addCount(m, d, sign * m.step);
-  }
-
-  /// Adds [delta] at once. A waiting touch tap runs first, so the steps keep their order.
-  void _addCount(NumberMetric m, Day d, num delta) {
-    _taps.flush();
-    component.onCount(m, d, CountStep.add(delta));
-  }
+  /// Adds the step of [m] to the day [d] ([sign] +1), or subtracts it ([sign] −1).
+  void _addCount(NumberMetric m, Day d, int sign) => component.onCount(m, d, CountStep.add(sign * m.step));
 
   /// The day values of [m], with the count taps that are not written yet.
   Map<Day, num> _values(Metric m) => dayValuesWithPending(m, component.log.entries, component.pending);
@@ -183,7 +107,7 @@ class _HabitTableState extends State<HabitTable> {
             th(classes: 'corner', []),
             for (final d in days)
               th(classes: d == component.today ? 'today' : null, [
-                small([.text(_weekdays[d.weekday - 1])]),
+                small([.text(weekdayNames[d.weekday - 1])]),
                 span([.text('${d.day}')]),
               ]),
           ]),
@@ -208,7 +132,7 @@ class _HabitTableState extends State<HabitTable> {
       // each week row on the left, with the month when it changes.
       div(classes: 'month', [
         span([]),
-        for (final w in _weekdays) small([.text(w.substring(0, 1))]),
+        for (final name in weekdayNames) small([.text(name[0])]),
         for (final (i, week) in weeks.indexed) ...[
           small(classes: 'week', [.text(labels[i])]),
           for (final d in week) d == null ? span([]) : _cell(m, d, values, editing == (m.id, d)),
@@ -259,7 +183,7 @@ class _HabitTableState extends State<HabitTable> {
     return [
       for (final week in weeks)
         switch (week.whereType<Day>().first) {
-          final d when d.month != month => '${_months[(month = d.month) - 1]} ${d.day}',
+          final d when d.month != month => '${shortMonth(month = d.month)} ${d.day}',
           final d => '${d.day}',
         },
     ];
@@ -301,14 +225,10 @@ class _HabitTableState extends State<HabitTable> {
       onClick: () => _click(m, d, values),
       events: {
         // Count cells are not disabled during a write: taps queue and show at once. See TodayPage.
-        if (m case NumberMetric(isCount: true)) ...{
-          'pointerdown': (e) => _pressType = (e as web.PointerEvent).pointerType,
-          'contextmenu': (e) => _countMenu(m, d, e),
-          'keydown': (e) => _countKey(m, d, e as web.KeyboardEvent),
-        },
+        if (m case NumberMetric(isCount: true)) ..._countInput.events((sign) => _addCount(m, d, sign)),
       },
       [
-        if (m is NumberMetric && v != null) .text(_compact(v)),
+        if (m is NumberMetric && v != null) .text(formatCompact(v)),
       ],
     );
   }
@@ -349,12 +269,5 @@ class _HabitTableState extends State<HabitTable> {
     (NumberMetric(unit: final unit), final v?) => ': ${_format(v)} ${unit ?? ''}'.trimRight(),
   };
 
-  /// Short text for a cell: 1 decimal at most, and "k" from 1000. Example: 12500 → 12.5k.
-  static String _compact(num v) => v.abs() >= 1000
-      ? '${_format(double.parse((v / 1000).toStringAsFixed(1)))}k'
-      : _format(double.parse(v.toStringAsFixed(1)));
-
-  /// Removes float noise, for example 82.10000000000001.
-  static String _format(num v) =>
-      v == v.roundToDouble() ? v.toInt().toString() : double.parse(v.toStringAsFixed(3)).toString();
+  static String _format(num value) => formatNumber(value, 3);
 }

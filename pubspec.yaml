@@ -1,5 +1,5 @@
 name: trackula
-description: A new Jaspr project
+description: Tracks habits and body measurements in a Google Sheet.
 version: 0.0.1
 
 environment:

@@ -5,23 +5,12 @@ import 'package:jaspr/jaspr.dart';
 import 'package:web/web.dart' as web;
 
 import '../model/day.dart';
-import '../model/number_input.dart';
+import '../model/format.dart';
 import '../model/zoom.dart';
+import '../services/pointer.dart';
 
 // Charts of the metric detail screen. Inline styles, not @css rules, as in trend_chart.dart: the charts must
 // render correctly even when the browser has an old main.css. Colors come from the theme variables.
-
-const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const _weekdays = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-/// [v] with at most [decimals] decimals and no zeros at the end. Example: 81.25 → "81.3".
-String formatNumber(num v, [int decimals = 1]) => formatShort(double.parse(v.toStringAsFixed(decimals)));
-
-/// Example: "Sep 28".
-String shortDay(Day d) => '${_months[d.month - 1]} ${d.day}';
-
-/// The weekday letters, Monday first.
-List<String> get weekdayLetters => _weekdays;
 
 const _primary = 'var(--primary)';
 const _filled = 'color-mix(in srgb, var(--primary) 70%, var(--surface-container-highest))';
@@ -30,15 +19,26 @@ const _second = 'var(--tertiary)';
 
 const _textStyle = Styles(raw: {'font-size': '0.7rem', 'line-height': '1.2', 'color': 'var(--on-surface-variant)'});
 
+/// The height of the bar and line charts, in chart units.
+const _chartHeight = 50.0;
+
+/// The width of one bar column, in chart units.
+const _columnUnits = 10.0;
+
+/// A line or a dot that keeps its size when the chart stretches. A zero-length path with a round cap draws a dot.
+Styles _strokeStyle(String color, String width, {bool round = true}) => Styles(
+  raw: {
+    'fill': 'none',
+    'stroke': color,
+    'stroke-width': width,
+    if (round) 'stroke-linecap': 'round' else 'stroke-linejoin': 'round',
+    'vector-effect': 'non-scaling-stroke',
+  },
+);
+
 /// A chart card: a title, a one-sentence description, the chart, and labels below it. A [wide] card takes the full
-/// width of the chart grid on wide screens. See .chart-wide in theme.dart. [actions] go on the right of the title.
-Component _card(
-  String title,
-  String description,
-  List<Component> children, {
-  bool wide = false,
-  List<Component> actions = const [],
-}) => div(
+/// width of the chart grid on wide screens. See .chart-wide in theme.dart.
+Component _card(String title, String description, List<Component> children, {bool wide = false}) => div(
   classes: wide ? 'chart-wide' : null,
   styles: const Styles(
     raw: {
@@ -49,10 +49,7 @@ Component _card(
     },
   ),
   [
-    div(styles: const Styles(raw: {'display': 'flex', 'align-items': 'center', 'gap': '0.25rem'}), [
-      div(styles: const Styles(raw: {'font-size': '0.85rem', 'flex': '1'}), [.text(title)]),
-      ...actions,
-    ]),
+    div(styles: const Styles(raw: {'font-size': '0.85rem'}), [.text(title)]),
     div(
       styles: const Styles(
         raw: {
@@ -75,12 +72,14 @@ Component _noValues(String title, String description) => _card(title, descriptio
 
 Component _tooltip(String text) => Component.element(tag: 'title', children: [.text(text)]);
 
-Component _svg(double w, double h, List<Component> children, {String height = '6rem', String? label}) => svg(
-  viewBox: '0 0 $w $h',
-  styles: Styles(raw: {'display': 'block', 'width': '100%', 'height': height, 'overflow': 'visible'}),
-  attributes: {'preserveAspectRatio': 'none', 'role': 'img', 'aria-label': ?label},
-  children,
-);
+/// An SVG that stretches to the card width. [width] and [height] are in chart units.
+Component _svg(double width, double height, List<Component> children, {String cssHeight = '6rem', String? label}) =>
+    svg(
+      viewBox: '0 0 $width $height',
+      styles: Styles(raw: {'display': 'block', 'width': '100%', 'height': cssHeight, 'overflow': 'visible'}),
+      attributes: {'preserveAspectRatio': 'none', 'role': 'img', 'aria-label': ?label},
+      children,
+    );
 
 /// A chart with more bars than this can scroll to the side. With fewer, the bars always fit in the card, so that
 /// charts with fixed groups, such as weekdays, never scroll.
@@ -102,7 +101,7 @@ Component _labels(List<String> labels, {bool all = false}) {
           : {'display': 'flex', 'justify-content': 'space-between'},
     ),
     [
-      for (final l in few ? labels : [labels.first, labels.last]) small(styles: _textStyle, [.text(l)]),
+      for (final label in few ? labels : [labels.first, labels.last]) small(styles: _textStyle, [.text(label)]),
     ],
   );
 }
@@ -117,7 +116,7 @@ Component _centered(int columns, List<Component> children) => div(
 /// least [columns] × [_columnWidth] wide. If that is wider than the card, the chart scrolls to the side: with a
 /// finger, a trackpad, or the mouse wheel. It starts at the right end, with the newest bars.
 Component _scroller(int columns, List<Component> children) => columns <= _scrollBars
-    ? div(styles: Styles(raw: {'max-width': '${columns * _maxColumnWidth}rem', 'margin-inline': 'auto'}), children)
+    ? _centered(columns, children)
     : div(
         styles: const Styles(
           raw: {
@@ -148,14 +147,14 @@ Component _scroller(int columns, List<Component> children) => columns <= _scroll
       );
 
 /// A vertical mouse wheel scrolls a [_scroller] to the side. At an end, the page scrolls as usual.
-void _wheelToSide(web.Event e) {
-  final w = e as web.WheelEvent;
+void _wheelToSide(web.Event event) {
+  final wheel = event as web.WheelEvent;
   // Trackpads also send side moves, and the browser scrolls those itself.
-  if (w.deltaY.abs() <= w.deltaX.abs()) return;
-  final box = w.currentTarget as web.Element;
+  if (wheel.deltaY.abs() <= wheel.deltaX.abs()) return;
+  final box = wheel.currentTarget as web.Element;
   final before = box.scrollLeft;
-  box.scrollLeft = before + w.deltaY * (w.deltaMode == web.WheelEvent.DOM_DELTA_LINE ? 16 : 1);
-  if (box.scrollLeft != before) w.preventDefault();
+  box.scrollLeft = before + wheel.deltaY * (wheel.deltaMode == web.WheelEvent.DOM_DELTA_LINE ? 16 : 1);
+  if (box.scrollLeft != before) wheel.preventDefault();
 }
 
 /// Key numbers in tiles of 2 columns.
@@ -195,14 +194,12 @@ class KeyNumbers extends StatelessComponent {
 /// One bar of a [BarChart]. A null value draws no bar.
 typedef Bar = ({String label, num? value, String tooltip});
 
-/// Bars from 0 to the highest value. With [signed], negative bars go down from a middle line.
+/// Bars from 0 to the highest value.
 class BarChart extends StatelessComponent {
   const BarChart({
     required this.title,
     required this.description,
     required this.bars,
-    this.signed = false,
-    this.fromLowest = false,
     this.max,
     this.format = formatNumber,
     this.wide = false,
@@ -212,11 +209,6 @@ class BarChart extends StatelessComponent {
   final String title;
   final String description;
   final List<Bar> bars;
-  final bool signed;
-
-  /// Bars start a little below the lowest value, not at 0. For values that differ little, for example monthly
-  /// averages of a weight.
-  final bool fromLowest;
 
   /// A fixed top of the scale, for example 100 for percentages. Null: the highest value.
   final num? max;
@@ -229,80 +221,63 @@ class BarChart extends StatelessComponent {
   final bool wide;
 
   @override
-  Component build(BuildContext context) => _card(title, description, [
+  Component build(BuildContext context) => _card(title, description, wide: wide, [
     _scroller(bars.length, [
-      ..._barRows(bars, label: title, signed: signed, fromLowest: fromLowest, max: max, format: format),
+      ..._barRows(bars, label: title, max: max, format: format),
       _labels([for (final b in bars) b.label], all: true),
     ]),
-  ], wide: wide);
+  ]);
 }
 
-/// The value row and the bars of a bar chart, without labels. [max] and [min] fix the scale, for example to the
-/// highest and lowest value of all bars of a zoom chart, so that the scale stays the same while it moves.
+/// The value row and the bars of a bar chart, without labels. Bars start at 0. [max] fixes the top of the scale, for
+/// example to the highest value of all bars of a zoom chart, so that the scale stays the same while it moves.
 List<Component> _barRows(
   List<Bar> bars, {
   required String label,
-  bool signed = false,
-  bool fromLowest = false,
   num? max,
-  num? min,
   String Function(num v) format = formatNumber,
   bool showValues = true,
 }) {
   final values = [for (final b in bars) ?b.value];
   final top = max ?? (values.isEmpty ? 1 : values.map((v) => v.abs()).fold<num>(0, math.max));
-  final lowest = min ?? (values.isEmpty ? 0 : values.reduce(math.min));
-  final floor = fromLowest && values.isNotEmpty ? lowest - math.max((top - lowest) * 0.25, top * 0.01) : 0;
-  final scale = top - floor == 0 ? 1 : top - floor;
-  const h = 50.0;
-  final base = signed ? h / 2 : h;
-  final w = bars.length * 10.0;
+  final scale = top == 0 ? 1 : top;
+  double barHeight(num v) => v.abs() / scale * _chartHeight;
   return [
-    if (showValues)
-      div(
-        // Many values on a phone: smaller text. See .bar-values in theme.dart.
-        classes: bars.length > 8 ? 'bar-values dense' : 'bar-values',
-        styles: Styles(
-          raw: {
-            'display': 'grid',
-            'grid-template-columns': 'repeat(${bars.length}, 1fr)',
-            'text-align': 'center',
-            'margin-bottom': '0.2rem',
-          },
-        ),
-        [
-          for (final b in bars)
-            small(styles: _textStyle.combine(const Styles(raw: {'color': 'var(--on-surface)'})), [
-              .text(switch (b.value) {
-                null => '',
-                final v => '${signed && v > 0 ? '+' : ''}${format(v).replaceFirst('-', '−')}',
-              }),
-            ]),
-        ],
-      ),
-    _svg(w, h, label: label, [
-      if (signed)
-        line(
-          x1: '0',
-          y1: '$base',
-          x2: '$w',
-          y2: '$base',
-          styles: const Styles(raw: {'stroke': 'var(--outline)'}),
-          [],
-        ),
+    if (showValues) _valueRow(bars, format),
+    _svg(bars.length * _columnUnits, _chartHeight, label: label, [
       for (final (i, b) in bars.indexed)
         if (b.value case final v?)
           rect(
-            x: '${i * 10 + 1.5}',
-            y: '${v >= 0 ? base - (v - floor) / scale * (signed ? h / 2 : h) : base}',
+            x: '${i * _columnUnits + 1.5}',
+            y: '${v >= 0 ? _chartHeight - barHeight(v) : _chartHeight}',
             width: '7',
-            height: '${math.max(0.4, (v.abs() - floor) / scale * (signed ? h / 2 : h))}',
+            height: '${math.max(0.4, barHeight(v))}',
             styles: Styles(raw: {'fill': v >= 0 ? _filled : _second}),
             [_tooltip(b.tooltip)],
           ),
     ]),
   ];
 }
+
+/// The value of each bar, above the bar.
+Component _valueRow(List<Bar> bars, String Function(num v) format) => div(
+  // Many values on a phone: smaller text. See .bar-values in theme.dart.
+  classes: bars.length > 8 ? 'bar-values dense' : 'bar-values',
+  styles: Styles(
+    raw: {
+      'display': 'grid',
+      'grid-template-columns': 'repeat(${bars.length}, 1fr)',
+      'text-align': 'center',
+      'margin-bottom': '0.2rem',
+    },
+  ),
+  [
+    for (final b in bars)
+      small(styles: _textStyle.combine(const Styles(raw: {'color': 'var(--on-surface)'})), [
+        .text(b.value == null ? '' : format(b.value!).replaceFirst('-', '−')),
+      ]),
+  ],
+);
 
 /// Dots for each value, and a line: the [trend] if given, else through the dots.
 class LineChart extends StatelessComponent {
@@ -339,17 +314,18 @@ class LineChart extends StatelessComponent {
   Component build(BuildContext context) {
     final all = [...values.nonNulls, ...?trend?.nonNulls];
     if (all.isEmpty) return _noValues(title, description);
-    final hi = range?.$2 ?? all.reduce(math.max), lo = range?.$1 ?? all.reduce(math.min);
-    final w = math.max(1, values.length - 1).toDouble();
-    const h = 50.0;
-    double x(int i) => values.length == 1 ? w / 2 : i.toDouble();
-    double y(num v) => hi == lo ? h / 2 : 2 + (h - 4) * (hi - v) / (hi - lo);
-    String pathOf(List<num?> vs) => [
-      for (final (i, v) in vs.indexed)
-        if (v != null) '${i == vs.indexWhere((e) => e != null) ? 'M' : 'L'}${x(i)} ${y(v)}',
+    final high = range?.$2 ?? all.reduce(math.max);
+    final low = range?.$1 ?? all.reduce(math.min);
+    final width = math.max(1, values.length - 1).toDouble();
+    double x(int i) => values.length == 1 ? width / 2 : i.toDouble();
+    double y(num v) => high == low ? _chartHeight / 2 : 2 + (_chartHeight - 4) * (high - v) / (high - low);
+    String pathOf(List<num?> series) => [
+      for (final (i, v) in series.indexed)
+        if (v != null) '${i == series.indexWhere((e) => e != null) ? 'M' : 'L'}${x(i)} ${y(v)}',
     ].join(' ');
-    final u = unit == null ? '' : ' $unit';
-    return _card(title, description, [
+    final unitSuffix = unit == null ? '' : ' $unit';
+    final dotStyle = _strokeStyle(trend == null ? _primary : _filled, values.length > 60 ? '3' : '5');
+    return _card(title, description, wide: true, [
       div(styles: const Styles(raw: {'display': 'grid', 'grid-template-columns': 'auto 1fr', 'column-gap': '0.4rem'}), [
         div(
           styles: const Styles(
@@ -361,39 +337,17 @@ class LineChart extends StatelessComponent {
             },
           ),
           [
-            small(styles: _textStyle, [.text(formatNumber(hi, decimals))]),
-            if (hi != lo) small(styles: _textStyle, [.text(formatNumber(lo, decimals))]),
+            small(styles: _textStyle, [.text(formatNumber(high, decimals))]),
+            if (high != low) small(styles: _textStyle, [.text(formatNumber(low, decimals))]),
           ],
         ),
-        _svg(w, h, label: title, [
-          path(
-            d: pathOf(trend ?? values),
-            styles: const Styles(
-              raw: {
-                'fill': 'none',
-                'stroke': _primary,
-                'stroke-width': '2',
-                'stroke-linejoin': 'round',
-                'vector-effect': 'non-scaling-stroke',
-              },
-            ),
-            [],
-          ),
+        _svg(width, _chartHeight, label: title, [
+          path(d: pathOf(trend ?? values), styles: _strokeStyle(_primary, '2', round: false), []),
           for (final (i, v) in values.indexed)
             if (dots && v != null)
-              path(
-                d: 'M${x(i)} ${y(v)} h0',
-                styles: Styles(
-                  raw: {
-                    'fill': 'none',
-                    'stroke': trend == null ? _primary : _filled,
-                    'stroke-width': values.length > 60 ? '3' : '5',
-                    'stroke-linecap': 'round',
-                    'vector-effect': 'non-scaling-stroke',
-                  },
-                ),
-                [_tooltip('${shortDay(days[i])}: ${formatNumber(v, decimals)}$u')],
-              ),
+              path(d: 'M${x(i)} ${y(v)} h0', styles: dotStyle, [
+                _tooltip('${shortDay(days[i])}: ${formatNumber(v, decimals)}$unitSuffix'),
+              ]),
         ]),
         span([]),
         div(styles: const Styles(raw: {'display': 'flex', 'justify-content': 'space-between'}), [
@@ -401,7 +355,7 @@ class LineChart extends StatelessComponent {
           small(styles: _textStyle, [.text(shortDay(days.last))]),
         ]),
       ]),
-    ], wide: true);
+    ]);
   }
 }
 
@@ -427,73 +381,91 @@ class DonutChart extends StatelessComponent {
   static const noColor = _second;
   static const noneColor = _empty;
 
+  /// The radius of the ring and the middle of the chart, in chart units.
+  static const _radius = 40.0, _middle = 50.0;
+
+  int get _total => parts.fold(0, (total, part) => total + part.value);
+
   @override
-  Component build(BuildContext context) {
-    final total = parts.fold(0, (t, part) => t + part.value);
-    const r = 40.0, c = 50.0;
-    var a = -math.pi / 2;
+  Component build(BuildContext context) => _card(title, description, [
+    div(styles: const Styles(raw: {'display': 'flex', 'align-items': 'center', 'gap': '1rem'}), [
+      div(styles: const Styles(raw: {'position': 'relative', 'width': '6.5rem', 'flex': 'none'}), [
+        svg(
+          viewBox: '0 0 100 100',
+          styles: const Styles(raw: {'display': 'block', 'width': '100%'}),
+          _arcs(),
+        ),
+        div(
+          styles: const Styles(
+            raw: {
+              'position': 'absolute',
+              'inset': '0',
+              'display': 'flex',
+              'align-items': 'center',
+              'justify-content': 'center',
+              'font-size': '1.1rem',
+              'font-weight': '500',
+              'color': 'var(--primary)',
+            },
+          ),
+          [.text(center)],
+        ),
+      ]),
+      _legend(),
+    ]),
+  ]);
+
+  /// One arc for each part with a value, clockwise from the top.
+  List<Component> _arcs() {
+    final total = _total;
+    var start = -math.pi / 2;
     final arcs = <Component>[];
-    for (final p in parts) {
-      if (p.value == 0 || total == 0) continue;
-      final a2 = a + p.value / total * 2 * math.pi;
-      final full = p.value == total;
-      final d = full
-          ? 'M$c ${c - r} A$r $r 0 1 1 ${c - 0.01} ${c - r}'
-          : 'M${c + r * math.cos(a)} ${c + r * math.sin(a)} '
-                'A$r $r 0 ${a2 - a > math.pi ? 1 : 0} 1 ${c + r * math.cos(a2)} ${c + r * math.sin(a2)}';
+    for (final part in parts) {
+      if (part.value == 0 || total == 0) continue;
+      final end = start + part.value / total * 2 * math.pi;
       arcs.add(
         path(
-          d: d,
-          styles: Styles(raw: {'fill': 'none', 'stroke': p.color, 'stroke-width': '16'}),
-          [_tooltip('${p.label}: ${p.value}')],
+          d: part.value == total ? _ringPath() : _arcPath(start, end),
+          styles: Styles(raw: {'fill': 'none', 'stroke': part.color, 'stroke-width': '16'}),
+          [_tooltip('${part.label}: ${part.value}')],
         ),
       );
-      a = a2;
+      start = end;
     }
-    return _card(title, description, [
-      div(styles: const Styles(raw: {'display': 'flex', 'align-items': 'center', 'gap': '1rem'}), [
-        div(styles: const Styles(raw: {'position': 'relative', 'width': '6.5rem', 'flex': 'none'}), [
-          svg(
-            viewBox: '0 0 100 100',
-            styles: const Styles(raw: {'display': 'block', 'width': '100%'}),
-            arcs,
-          ),
-          div(
-            styles: const Styles(
-              raw: {
-                'position': 'absolute',
-                'inset': '0',
-                'display': 'flex',
-                'align-items': 'center',
-                'justify-content': 'center',
-                'font-size': '1.1rem',
-                'font-weight': '500',
-                'color': 'var(--primary)',
-              },
+    return arcs;
+  }
+
+  /// A full ring. An SVG arc cannot end where it starts, so it ends a little before.
+  static String _ringPath() =>
+      'M$_middle ${_middle - _radius} A$_radius $_radius 0 1 1 ${_middle - 0.01} ${_middle - _radius}';
+
+  /// An arc from the angle [start] to the angle [end], in radians.
+  static String _arcPath(double start, double end) =>
+      'M${_middle + _radius * math.cos(start)} ${_middle + _radius * math.sin(start)} '
+      'A$_radius $_radius 0 ${end - start > math.pi ? 1 : 0} 1 '
+      '${_middle + _radius * math.cos(end)} ${_middle + _radius * math.sin(end)}';
+
+  /// The color, the label, the value and the percentage of each part.
+  Component _legend() {
+    final total = _total;
+    return div(styles: const Styles(raw: {'display': 'grid', 'gap': '0.35rem', 'font-size': '0.8rem'}), [
+      for (final part in parts)
+        div(styles: const Styles(raw: {'display': 'flex', 'align-items': 'center', 'gap': '0.4rem'}), [
+          span(
+            styles: Styles(
+              raw: {'width': '0.7rem', 'height': '0.7rem', 'border-radius': '3px', 'background-color': part.color},
             ),
-            [.text(center)],
+            [],
           ),
+          span([.text('${part.label}: ${part.value} · ${total == 0 ? 0 : (part.value / total * 100).round()}%')]),
         ]),
-        div(styles: const Styles(raw: {'display': 'grid', 'gap': '0.35rem', 'font-size': '0.8rem'}), [
-          for (final p in parts)
-            div(styles: const Styles(raw: {'display': 'flex', 'align-items': 'center', 'gap': '0.4rem'}), [
-              span(
-                styles: Styles(
-                  raw: {'width': '0.7rem', 'height': '0.7rem', 'border-radius': '3px', 'background-color': p.color},
-                ),
-                [],
-              ),
-              span([.text('${p.label}: ${p.value} · ${total == 0 ? 0 : (p.value / total * 100).round()}%')]),
-            ]),
-        ]),
-      ]),
     ]);
   }
 }
 
 /// Bars over time: one bar for each week, month or quarter of the time window. See [ZoomWindow].
 ///
-/// - [min] and [max] fix the scale, for example to all bars of rates and sums, so that the scale does not change
+/// - [max] fixes the top of the scale, for example to all bars of rates and sums, so that the scale does not change
 ///   while the window moves. Null: the bars in view.
 /// - Values show above the bars when 13 bars or fewer are in view.
 /// - With [range], each bar goes from the lowest to the highest value, and a dot shows the average.
@@ -504,16 +476,14 @@ class TimeBars extends StatelessComponent {
     required this.bars,
     required this.barUnit,
     this.format = formatNumber,
-    this.min,
     this.max,
-    this.fromLowest = false,
     this.range = false,
     this.unit,
     super.key,
   });
 
   /// Up to this number of bars, the values show above the bars.
-  static const _valueBars = 13;
+  static const _maxBarsWithValues = 13;
 
   final String title;
   final String description;
@@ -524,81 +494,65 @@ class TimeBars extends StatelessComponent {
 
   /// The text of the value above a bar and in its tooltip.
   final String Function(num v) format;
-  final num? min;
   final num? max;
-  final bool fromLowest;
   final bool range;
 
-  /// The unit of the values in the tooltips, for example `Kg`. Not above the bars: there is no space.
+  /// The unit of the values in the tooltips, for example `kg`. Not above the bars: there is no space.
   final String? unit;
+
+  String get _unitSuffix => unit == null ? '' : ' $unit';
 
   @override
   Component build(BuildContext context) {
     final lows = [for (final b in bars) ?(range ? b.low : b.value)];
     final highs = [for (final b in bars) ?(range ? b.high : b.value)];
     if (highs.isEmpty) return _noValues(title, description);
-    final u = unit == null ? '' : ' $unit';
+    final high = max ?? highs.reduce(math.max);
+    final low = lows.reduce(math.min);
     return _card(title, description, wide: true, [
       _centered(bars.length, [
-        if (range)
-          _rangeRows(max ?? highs.reduce(math.max), min ?? lows.reduce(math.min), u)
-        else
-          ..._barRows(
-            [
-              for (final b in bars)
-                (
-                  label: _barLabel(b.start, barUnit),
-                  value: b.value,
-                  tooltip: '${_barTitle(b.start, barUnit)}: ${b.value == null ? 'no value' : '${format(b.value!)}$u'}',
-                ),
-            ],
-            label: title,
-            fromLowest: fromLowest,
-            max: max ?? highs.reduce(math.max),
-            min: min ?? lows.reduce(math.min),
-            format: format,
-            showValues: bars.length <= _valueBars,
-          ),
+        if (range) _rangeBars(high, low) else ..._barsFromZero(high),
         _labels([for (final (i, b) in bars.indexed) _barLabel(b.start, barUnit, first: i == 0)]),
       ]),
     ]);
   }
 
+  /// One bar from 0 to the value for each of [bars].
+  List<Component> _barsFromZero(num high) => _barRows(
+    [
+      for (final b in bars)
+        (
+          label: _barLabel(b.start, barUnit),
+          value: b.value,
+          tooltip:
+              '${_barTitle(b.start, barUnit)}: ${b.value == null ? 'no value' : '${format(b.value!)}$_unitSuffix'}',
+        ),
+    ],
+    label: title,
+    max: high,
+    format: format,
+    showValues: bars.length <= _maxBarsWithValues,
+  );
+
   /// One bar from the lowest to the highest value for each of [bars], and the average as a dot.
-  Component _rangeRows(num hi, num lo, String u) {
-    const h = 50.0;
-    final w = bars.length * 10.0;
-    double y(num v) => hi == lo ? h / 2 : 2 + (h - 4) * (hi - v) / (hi - lo);
-    return _svg(w, h, label: title, [
+  Component _rangeBars(num high, num low) {
+    double y(num v) => high == low ? _chartHeight / 2 : 2 + (_chartHeight - 4) * (high - v) / (high - low);
+    return _svg(bars.length * _columnUnits, _chartHeight, label: title, [
       for (final (i, b) in bars.indexed)
-        if ((b.low, b.high, b.value) case (final low?, final high?, final avg?)) ...[
+        if ((b.low, b.high, b.value) case (final barLow?, final barHigh?, final average?)) ...[
           // A stroke, not a rect: the chart stretches to the card width, and a stroke keeps its round ends.
           path(
-            d: 'M${i * 10 + 5} ${y(high)} V${math.max(y(high) + 0.5, y(low))}',
-            styles: const Styles(
-              raw: {
-                'fill': 'none',
-                'stroke': _empty,
-                'stroke-width': '10',
-                'stroke-linecap': 'round',
-                'vector-effect': 'non-scaling-stroke',
-              },
-            ),
-            [_tooltip('${_barTitle(b.start, barUnit)}: ${formatNumber(low, 2)} to ${formatNumber(high, 2)}$u')],
+            d: 'M${i * _columnUnits + 5} ${y(barHigh)} V${math.max(y(barHigh) + 0.5, y(barLow))}',
+            styles: _strokeStyle(_empty, '10'),
+            [
+              _tooltip(
+                '${_barTitle(b.start, barUnit)}: ${formatNumber(barLow, 2)} to ${formatNumber(barHigh, 2)}$_unitSuffix',
+              ),
+            ],
           ),
-          path(
-            d: 'M${i * 10 + 5} ${y(avg)} h0',
-            styles: const Styles(
-              raw: {
-                'fill': 'none',
-                'stroke': _primary,
-                'stroke-width': '5',
-                'stroke-linecap': 'round',
-                'vector-effect': 'non-scaling-stroke',
-              },
-            ),
-            [_tooltip('${_barTitle(b.start, barUnit)}: average ${formatNumber(avg, 2)}$u')],
-          ),
+          path(d: 'M${i * _columnUnits + 5} ${y(average)} h0', styles: _strokeStyle(_primary, '5'), [
+            _tooltip('${_barTitle(b.start, barUnit)}: average ${formatNumber(average, 2)}$_unitSuffix'),
+          ]),
         ],
     ]);
   }
@@ -630,34 +584,40 @@ class Overview extends StatefulComponent {
 }
 
 class _OverviewState extends State<Overview> {
+  /// The height of the bars, in chart units.
+  static const _height = 30.0;
+
   bool _drag = false;
 
-  void _point(web.PointerEvent p) {
-    final c = component;
-    final rect = (p.currentTarget as web.Element).getBoundingClientRect();
-    final f = ((p.pageX - web.window.scrollX - rect.left) / rect.width).clamp(0.0, 1.0);
-    final first = c.weeks.first.start, last = c.weeks.last.start.addDays(6);
-    c.onPoint(first.addDays((f * (last.serial - first.serial)).round()));
+  List<ZoomBar> get _weeks => component.weeks;
+
+  /// Calls [Overview.onPoint] with the day under [pointer].
+  void _point(web.PointerEvent pointer) {
+    final rect = (pointer.currentTarget as web.Element).getBoundingClientRect();
+    final fraction = ((pointer.pageX - web.window.scrollX - rect.left) / rect.width).clamp(0.0, 1.0);
+    final first = _weeks.first.start;
+    final last = _weeks.last.start.addDays(6);
+    component.onPoint(first.addDays((fraction * (last.serial - first.serial)).round()));
   }
 
   @override
   Component build(BuildContext context) {
-    final c = component;
-    final values = [for (final b in c.weeks) ?b.value];
-    final hi = values.isEmpty ? 1 : values.reduce(math.max);
-    final lo = c.fromZero || values.isEmpty ? 0 : values.reduce(math.min) - (hi - values.reduce(math.min)) * 0.15;
-    const h = 30.0;
-    final w = c.weeks.length * 10.0;
-    double x(Day d) => (d.serial - c.weeks.first.start.serial) / 7 * 10;
-    double bar(num v) => math.max(0.5, (v - lo) / (hi - lo == 0 ? 1 : hi - lo) * h);
+    final values = [for (final b in _weeks) ?b.value];
+    final high = values.isEmpty ? 1 : values.reduce(math.max);
+    final lowest = values.isEmpty ? 0 : values.reduce(math.min);
+    final low = component.fromZero ? 0 : lowest - (high - lowest) * 0.15;
+    double x(Day d) => (d.serial - _weeks.first.start.serial) / 7 * _columnUnits;
+    double bar(num v) => math.max(0.5, (v - low) / (high - low == 0 ? 1 : high - low) * _height);
+    bool inWindow(ZoomBar week) =>
+        week.start.addDays(6).compareTo(component.from) >= 0 && week.start.compareTo(component.to) <= 0;
     return div(
       styles: const Styles(raw: {'touch-action': 'none', 'cursor': 'pointer', 'user-select': 'none'}),
       events: {
         'pointerdown': (e) {
-          final p = e as web.PointerEvent;
-          _capture(p);
+          final pointer = e as web.PointerEvent;
+          capturePointer(pointer);
           _drag = true;
-          _point(p);
+          _point(pointer);
         },
         'pointermove': (e) {
           if (_drag) _point(e as web.PointerEvent);
@@ -666,28 +626,22 @@ class _OverviewState extends State<Overview> {
         'pointercancel': (_) => _drag = false,
       },
       [
-        _svg(w, h + 2, height: '2rem', label: 'All data', [
-          for (final (i, b) in c.weeks.indexed)
+        _svg(_weeks.length * _columnUnits, _height + 2, cssHeight: '2rem', label: 'All data', [
+          for (final (i, b) in _weeks.indexed)
             if (b.value case final v?)
               rect(
-                x: '${i * 10 + 1}',
-                y: '${h + 1 - bar(v)}',
+                x: '${i * _columnUnits + 1}',
+                y: '${_height + 1 - bar(v)}',
                 width: '8',
                 height: '${bar(v)}',
-                styles: Styles(
-                  raw: {
-                    'fill': b.start.addDays(6).compareTo(c.from) >= 0 && b.start.compareTo(c.to) <= 0
-                        ? _filled
-                        : 'var(--outline-variant)',
-                  },
-                ),
+                styles: Styles(raw: {'fill': inWindow(b) ? _filled : 'var(--outline-variant)'}),
                 [],
               ),
           rect(
-            x: '${x(c.from)}',
+            x: '${x(component.from)}',
             y: '0.5',
-            width: '${math.max(4.0, x(c.to.addDays(1)) - x(c.from))}',
-            height: '${h + 1}',
+            width: '${math.max(4.0, x(component.to.addDays(1)) - x(component.from))}',
+            height: '${_height + 1}',
             styles: const Styles(
               raw: {'fill': 'none', 'stroke': _primary, 'stroke-width': '1.5', 'vector-effect': 'non-scaling-stroke'},
             ),
@@ -699,21 +653,12 @@ class _OverviewState extends State<Overview> {
   }
 }
 
-/// Sends the next moves of the pointer of [p] to its element, also outside it. A pointer that is already up throws:
-/// then nothing changes.
-void _capture(web.PointerEvent p) {
-  try {
-    (p.currentTarget as web.Element).setPointerCapture(p.pointerId);
-  } catch (_) {}
-}
-
 /// The label under a bar. Examples: "Sep 28" (week), "Sep" or "Jan ’26" (month), "Q3 ’26" (quarter). A month shows
 /// its year in January and on the [first] bar. The apostrophe tells a year from a day: "Feb ’24" is not "Feb 24".
 String _barLabel(Day start, BarUnit unit, {bool first = false}) => switch (unit) {
-  BarUnit.day => shortDay(start),
-  BarUnit.week => shortDay(start),
+  BarUnit.day || BarUnit.week => shortDay(start),
   BarUnit.month =>
-    start.month == 1 || first ? '${_months[start.month - 1]} ’${start.year % 100}' : _months[start.month - 1],
+    start.month == 1 || first ? '${shortMonth(start.month)} ’${start.year % 100}' : shortMonth(start.month),
   BarUnit.quarter => 'Q${(start.month + 2) ~/ 3} ’${start.year % 100}',
 };
 
@@ -721,7 +666,7 @@ String _barLabel(Day start, BarUnit unit, {bool first = false}) => switch (unit)
 String _barTitle(Day start, BarUnit unit) => switch (unit) {
   BarUnit.day => '${shortDay(start)}, ${start.year}',
   BarUnit.week => 'Week of ${shortDay(start)}, ${start.year}',
-  BarUnit.month => '${_months[start.month - 1]} ${start.year}',
+  BarUnit.month => '${shortMonth(start.month)} ${start.year}',
   BarUnit.quarter => 'Q${(start.month + 2) ~/ 3} ${start.year}',
 };
 
@@ -748,21 +693,21 @@ class DayHeatmap extends StatelessComponent {
   /// Longer windows: single days are too small.
   static const maxDays = 371;
 
+  static const _description = 'Tap a day to show its month in the calendar.';
+
   @override
   Component build(BuildContext context) {
-    const description = 'Tap a day to show its month in the calendar.';
-    final count = to.serial - from.serial + 1;
-    if (count > maxDays) {
-      return _card(title, description, wide: true, [
+    if (to.serial - from.serial + 1 > maxDays) {
+      return _card(title, _description, wide: true, [
         small(styles: _textStyle, [.text('Zoom in to 1 year or less to see single days.')]),
       ]);
     }
-    return _card(title, description, wide: true, [_grid()]);
+    return _card(title, _description, wide: true, [_grid()]);
   }
 
   Component _grid() {
     final offset = from.weekday - 1;
-    final days = [for (var d = from; d.compareTo(to) <= 0; d = d.addDays(1)) d];
+    final days = daysBetween(from, to);
     final columns = ((offset + days.length) / 7).ceil();
     const size = 10.0, gap = 2.0;
     return svg(

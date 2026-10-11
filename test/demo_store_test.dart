@@ -23,7 +23,7 @@ void main() {
     final meditate = metrics.firstWhere((m) => m.id == 'meditate') as YesNoMetric;
     final s = await st.changeAll([
       (log) => planNumber(weight, today, 82.3, log),
-      (log) => planYesNo(meditate, today, true, log),
+      (log) => planYesNo(meditate, today, log, done: true),
     ]);
     expect(s.warnings, isEmpty);
     expect(s.log.rows, hasLength(121));

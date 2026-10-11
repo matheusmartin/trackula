@@ -139,75 +139,85 @@ final class SheetsStore implements Store {
 
   /// Reads both tabs and validates each row.
   ///
-  /// Before it parses the `Log` tab, it adds a column for each metric without one, and changes values of old app
-  /// versions: text dates to real dates (see [textDateRows]), and yesno `1` to `yes` (see [legacyYesNoCells]).
+  /// Before it parses the `Log` tab, it brings the tab up to date. See [_migrate].
   @override
   Future<Snapshot> load() async {
     final (metricRows, logRows) = await _read();
     final metrics = parseMetrics(metricRows);
     final byId = {for (final m in metrics.items) m.id: m};
+    if (await _migrate(logRows, byId)) return load();
+    final log = parseLog(logRows, byId);
+    return Snapshot(metrics.items, log.table, [...metrics.warnings, ...log.warnings]);
+  }
 
-    final header = logRows.isEmpty ? const <Object?>[] : logRows.first;
+  /// Makes one change to bring the `Log` tab up to date, if it needs one. Returns true after a change: then read the
+  /// data again.
+  ///
+  /// The changes, in this order: add a column for each metric without one, change text dates to real dates (see
+  /// [textDateRows]), and change yesno values of old app versions to `yes` or `no` (see [legacyYesNoCells]).
+  Future<bool> _migrate(List<List<Object?>> logRows, Map<String, Metric> metrics) async {
+    final header = logRows.firstOrNull ?? const <Object?>[];
     final present = {for (final c in header) '${c ?? ''}'.trim()};
     final missing = [
-      for (final m in metrics.items)
+      for (final m in metrics.values)
         if (!present.contains(m.id)) m,
     ];
     if (missing.isNotEmpty) {
       await _addColumns(missing, header.length);
-      return load();
+      return true;
     }
-
     final textDates = _convertDates ? textDateRows(logRows) : const <({int row, Day date})>[];
     if (textDates.isNotEmpty) {
       _convertDates = false;
-      final tab = (await _tabs(_api, spreadsheetId))[logTitle]!;
-      await _api.spreadsheets.batchUpdate(
-        BatchUpdateSpreadsheetRequest(requests: [_dateFormat(tab.id)]),
-        spreadsheetId,
-      );
-      // USER_ENTERED: Sheets reads the YYYY-MM-DD text as a real date, as when you type it.
-      await _api.spreadsheets.values.batchUpdate(
-        BatchUpdateValuesRequest(
-          valueInputOption: 'USER_ENTERED',
-          data: [
-            for (final r in textDates)
-              ValueRange(
-                range: '$logTitle!A${r.row}',
-                values: [
-                  [r.date.toString()],
-                ],
-              ),
-          ],
-        ),
-        spreadsheetId,
-      );
-      return load();
+      await _writeRealDates(textDates);
+      return true;
     }
-
-    final legacy = legacyYesNoCells(logRows, byId);
+    final legacy = legacyYesNoCells(logRows, metrics);
     if (legacy.isNotEmpty) {
-      await _api.spreadsheets.values.batchUpdate(
-        BatchUpdateValuesRequest(
-          valueInputOption: 'RAW',
-          data: [
-            for (final c in legacy)
-              ValueRange(
-                range: _cell(c.row, c.column),
-                values: [
-                  [c.value],
-                ],
-              ),
-          ],
-        ),
-        spreadsheetId,
-      );
-      return load();
+      await _writeYesNo(legacy);
+      return true;
     }
-
-    final log = parseLog(logRows, byId);
-    return Snapshot(metrics.items, log.table, [...metrics.warnings, ...log.warnings]);
+    return false;
   }
+
+  /// Writes each date of [rows] again as a real date, with the date format.
+  Future<void> _writeRealDates(List<({int row, Day date})> rows) async {
+    final tab = (await _tabs(_api, spreadsheetId))[logTitle]!;
+    await _api.spreadsheets.batchUpdate(BatchUpdateSpreadsheetRequest(requests: [_dateFormat(tab.id)]), spreadsheetId);
+    // USER_ENTERED: Sheets reads the YYYY-MM-DD text as a real date, as when you type it.
+    await _api.spreadsheets.values.batchUpdate(
+      BatchUpdateValuesRequest(
+        valueInputOption: 'USER_ENTERED',
+        data: [
+          for (final r in rows)
+            ValueRange(
+              range: '$logTitle!A${r.row}',
+              values: [
+                [r.date.toString()],
+              ],
+            ),
+        ],
+      ),
+      spreadsheetId,
+    );
+  }
+
+  /// Writes the new `yes` or `no` value of each of [cells].
+  Future<void> _writeYesNo(List<({int row, int column, String value})> cells) => _api.spreadsheets.values.batchUpdate(
+    BatchUpdateValuesRequest(
+      valueInputOption: 'RAW',
+      data: [
+        for (final c in cells)
+          ValueRange(
+            range: _cell(c.row, c.column),
+            values: [
+              [c.value],
+            ],
+          ),
+      ],
+    ),
+    spreadsheetId,
+  );
 
   /// Reads the latest data, asks [plan] for a change, applies it, and returns the new data.
   ///
@@ -316,7 +326,9 @@ final class SheetsStore implements Store {
   }
 }
 
-/// Data validation rules. See "Layer 2" in docs/data-model.md.
+// Data validation rules. See "Layer 2" in docs/data-model.md.
+
+/// The cells of [column], below the header row.
 GridRange _col(int sheetId, int column) =>
     GridRange(sheetId: sheetId, startRowIndex: 1, startColumnIndex: column, endColumnIndex: column + 1);
 

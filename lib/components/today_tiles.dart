@@ -1,15 +1,14 @@
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
-import 'package:web/web.dart' as web;
 
 import '../model/day.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../model/number_input.dart';
 import '../model/summary.dart';
+import '../services/count_input.dart';
 import 'metric_icon.dart';
 import 'number_editor.dart';
-import '../services/double_tap.dart';
 
 /// Today input mode: one tile for each metric, for today only. The fewest taps for each input.
 ///
@@ -18,8 +17,7 @@ import '../services/double_tap.dart';
 /// leaves the screen. An input that gives the saved value again is not unsaved.
 ///
 /// - Yes/no: a tap on the tile sets done. A second tap goes back: to empty, or to `no` if the day was saved as `yes`.
-/// - Count: as the table cells. A mouse click adds the step, a right-click subtracts it. A touch tap adds the step
-///   after a short wait, and a double-tap subtracts it instead. Keys on a focused tile: `+` and `-`.
+/// - Count: as the table cells. See [CountInput].
 /// - Number: a full-width tile with the ruler of the [NumberEditor]. An empty day starts at the latest earlier value.
 ///   A drag, a typed value, or a tap on the ruler (to confirm the same value) makes the value unsaved.
 ///
@@ -58,18 +56,14 @@ class _TodayTilesState extends State<TodayTiles> {
   /// Values that the Save button sends now, by metric id. The tiles show them until the write ends, not the old values.
   final _saving = <String, num?>{};
 
-  Day get today => component.today;
+  /// The inputs on count tiles. Keys are metric ids.
+  final _countInput = CountInput<String>();
 
-  /// Touch taps on count tiles: a tap waits 300 ms for a second tap on the same tile. Keys are metric ids.
-  final _taps = DoubleTap<String>();
-
-  /// The pointer type of the last press on a count tile: 'mouse', 'touch' or 'pen'. Null after the click, so a
-  /// keyboard click (Enter or Space) works like a mouse click.
-  String? _pressType;
+  Day get _today => component.today;
 
   @override
   void dispose() {
-    _taps.dispose();
+    _countInput.dispose();
     super.dispose();
   }
 
@@ -101,9 +95,9 @@ class _TodayTilesState extends State<TodayTiles> {
       for (final m in component.metrics)
         if (_drafts.containsKey(m.id))
           switch ((m, _drafts[m.id])) {
-            (YesNoMetric(), final v?) => (LogTable log) => planYesNo(m as YesNoMetric, today, v == 1, log),
-            (NumberMetric(), final v?) => (LogTable log) => planNumber(m as NumberMetric, today, v, log),
-            (_, null) => (LogTable log) => planClear(m, today, log),
+            (final YesNoMetric metric, final v?) => (LogTable log) => planYesNo(metric, _today, log, done: v == 1),
+            (final NumberMetric metric, final v?) => (LogTable log) => planNumber(metric, _today, v, log),
+            (_, null) => (LogTable log) => planClear(m, _today, log),
           },
     ];
     // The number editors keep their values: the new data shows the same values.
@@ -138,8 +132,8 @@ class _TodayTilesState extends State<TodayTiles> {
   }
 
   Component _tile(Metric m, Map<Day, num> values) => switch (m) {
-    YesNoMetric() => _yesNo(m, values[today]),
-    NumberMetric(isCount: true) => _count(m, values[today]),
+    YesNoMetric() => _yesNo(m, values[_today]),
+    NumberMetric(isCount: true) => _count(m, values[_today]),
     NumberMetric() => _number(m, values),
   };
 
@@ -166,29 +160,15 @@ class _TodayTilesState extends State<TodayTiles> {
         attributes: {'aria-pressed': '$done'},
         // Back from done: to empty, or to `no` if the day was saved as `yes`.
         onClick: () => _set(m, done ? (saved == 1 ? 0 : null) : 1, saved),
-        [
-          ..._head(m),
-        ],
+        _head(m),
       ),
     ]);
   }
 
-  /// Adds [delta] to the shown value of [m]. It reads the value when it runs: a touch tap runs after the wait.
-  void _add(NumberMetric m, num delta, num? saved) =>
-      _set(m, applyCountSteps(_shown(m, saved), [CountStep.add(delta)]), saved);
-
-  /// Mouse and keyboard: a click adds the step at once. Touch: a tap adds the step after the double-tap wait, and a
-  /// double-tap subtracts it. See [DoubleTap].
-  void _countClick(NumberMetric m, num? saved) {
-    final touch = _pressType == 'touch' || _pressType == 'pen';
-    _pressType = null;
-    if (touch) {
-      _taps.tap(m.id, onSingle: () => _add(m, m.step, saved), onDouble: () => _add(m, -m.step, saved));
-    } else {
-      _taps.flush();
-      _add(m, m.step, saved);
-    }
-  }
+  /// Adds the step of [m] to the shown value ([sign] +1), or subtracts it ([sign] −1). It reads the value when it
+  /// runs: a touch tap runs after the double-tap wait.
+  void _addCount(NumberMetric m, int sign, num? saved) =>
+      _set(m, applyCountSteps(_shown(m, saved), [CountStep.add(sign * m.step)]), saved);
 
   Component _count(NumberMetric m, num? saved) {
     final v = _shown(m, saved);
@@ -197,25 +177,8 @@ class _TodayTilesState extends State<TodayTiles> {
       button(
         classes: 'tile-main',
         attributes: {'title': 'Tap or click: +$step. Double-tap or right-click: −$step.', 'aria-label': m.name},
-        onClick: () => _countClick(m, saved),
-        events: {
-          'pointerdown': (e) => _pressType = (e as web.PointerEvent).pointerType,
-          // Right-click subtracts. A touch long-press also opens the context menu on Android: it does nothing.
-          'contextmenu': (e) {
-            e.preventDefault();
-            final touch = _pressType == 'touch' || _pressType == 'pen';
-            _pressType = null;
-            if (touch) return;
-            _taps.flush();
-            _add(m, -m.step, saved);
-          },
-          'keydown': (e) {
-            final k = (e as web.KeyboardEvent).key;
-            if (k != '+' && k != '=' && k != '-') return;
-            _taps.flush();
-            _add(m, k == '-' ? -m.step : m.step, saved);
-          },
-        },
+        onClick: () => _countInput.click(m.id, (sign) => _addCount(m, sign, saved)),
+        events: _countInput.events((sign) => _addCount(m, sign, saved)),
         [
           ..._head(m),
           // The counter: the value of today, 0 when empty.
@@ -227,14 +190,14 @@ class _TodayTilesState extends State<TodayTiles> {
 
   /// A full-width tile with the ruler.
   Component _number(NumberMetric m, Map<Day, num> values) {
-    final saved = values[today];
+    final saved = values[_today];
     final v = _shown(m, saved);
-    final near = nearestDay(values.keys, today);
+    final near = nearestDay(values.keys, _today);
     final start = near == null ? null : values[near];
     return div(classes: _classes(m, done: v != null, kind: 'wide'), [
-      div(classes: 'tile-main', [..._head(m)]),
+      div(classes: 'tile-main', _head(m)),
       NumberEditor(
-        key: ValueKey('${m.id} $today'),
+        key: ValueKey('${m.id} $_today'),
         metric: m,
         label: '${m.name} · today',
         current: saved,

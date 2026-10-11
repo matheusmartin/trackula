@@ -11,7 +11,7 @@ final class Snapshot {
   final List<String> warnings;
 }
 
-/// Reads and writes the metrics and the log. [SheetsStore] uses Google Sheets. [DemoStore] keeps sample data in
+/// Reads and writes the metrics and the log. `SheetsStore` uses Google Sheets. `DemoStore` keeps sample data in
 /// memory, for demo mode.
 abstract interface class Store {
   /// Sets the data validation rules of the sheet again. Nothing in demo mode.

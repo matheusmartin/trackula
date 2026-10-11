@@ -1,7 +1,6 @@
 import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 
-import 'components/habit_table.dart';
 import 'components/header.dart';
 import 'config.dart';
 import 'pages/setup.dart';
@@ -21,7 +20,7 @@ class App extends StatefulComponent {
 
 class _AppState extends State<App> {
   Session? _session;
-  String? _sheetId = SavedSheet.id;
+  String? _sheetId = savedSheetId;
   bool _expired = false;
 
   /// The view of the Today page. The app always opens on the Today tiles.
@@ -38,10 +37,10 @@ class _AppState extends State<App> {
 
   void _setRange(DayRange r) => setState(() => _range = r);
 
-  void _setDetail(bool open) => setState(() => _detail = open);
+  void _setDetail({required bool open}) => setState(() => _detail = open);
 
   /// The Today page with the range of the bottom navigation bar.
-  TodayPage _today({required Store store, required bool Function() expired, VoidCallback? onExpired, Key? key}) =>
+  TodayPage _todayPage({required Store store, required bool Function() expired, VoidCallback? onExpired, Key? key}) =>
       TodayPage(
         key: key,
         store: store,
@@ -51,7 +50,7 @@ class _AppState extends State<App> {
         onRange: _setRange,
         onDetail: _setDetail,
         reload: _reload,
-        onBusy: (busy) => setState(() => _busy = busy),
+        onBusy: ({required busy}) => setState(() => _busy = busy),
       );
 
   /// The bottom navigation bar: Today, 5 days, 31 days. A direct child of `<body>`, as the BeerCSS layout expects:
@@ -79,7 +78,7 @@ class _AppState extends State<App> {
     ],
   );
 
-  /// Demo mode: the URL has `?demo`. Sample data in memory, no sign-in. See DemoStore.
+  /// Demo mode: the URL has `?demo`. Sample data in memory, no sign-in. See [DemoStore].
   final DemoStore? _demo = Uri.base.queryParameters.containsKey('demo') ? DemoStore() : null;
 
   void _signedIn(Session s) => setState(() {
@@ -94,9 +93,9 @@ class _AppState extends State<App> {
     _expired = true;
   });
 
-  void _connect(String id) => setState(() => SavedSheet.id = _sheetId = id);
+  void _connect(String id) => setState(() => savedSheetId = _sheetId = id);
 
-  void _disconnect() => setState(() => SavedSheet.id = _sheetId = null);
+  void _disconnect() => setState(() => savedSheetId = _sheetId = null);
 
   @override
   Component build(BuildContext context) {
@@ -107,7 +106,7 @@ class _AppState extends State<App> {
           p(classes: 'secondary-text', [
             .text('Demo mode: sample data in this tab only. Nothing goes to Google Sheets. A reload starts again.'),
           ]),
-          _today(store: demo, expired: () => false),
+          _todayPage(store: demo, expired: () => false),
         ]),
         if (!_detail) _bottomNav(),
       ]);
@@ -132,7 +131,7 @@ class _AppState extends State<App> {
         else if (sheetId == null)
           SetupPage(session: session, onConnected: _connect)
         else
-          _today(
+          _todayPage(
             key: ValueKey(sheetId),
             store: session.store(sheetId),
             expired: () => session.expired,

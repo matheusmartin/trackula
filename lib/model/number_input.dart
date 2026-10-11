@@ -20,19 +20,15 @@ int stepDecimals(num step) {
   return i < 0 ? 0 : math.min(6, s.length - i - 1);
 }
 
-/// Rounds [v] to the decimals of [step]. With [snap], also to the nearest multiple of [step]. Never below 0.
+/// Rounds [value] to the decimals of [step]. With [snap], also to the nearest multiple of [step]. Never below 0.
 ///
 /// This removes float noise, for example 81.9 + 0.1 = 82.00000000000001.
-num roundToStep(num v, num step, {bool snap = false}) {
-  final x = snap ? (v / step).round() * step : v;
+num roundToStep(num value, num step, {bool snap = false}) {
+  final x = snap ? (value / step).round() * step : value;
   final decimals = stepDecimals(step);
   final rounded = double.parse(math.max<num>(0, x).toStringAsFixed(decimals));
   return decimals == 0 ? rounded.round() : rounded;
 }
 
-/// [v] with the decimals of [step]. Examples: (82, 0.1) → "82.0", (1250, 250) → "1250".
-String formatStep(num v, num step) => v.toStringAsFixed(stepDecimals(step));
-
-/// [v] without zeros at the end. Examples: 82.0 → "82", 2.5 → "2.5".
-String formatShort(num v) =>
-    v == v.roundToDouble() ? v.round().toString() : double.parse(v.toStringAsFixed(6)).toString();
+/// [value] with the decimals of [step]. Examples: (82, 0.1) → "82.0", (1250, 250) → "1250".
+String formatStep(num value, num step) => value.toStringAsFixed(stepDecimals(step));

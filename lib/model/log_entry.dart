@@ -78,8 +78,9 @@ Object? cellValue(Metric metric, num? value) => value == null
         NumberMetric() => value,
       };
 
-/// Returns the change that sets [metric] to `yes` or `no` on [date].
-LogWrite? planYesNo(YesNoMetric metric, Day date, bool done, LogTable log) => _plan(metric, date, done ? 1 : 0, log);
+/// Returns the change that sets [metric] to `yes` ([done]) or `no` on [date].
+LogWrite? planYesNo(YesNoMetric metric, Day date, LogTable log, {required bool done}) =>
+    _plan(metric, date, done ? 1 : 0, log);
 
 /// Returns the change that sets the value of [metric] on [date]. For amounts, it is the day total.
 LogWrite? planNumber(NumberMetric metric, Day date, num value, LogTable log) => _plan(metric, date, value, log);
@@ -99,12 +100,13 @@ final class CountStep {
 /// A count never goes below 0, also between steps, and 0 is an empty cell.
 /// Example: an empty cell, then -1, then +1, gives 1.
 num? applyCountSteps(num? current, Iterable<CountStep> steps) {
-  num v = current ?? 0;
-  for (final s in steps) {
-    v = math.max(0, v + s.delta);
+  var value = current ?? 0;
+  for (final step in steps) {
+    value = math.max(0, value + step.delta);
   }
+  if (value <= 0) return null;
   // Removes float noise from decimal steps, for example 0.30000000000000004.
-  return v > 0 ? (v is int ? v : double.parse(v.toStringAsFixed(6))) : null;
+  return value is int ? value : double.parse(value.toStringAsFixed(6));
 }
 
 /// Returns the change that applies [steps] to the current value of [metric] on [date] in [log].

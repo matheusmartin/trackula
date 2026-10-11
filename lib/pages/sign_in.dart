@@ -3,6 +3,7 @@ import 'package:jaspr/jaspr.dart';
 
 import '../services/session.dart';
 
+/// The full-screen sign-in page: a large logo and a Google sign-in button.
 class SignInPage extends StatefulComponent {
   const SignInPage({required this.expired, required this.onSignedIn, super.key});
 
@@ -32,7 +33,7 @@ class _SignInPageState extends State<SignInPage> {
     }
   }
 
-  /// Full-screen page: a large logo in the center and the sign-in button at the bottom. Styles: web/theme.css.
+  /// The logo is in the center and the sign-in button at the bottom. Styles: web/theme.css.
   @override
   Component build(BuildContext context) {
     return main_(classes: 'splash', [

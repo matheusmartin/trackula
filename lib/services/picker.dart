@@ -50,6 +50,8 @@ Future<void> _loadPicker() => _loading ??= () async {
   await loaded.future;
 
   final picker = Completer<void>();
+  // A closure, not a tear-off: toJS cannot convert the optional FutureOr parameter of complete.
+  // ignore: unnecessary_lambdas
   _gapiLoad('picker', (() => picker.complete()).toJS);
   await picker.future;
 }();
@@ -76,6 +78,8 @@ extension type _PickerBuilder._(JSObject _) implements JSObject {
 }
 
 extension type _Picker._(JSObject _) implements JSObject {
+  // The JavaScript API has a positional bool.
+  // ignore: avoid_positional_boolean_parameters
   external void setVisible(bool visible);
 }
 

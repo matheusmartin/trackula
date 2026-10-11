@@ -5,6 +5,7 @@ import 'package:jaspr/dom.dart';
 import 'package:jaspr/jaspr.dart';
 import 'package:web/web.dart' as web;
 
+import '../model/format.dart';
 import '../model/metric.dart';
 import '../model/number_input.dart';
 
@@ -87,7 +88,7 @@ class _NumberEditorState extends State<NumberEditor> {
   (double, num)? _drag;
 
   /// Window listeners during a ruler drag. They also work when the pointer leaves the ruler.
-  late final JSFunction _onDragMove = ((web.PointerEvent e) => _dragMove(e)).toJS;
+  late final JSFunction _onDragMove = _dragMove.toJS;
   late final JSFunction _onDragEnd = ((web.Event _) => _dragEnd()).toJS;
 
   /// Wheel movement that is less than one tick, in pixels.

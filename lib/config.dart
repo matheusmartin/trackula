@@ -1,5 +1,5 @@
 // The values come from build defines, not from this file. See README.md.
-// Local: config.env with --dart-define-from-file. GitHub Actions: repository variables.
+// Local: config.env with --dart-define-from-file. GitHub Actions: repository secrets.
 
 /// OAuth client ID from Google Auth Platform → Clients → Trackula web.
 ///
