@@ -6,9 +6,15 @@ import 'metric.dart';
 const metricsTitle = 'Metrics';
 const logTitle = 'Log';
 
-/// Required column names of the `Metrics` tab, in the order the app creates them.
-/// The app ignores other columns, for example `per_day` and `active` of older sheets.
-const metricsHeader = ['id', 'name', 'kind', 'unit', 'step', 'group', 'icon'];
+/// Column names of the `Metrics` tab, in the order the app creates them. All are required, except `goal`: older sheets
+/// do not have it. The app ignores other columns, for example `per_day` and `active` of older sheets.
+const metricsHeader = ['id', 'name', 'kind', 'unit', 'step', 'group', 'icon', 'goal'];
+
+/// The columns of [metricsHeader] that a `Metrics` tab must have.
+final _requiredMetricsColumns = [
+  for (final name in metricsHeader)
+    if (name != 'goal') name,
+];
 
 /// Valid items and a warning for each invalid row.
 final class Parsed<T> {
@@ -33,7 +39,7 @@ final _idPattern = RegExp(r'^[a-z0-9_-]+$');
 
 /// Parses the `Metrics` tab. [rows] includes the header row. Throws a [HeaderException] if a column is missing.
 Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
-  final columns = _columns(metricsTitle, rows, metricsHeader);
+  final columns = _columns(metricsTitle, rows, _requiredMetricsColumns);
   final items = <Metric>[];
   final warnings = <String>[];
   final seen = <String>{};
@@ -67,8 +73,9 @@ Metric _metric(_MetricRow row, String id) {
   if (icon == null) {
     throw const FormatException('no icon. Use a Material Symbols name, such as "water_drop", or an emoji.');
   }
+  final goal = row.cell('goal');
   return switch (row.text('kind')) {
-    'yesno' => YesNoMetric(id: id, name: name, group: group, icon: icon),
+    'yesno' => YesNoMetric(id: id, name: name, group: group, icon: icon, goalIsYes: _yesNoGoal(goal)),
     final kind && ('number' || 'count') => NumberMetric(
       id: id,
       name: name,
@@ -79,11 +86,35 @@ Metric _metric(_MetricRow row, String id) {
       },
       group: group,
       isCount: kind == 'count',
+      goal: _numberGoal(goal),
       icon: icon,
     ),
     final kind => throw FormatException('invalid kind "${kind ?? ''}"'),
   };
 }
+
+/// The goal of a yesno metric in the `goal` [cell]: true for `yes`, false for `no`. An empty cell is `yes`.
+/// Throws a [FormatException] for other values.
+bool _yesNoGoal(Object? cell) => switch (_isEmpty(cell) ? 1 : _yesNoValue(cell)) {
+  final value? => value == 1,
+  null => throw FormatException('invalid goal "$cell". For a yesno metric, use yes or no.'),
+};
+
+/// The goal of a number or count metric in the `goal` [cell]. Null if the cell is empty.
+///
+/// A number, such as `8`, or `>= 8`, is a minimum. `<= 75` is a maximum. Throws a [FormatException] for other values.
+NumberGoal? _numberGoal(Object? cell) {
+  if (_isEmpty(cell)) return null;
+  if (cell is num) return NumberGoal(cell);
+  final match = _numberGoalPattern.firstMatch('$cell'.trim());
+  if (match == null) {
+    throw FormatException('invalid goal "$cell". Use a number, such as 8 (at least 8), or <= 75 (at most 75).');
+  }
+  return NumberGoal(num.parse(match[2]!), isMaximum: match[1] == '<=');
+}
+
+/// A number goal as text: an optional `<=` or `>=`, then a number. Examples: `8`, `>= 8`, `<=75.5`.
+final _numberGoalPattern = RegExp(r'^(<=|>=)?\s*(-?\d+(?:\.\d+)?)$');
 
 /// Parses the `Log` tab: column A is `date`, the other headers are metric ids. [rows] includes the header row.
 /// Throws a [HeaderException] if column A is not `date`.
@@ -243,19 +274,20 @@ final class _MetricRow {
 
   bool get isEmpty => _cells.every(_isEmpty);
 
-  Object? _cell(String name) {
-    final i = _columns[name]!;
-    return i < _cells.length ? _cells[i] : null;
+  /// The cell in column [name]. Null if the cell is empty, or if the tab has no such column.
+  Object? cell(String name) {
+    final i = _columns[name];
+    return i != null && i < _cells.length ? _cells[i] : null;
   }
 
   /// The trimmed text of the cell in column [name]. Null if the cell is empty.
   String? text(String name) {
-    final s = _cell(name)?.toString().trim();
+    final s = cell(name)?.toString().trim();
     return s == null || s.isEmpty ? null : s;
   }
 
   /// The number in the cell in column [name]. Null if the cell is empty or not a number.
-  num? number(String name) => switch (_cell(name)) {
+  num? number(String name) => switch (cell(name)) {
     num n => n,
     String s => num.tryParse(s.trim()),
     _ => null,

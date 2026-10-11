@@ -16,6 +16,15 @@ void main() {
       expect(p.map((p) => p.y), [20.0, 20.0]);
     });
 
+    test('fromZero: the scale starts at 0, at the bottom', () {
+      final p = chartPoints(days, {days[0]: 10, days[4]: 5}, height: 40, padding: 4, fromZero: true);
+      expect(p.map((p) => p.y), [4.0, 20.0]);
+      final equal = chartPoints(days, {days[1]: 5, days[3]: 5}, height: 40, padding: 4, fromZero: true);
+      expect(equal.map((p) => p.y), [4.0, 4.0]);
+      final zeros = chartPoints(days, {days[1]: 0, days[3]: 0}, height: 40, padding: 4, fromZero: true);
+      expect(zeros.map((p) => p.y), [36.0, 36.0]);
+    });
+
     test('returns no points without values', () {
       expect(chartPoints(days, {}), isEmpty);
     });

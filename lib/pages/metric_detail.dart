@@ -13,6 +13,7 @@ import '../model/day.dart';
 import '../model/format.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
+import '../model/score.dart';
 import '../model/stats.dart';
 import '../model/summary.dart';
 import '../model/zoom.dart';
@@ -27,6 +28,8 @@ import '../services/pointer.dart';
 /// - Day heatmap: the days of the window. A tap on a day shows its month in the calendar.
 /// - Edit days: any month, with the same day cells and inputs as the Today page. It shows the month of the window end
 ///   until the arrows, a swipe or a heatmap tap change it. Wide screens also show the month before.
+/// - Score ([scoreMetric]): the numbers and charts of a count, from [scores], in green. It has no Edit days section:
+///   the app calculates the scores.
 ///
 /// Styles: lib/constants/theme.dart (layout) and lib/components/charts.dart (charts).
 final class MetricDetail extends StatefulComponent {
@@ -38,7 +41,8 @@ final class MetricDetail extends StatefulComponent {
     required this.onWrite,
     required this.pending,
     required this.onCount,
-    required this.onBack,
+    required this.scores,
+    this.onBack,
     super.key,
   });
 
@@ -49,7 +53,12 @@ final class MetricDetail extends StatefulComponent {
   final void Function(LogWrite? Function(LogTable log) plan) onWrite;
   final Map<(String, Day), List<CountStep>> pending;
   final void Function(NumberMetric metric, Day day, CountStep step) onCount;
-  final VoidCallback onBack;
+
+  /// The score of each day. The values of the detail screen of [scoreMetric].
+  final Map<Day, num> scores;
+
+  /// Closes the screen. Null: the screen has no back button, for example the Score view of the bottom navigation bar.
+  final VoidCallback? onBack;
 
   @override
   State<MetricDetail> createState() => _MetricDetailState();
@@ -107,17 +116,19 @@ class _MetricDetailState extends State<MetricDetail> {
   Component build(BuildContext context) {
     final states = _metric is YesNoMetric ? yesNoStates(_metric.id, component.log.entries) : const <Day, bool>{};
     // For yes/no metrics: 1 for yes and 0 for no, as the rate bars expect.
-    final values = _metric is YesNoMetric
-        ? <Day, num>{for (final MapEntry(key: d, value: yes) in states.entries) d: yes ? 1 : 0}
-        : dayValuesWithPending(_metric, component.log.entries, component.pending);
+    final values = switch (_metric) {
+      YesNoMetric() => <Day, num>{for (final MapEntry(key: d, value: yes) in states.entries) d: yes ? 1 : 0},
+      _ when isScore(_metric) => component.scores,
+      _ => dayValuesWithPending(_metric, component.log.entries, component.pending),
+    };
     final first = earliestDay(values.keys) ?? _today;
     final steps = zoomSteps(first, _today);
     final stepIndex = math.min(_stepIndex ?? defaultStepIndex(steps), steps.length - 1);
     final window = ZoomWindow(steps[stepIndex], first: first, today: _today, end: _end);
 
-    return div(classes: 'metric-detail', [
+    return div(classes: isScore(_metric) ? 'metric-detail score-theme' : 'metric-detail', [
       nav(classes: 'detail-head', [
-        iconButton(icon: 'arrow_back', title: 'Back', onClick: component.onBack),
+        if (component.onBack case final back?) iconButton(icon: 'arrow_back', title: 'Back', onClick: back),
         metricIcon(_metric, large: true),
         h5(classes: 'max', [.text(_metric.name)]),
       ]),
@@ -130,20 +141,21 @@ class _MetricDetailState extends State<MetricDetail> {
           to: window.to,
           today: _today,
           filled: (d) => _metric is YesNoMetric ? states[d] == true : values.containsKey(d),
-          onDay: (d) => setState(() => _month = monthOf(d)),
+          onDay: isScore(_metric) ? null : (d) => setState(() => _month = monthOf(d)),
         ),
       ]),
-      MonthCalendar(
-        metric: _metric,
-        log: component.log,
-        today: _today,
-        busy: component.busy,
-        onWrite: component.onWrite,
-        pending: component.pending,
-        onCount: component.onCount,
-        month: _month ?? monthOf(window.to),
-        onMonth: (month) => setState(() => _month = month),
-      ),
+      if (!isScore(_metric))
+        MonthCalendar(
+          metric: _metric,
+          log: component.log,
+          today: _today,
+          busy: component.busy,
+          onWrite: component.onWrite,
+          pending: component.pending,
+          onCount: component.onCount,
+          month: _month ?? monthOf(window.to),
+          onMonth: (month) => setState(() => _month = month),
+        ),
     ]);
   }
 

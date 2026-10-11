@@ -672,7 +672,7 @@ class _OverviewState extends State<Overview> {
 }
 
 /// The days from [from] to [to] in week columns, Monday at the top. A day with a value is filled. A tap on a day
-/// calls [onDay].
+/// calls [onDay]. Without [onDay], a tap does nothing.
 final class DayHeatmap extends StatelessComponent {
   const DayHeatmap({
     required this.title,
@@ -680,7 +680,7 @@ final class DayHeatmap extends StatelessComponent {
     required this.to,
     required this.filled,
     required this.today,
-    required this.onDay,
+    this.onDay,
     super.key,
   });
 
@@ -689,21 +689,22 @@ final class DayHeatmap extends StatelessComponent {
   final Day to;
   final bool Function(Day day) filled;
   final Day today;
-  final void Function(Day day) onDay;
+  final void Function(Day day)? onDay;
 
   /// The largest number of days that show as single cells. Single days of a longer window are too small.
   static const _maxDays = 371;
 
-  static const _description = 'Tap a day to show its month in the calendar.';
-
   @override
   Component build(BuildContext context) {
+    final description = onDay == null
+        ? 'One cell for each day of the window.'
+        : 'Tap a day to show its month in the calendar.';
     if (to.serial - from.serial + 1 > _maxDays) {
-      return _card(title, _description, wide: true, [
+      return _card(title, description, wide: true, [
         small(styles: _textStyle, [.text('Zoom in to 1 year or less to see single days.')]),
       ]);
     }
-    return _card(title, _description, wide: true, [_grid()]);
+    return _card(title, description, wide: true, [_grid()]);
   }
 
   Component _grid() {
@@ -735,12 +736,12 @@ final class DayHeatmap extends StatelessComponent {
             styles: Styles(
               raw: {
                 'fill': filled(d) ? _filled : _empty,
-                'cursor': 'pointer',
+                if (onDay != null) 'cursor': 'pointer',
                 if (d == today) 'stroke': 'var(--on-surface)',
                 if (d == today) 'stroke-width': '1',
               },
             ),
-            events: {'click': (_) => onDay(d)},
+            events: {if (onDay case final tap?) 'click': (_) => tap(d)},
             [_tooltip('$d')],
           ),
       ],

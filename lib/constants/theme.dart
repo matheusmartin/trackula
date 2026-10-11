@@ -340,6 +340,18 @@ List<StyleRule> get styles => [
     css('.editor').styles(margin: .only(top: 0.75.rem)),
   ]),
 
+  // score_chart.dart and the Score view: the score uses the green of done tiles (--done in web/theme.css), not the
+  // theme red. The charts and the icons use --primary, so they follow it.
+  css('.score-theme').styles(raw: {'--primary': 'var(--done)'}),
+  // score_chart.dart: the score card above the 5-day table and the 31-day calendars.
+  css('article.score-card', [
+    css('&').styles(margin: .only(bottom: 0.75.rem)),
+    // Left, as the titles of the calendars. A link alone in a BeerCSS card is centered.
+    css('a.metric-link').styles(raw: {'justify-content': 'flex-start', 'inline-size': 'fit-content'}),
+    // Room above the chart for the value labels.
+    css('.chart').styles(raw: {'margin-top': '1.5rem !important'}),
+  ]),
+
   // habit_table.dart: a metric name that opens the detail screen.
   css('a.metric-link').styles(
     display: .flex,
