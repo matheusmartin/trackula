@@ -4,7 +4,7 @@ import 'package:jaspr/jaspr.dart';
 import '../services/session.dart';
 
 /// The full-screen sign-in page: a large logo and a Google sign-in button.
-class SignInPage extends StatefulComponent {
+final class SignInPage extends StatefulComponent {
   const SignInPage({required this.expired, required this.onSignedIn, super.key});
 
   /// True if the user was signed out because the 1-hour token expired.

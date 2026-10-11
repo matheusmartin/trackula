@@ -49,4 +49,22 @@ void main() {
     expect(earliestDay(const [Day(2026, 3, 2), Day(2025, 12, 31), Day(2026, 1, 1)]), const Day(2025, 12, 31));
     expect(earliestDay(const []), isNull);
   });
+
+  test('monthOf, addMonths and daysOfMonth', () {
+    expect(monthOf(const Day(2026, 2, 14)), (year: 2026, month: 2));
+    expect(addMonths((year: 2026, month: 1), -1), (year: 2025, month: 12));
+    expect(addMonths((year: 2026, month: 11), 3), (year: 2027, month: 2));
+    final february = daysOfMonth((year: 2028, month: 2));
+    expect((february.length, february.first, february.last), (29, const Day(2028, 2, 1), const Day(2028, 2, 29)));
+  });
+
+  test('weekRows: Monday to Sunday, with null before the first day and after the last day', () {
+    // 2026-10-01 is a Thursday.
+    final weeks = weekRows(daysBetween(const Day(2026, 10, 1), const Day(2026, 10, 12)));
+    expect(weeks.map((w) => [for (final d in w) d?.day]), [
+      [null, null, null, 1, 2, 3, 4],
+      [5, 6, 7, 8, 9, 10, 11],
+      [12, null, null, null, null, null, null],
+    ]);
+  });
 }

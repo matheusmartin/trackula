@@ -31,7 +31,7 @@ final class Day implements Comparable<Day> {
 
   static final _pattern = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$');
 
-  /// Returns null if [s] is not a valid `YYYY-MM-DD` date.
+  /// The day of a `YYYY-MM-DD` text. Null if [s] is not a valid date.
   static Day? tryParse(String s) {
     final m = _pattern.firstMatch(s.trim());
     if (m == null) return null;
@@ -61,3 +61,25 @@ List<Day> daysBetween(Day first, Day last) => [for (var d = first; d.compareTo(l
 
 /// The earliest day of [days]. Null if [days] is empty.
 Day? earliestDay(Iterable<Day> days) => days.isEmpty ? null : days.reduce((a, b) => a.compareTo(b) <= 0 ? a : b);
+
+/// A month of the calendar.
+typedef MonthKey = ({int year, int month});
+
+/// The month of [day].
+MonthKey monthOf(Day day) => (year: day.year, month: day.month);
+
+/// The month [delta] months after [month], or before it if [delta] is negative.
+MonthKey addMonths(MonthKey month, int delta) => monthOf(Day.fromDateTime(DateTime(month.year, month.month + delta)));
+
+/// All days of [month], oldest first.
+List<Day> daysOfMonth(MonthKey month) =>
+    daysBetween(Day(month.year, month.month, 1), Day.fromDateTime(DateTime(month.year, month.month + 1, 0)));
+
+/// [days] in week rows, Monday to Sunday. Null fills the days before the first day and after the last day.
+List<List<Day?>> weekRows(List<Day> days) {
+  final slots = <Day?>[for (var i = 1; i < days.first.weekday; i++) null, ...days];
+  while (slots.length % 7 != 0) {
+    slots.add(null);
+  }
+  return [for (var i = 0; i < slots.length; i += 7) slots.sublist(i, i + 7)];
+}

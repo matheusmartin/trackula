@@ -4,39 +4,15 @@ import 'package:jaspr/jaspr.dart';
 import '../components/habit_table.dart';
 import '../components/today_tiles.dart';
 import '../model/day.dart';
+import '../model/day_range.dart';
 import '../model/log_entry.dart';
 import '../model/metric.dart';
 import '../services/prefs.dart';
 import '../sheets/store.dart';
 import 'metric_detail.dart';
 
-/// How many past days the Today page shows: today as input tiles (see [TodayTiles]), a table of the last 5 days on
-/// all screens, or one small calendar per metric for the last 31 days.
-enum DayRange {
-  today(1),
-  short(5),
-  month(31);
-
-  const DayRange(this.days);
-
-  final int days;
-
-  /// The label in the bottom navigation bar.
-  String get label => days == 1 ? 'Today' : '$days days';
-
-  /// The Material Symbols icon in the bottom navigation bar.
-  String get icon => switch (this) {
-    DayRange.today => 'today',
-    DayRange.short => 'view_week',
-    DayRange.month => 'calendar_month',
-  };
-
-  /// The days of the range, oldest first, ending on [today].
-  List<Day> daysUntil(Day today) => daysBetween(today.addDays(1 - days), today);
-}
-
-/// Shows the metrics in a HabitKit-style table and records entries.
-class TodayPage extends StatefulComponent {
+/// The main page: the metrics in Today tiles, a HabitKit-style table or calendars, where the user records entries.
+final class TodayPage extends StatefulComponent {
   const TodayPage({
     required this.store,
     required this.expired,
@@ -96,10 +72,14 @@ class _TodayPageState extends State<TodayPage> {
   /// Count taps in the write that runs now. The table shows them until the new data arrives.
   final _sending = <(String, Day), List<CountStep>>{};
 
-  /// Opens the detail screen of the metric [id], or closes it with null.
-  void _openDetail(String? id) {
+  void _openDetail(String id) {
     setState(() => _detailId = id);
-    component.onDetail(open: id != null);
+    component.onDetail(open: true);
+  }
+
+  void _closeDetail() {
+    setState(() => _detailId = null);
+    component.onDetail(open: false);
   }
 
   void _setGroup(String? group) => setState(() {
@@ -186,13 +166,11 @@ class _TodayPageState extends State<TodayPage> {
       _sending.addAll(_queued);
       _queued.clear();
     });
-    _run(() async {
-      Snapshot? data;
-      for (final MapEntry(key: (id, day), value: steps) in _sending.entries) {
-        if (metrics[id] case final NumberMetric m) data = await _store.change((log) => planCount(m, day, steps, log));
-      }
-      return data ?? _store.load();
-    }, done: _sending.clear);
+    final plans = [
+      for (final MapEntry(key: (id, day), value: steps) in _sending.entries)
+        if (metrics[id] case final NumberMetric metric) (LogTable log) => planCount(metric, day, steps, log),
+    ];
+    _run(() => _store.changeAll(plans), done: _sending.clear);
   }
 
   @override
@@ -219,7 +197,7 @@ class _TodayPageState extends State<TodayPage> {
           onWrite: _write,
           pending: pending,
           onCount: _count,
-          onBack: () => _openDetail(null),
+          onBack: _closeDetail,
         ),
         ...error,
       ]);
@@ -306,7 +284,7 @@ class _TodayPageState extends State<TodayPage> {
   ]);
 }
 
-/// Lets the app bar reload the data of the Today page. The page sets [run] when it starts.
+/// A handle that lets the app bar reload the data of the Today page. The page sets [run] when it starts.
 final class ReloadHandle {
   VoidCallback? run;
 }

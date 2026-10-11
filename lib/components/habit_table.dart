@@ -26,7 +26,7 @@ enum DayLayout {
 /// - Count: see [CountInput]. A count has no reset: it goes to empty with subtractions.
 /// - Number: a cell click opens the [NumberEditor] for that metric and day, below the metric: a ruler, a text field
 ///   and a Save button. A second click closes it.
-class HabitTable extends StatefulComponent {
+final class HabitTable extends StatefulComponent {
   const HabitTable({
     required this.metrics,
     required this.log,
@@ -38,7 +38,7 @@ class HabitTable extends StatefulComponent {
     required this.pending,
     required this.onCount,
     this.onOpen,
-    this.bare = false,
+    this.showsTitleAndChart = true,
     super.key,
   });
 
@@ -46,7 +46,7 @@ class HabitTable extends StatefulComponent {
   final LogTable log;
   final Day today;
 
-  /// The days to show.
+  /// The days of the table or of the calendars, oldest first.
   final List<Day> days;
   final DayLayout layout;
 
@@ -60,8 +60,8 @@ class HabitTable extends StatefulComponent {
   /// Opens the detail screen of a metric. Null: the metric names are not links.
   final void Function(Metric metric)? onOpen;
 
-  /// No metric title and no chart in [DayLayout.calendars]: the detail screen shows them itself.
-  final bool bare;
+  /// True if [DayLayout.calendars] shows the metric title and a chart. The detail screen shows them itself.
+  final bool showsTitleAndChart;
 
   @override
   State<HabitTable> createState() => _HabitTableState();
@@ -121,13 +121,13 @@ class _HabitTableState extends State<HabitTable> {
 
   /// 31-day mode: one small calendar per metric. Columns are Monday to Sunday.
   /// Number metrics also get a line chart of the same days.
-  Component _calendar(Metric m, List<Day> days) {
-    final values = _values(m);
+  Component _calendar(Metric metric, List<Day> days) {
+    final values = _values(metric);
     final editing = _editing;
-    final weeks = _weeks(days);
-    final labels = _weekLabels(weeks);
+    final weeks = weekRows(days);
+    final labels = weekLabels(weeks);
     return article(classes: 'calendar', [
-      if (!component.bare) div(classes: 'calendar-title', _name(m)),
+      if (component.showsTitleAndChart) div(classes: 'calendar-title', _name(metric)),
       // Cells show values, as in the short table. Dates are on the edges: weekdays on top, and the first day of
       // each week row on the left, with the month when it changes.
       div(classes: 'month', [
@@ -135,15 +135,17 @@ class _HabitTableState extends State<HabitTable> {
         for (final name in weekdayNames) small([.text(name[0])]),
         for (final (i, week) in weeks.indexed) ...[
           small(classes: 'week', [.text(labels[i])]),
-          for (final d in week) d == null ? span([]) : _cell(m, d, values, editing == (m.id, d)),
+          for (final day in week)
+            day == null ? span([]) : _cell(metric, day, values, selected: editing == (metric.id, day)),
         ],
       ]),
-      if (m is NumberMetric && !component.bare) TrendChart(days: days, values: values, unit: m.unit, bars: m.isCount),
-      if (m is NumberMetric && editing != null && editing.$1 == m.id) _editor(m, editing.$2, values),
+      if (metric is NumberMetric && component.showsTitleAndChart)
+        TrendChart(days: days, values: values, unit: metric.unit, showsBars: metric.isCount),
+      if (metric is NumberMetric && editing != null && editing.$1 == metric.id) _editor(metric, editing.$2, values),
     ]);
   }
 
-  /// The icon and the name of a metric. With [HabitTable.onOpen], a link to its detail screen.
+  /// The icon and the name of [m]. With [HabitTable.onOpen], a link to its detail screen.
   List<Component> _name(Metric m) {
     final open = component.onOpen;
     final content = [
@@ -167,89 +169,71 @@ class _HabitTableState extends State<HabitTable> {
     ];
   }
 
-  /// [days] in week rows, Monday to Sunday. Null fills the days before the first day and after the last day.
-  static List<List<Day?>> _weeks(List<Day> days) {
-    final slots = <Day?>[for (var i = 1; i < days.first.weekday; i++) null, ...days];
-    while (slots.length % 7 != 0) {
-      slots.add(null);
-    }
-    return [for (var i = 0; i < slots.length; i += 7) slots.sublist(i, i + 7)];
-  }
-
-  /// The labels of the week rows: the first day of each row, with the month on the first row and when the month
-  /// changes. Example: "Sep 2", "7", "14", "21", "28", "Oct 5".
-  static List<String> _weekLabels(List<List<Day?>> weeks) {
-    int? month;
-    return [
-      for (final week in weeks)
-        switch (week.whereType<Day>().first) {
-          final d when d.month != month => '${shortMonth(month = d.month)} ${d.day}',
-          final d => '${d.day}',
-        },
-    ];
-  }
-
-  List<Component> _rows(Metric m, List<Day> days) {
-    final values = _values(m);
+  /// The table row of [metric], and the row of its number editor if it is open.
+  List<Component> _rows(Metric metric, List<Day> days) {
+    final values = _values(metric);
     final editing = _editing;
     return [
       tr([
         th(scope: 'row', classes: 'name', [
-          div(_name(m)),
+          div(_name(metric)),
         ]),
-        for (final d in days) td([_cell(m, d, values, editing == (m.id, d))]),
+        for (final day in days) td([_cell(metric, day, values, selected: editing == (metric.id, day))]),
       ]),
-      if (m is NumberMetric && editing != null && editing.$1 == m.id)
+      if (metric is NumberMetric && editing != null && editing.$1 == metric.id)
         tr(classes: 'editor-row', [
-          td(colspan: days.length + 1, [_editor(m, editing.$2, values)]),
+          td(colspan: days.length + 1, [_editor(metric, editing.$2, values)]),
         ]),
     ];
   }
 
   /// A day cell. A cell with a value has one fixed color, whatever the value. See .cell.filled in theme.dart.
   /// A day after today is a faded cell that does nothing. See .cell.future.
-  Component _cell(Metric m, Day d, Map<Day, num> values, bool selected) {
-    if (d.compareTo(component.today) > 0) {
-      return button(classes: 'cell future', disabled: true, attributes: {'title': '$d'}, []);
+  Component _cell(Metric metric, Day day, Map<Day, num> values, {required bool selected}) {
+    if (day.compareTo(component.today) > 0) {
+      return button(classes: 'cell future', disabled: true, attributes: {'title': '$day'}, []);
     }
-    final v = values[d];
+    final value = values[day];
     return button(
       classes: [
         'cell',
-        if (v != null) 'filled',
-        if (d == component.today) 'today',
+        if (value != null) 'filled',
+        if (day == component.today) 'today',
         if (selected) 'selected',
       ].join(' '),
-      disabled: component.busy && m is YesNoMetric,
-      attributes: {'title': '${m.name}, $d${_valueText(m, v)}${_hint(m)}', 'aria-pressed': '${v != null}'},
-      onClick: () => _click(m, d, values),
+      disabled: component.busy && metric is YesNoMetric,
+      attributes: {
+        'title': '${metric.name}, $day${_valueText(metric, value)}${_hint(metric)}',
+        'aria-pressed': '${value != null}',
+      },
+      onClick: () => _click(metric, day, values),
       events: {
         // Count cells are not disabled during a write: taps queue and show at once. See TodayPage.
-        if (m case NumberMetric(isCount: true)) ..._countInput.events((sign) => _addCount(m, d, sign)),
+        if (metric case NumberMetric(isCount: true)) ..._countInput.events((sign) => _addCount(metric, day, sign)),
       },
       [
-        if (m is NumberMetric && v != null) .text(formatCompact(v)),
+        if (metric is NumberMetric && value != null) .text(formatCompact(value)),
       ],
     );
   }
 
   /// The editor of a `number` metric. An empty day starts at the latest earlier value, else at the first later
   /// value. See [NumberEditor].
-  Component _editor(NumberMetric m, Day d, Map<Day, num> values) {
-    final near = nearestDay(values.keys, d);
+  Component _editor(NumberMetric metric, Day day, Map<Day, num> values) {
+    final near = nearestDay(values.keys, day);
     return NumberEditor(
-      key: ValueKey('${m.id} $d'),
-      metric: m,
-      label: '${m.name} · ${d == component.today ? 'today' : '$d'}',
-      current: values[d],
+      key: ValueKey('${metric.id} $day'),
+      metric: metric,
+      label: '${metric.name} · ${day == component.today ? 'today' : '$day'}',
+      current: values[day],
       start: near == null ? null : values[near],
       busy: component.busy,
-      onSave: (v) {
-        component.onWrite((log) => planNumber(m, d, v, log));
+      onSave: (value) {
+        component.onWrite((log) => planNumber(metric, day, value, log));
         setState(() => _editing = null);
       },
       onClear: () {
-        component.onWrite((log) => planClear(m, d, log));
+        component.onWrite((log) => planClear(metric, day, log));
         setState(() => _editing = null);
       },
       onClose: () => setState(() => _editing = null),
@@ -263,10 +247,11 @@ class _HabitTableState extends State<HabitTable> {
     _ => '',
   };
 
+  /// The value part of the cell tooltip. Example: ": 82.1 kg".
   static String _valueText(Metric m, num? v) => switch ((m, v)) {
     (_, null) => '',
     (YesNoMetric(), _) => ': yes',
-    (NumberMetric(unit: final unit), final v?) => ': ${_format(v)} ${unit ?? ''}'.trimRight(),
+    (NumberMetric(:final unit), final v?) => ': ${withUnit(_format(v), unit)}',
   };
 
   static String _format(num value) => formatNumber(value, 3);

@@ -2,7 +2,8 @@ import 'package:web/web.dart' as web;
 
 import 'double_tap.dart';
 
-/// Turns the inputs on a count cell or tile into steps: +1 adds the metric step, −1 subtracts it.
+/// The input handler of count cells and tiles. It turns clicks, keys and taps into steps: +1 adds the metric step,
+/// −1 subtracts it.
 ///
 /// - Mouse and keyboard: a click adds a step at once, so two quick clicks add two steps. A right-click subtracts.
 /// - Touch: a tap adds a step after the double-tap wait, and a double-tap subtracts instead. See [DoubleTap].
@@ -18,7 +19,7 @@ final class CountInput<K> {
   /// or Space) works like a mouse click.
   String? _pressType;
 
-  /// The `click` handler of the cell [key]. [add] gets +1 or −1.
+  /// Handles a click on the cell [key]. [add] gets +1 or −1.
   void click(K key, void Function(int sign) add) {
     if (_takeTouchPress()) {
       _taps.tap(key, onSingle: () => add(1), onDouble: () => add(-1));

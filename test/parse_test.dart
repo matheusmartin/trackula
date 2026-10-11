@@ -88,6 +88,14 @@ void main() {
         throwsA(isA<HeaderException>()),
       );
     });
+
+    test('reads kind count as a number metric with bars', () {
+      final p = parseMetrics([
+        metricsHeader,
+        ['steps', 'Steps', 'count', '', 100, '', 'footprint'],
+      ]);
+      expect(p.items.single, isA<NumberMetric>().having((m) => m.isCount, 'isCount', isTrue));
+    });
   });
 
   group('parseLog', () {
@@ -200,13 +208,5 @@ void main() {
 
   test('columnLetter', () {
     expect([0, 1, 25, 26, 27, 51, 52].map(columnLetter), ['A', 'B', 'Z', 'AA', 'AB', 'AZ', 'BA']);
-  });
-
-  test('parseMetrics reads kind count as a number metric with bars', () {
-    final p = parseMetrics([
-      metricsHeader,
-      ['steps', 'Steps', 'count', '', 100, '', 'footprint'],
-    ]);
-    expect(p.items.single, isA<NumberMetric>().having((m) => m.isCount, 'isCount', isTrue));
   });
 }

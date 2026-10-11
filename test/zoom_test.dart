@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:trackula/model/day.dart';
-import 'package:trackula/model/stats.dart';
 import 'package:trackula/model/zoom.dart';
 
 void main() {
@@ -59,9 +58,9 @@ void main() {
     });
   });
 
-  test('defaultStep: 3 months, or the last step if there are fewer', () {
-    expect(defaultStep(zoomSteps(mon.addDays(-200), mon)), ZoomStep.values.indexOf(ZoomStep.month3));
-    expect(defaultStep(zoomSteps(mon.addDays(-10), mon)), 1);
+  test('defaultStepIndex: 3 months, or the last step if there are fewer', () {
+    expect(defaultStepIndex(zoomSteps(mon.addDays(-200), mon)), ZoomStep.values.indexOf(ZoomStep.month3));
+    expect(defaultStepIndex(zoomSteps(mon.addDays(-10), mon)), 1);
   });
 
   group('ZoomWindow', () {
@@ -78,16 +77,16 @@ void main() {
 
     test('moves by bars and stops at the ends', () {
       final w = ZoomWindow(ZoomStep.month1, first: first, today: today);
-      final back = ZoomWindow(ZoomStep.month1, first: first, today: today, end: w.moved(-2));
+      final back = ZoomWindow(ZoomStep.month1, first: first, today: today, end: w.endMovedBy(-2));
       expect(back.to, mon.addDays(-14 + 6));
-      expect(w.moved(3), isNull);
-      final oldest = ZoomWindow(ZoomStep.month1, first: first, today: today, end: w.moved(-100));
+      expect(w.endMovedBy(3), isNull);
+      final oldest = ZoomWindow(ZoomStep.month1, first: first, today: today, end: w.endMovedBy(-100));
       expect((oldest.from, oldest.atStart), (first, true));
     });
 
-    test('centeredOn puts the day in the middle bar', () {
+    test('endCenteredOn puts the day in the middle bar', () {
       final w = ZoomWindow(ZoomStep.month1, first: first, today: today);
-      final c = ZoomWindow(ZoomStep.month1, first: first, today: today, end: w.centeredOn(const Day(2026, 8, 26)));
+      final c = ZoomWindow(ZoomStep.month1, first: first, today: today, end: w.endCenteredOn(const Day(2026, 8, 26)));
       expect(c.starts[2], const Day(2026, 8, 24));
     });
 
@@ -96,9 +95,5 @@ void main() {
       expect(w.starts, [const Day(2026, 8, 1), const Day(2026, 9, 1)]);
       expect((w.from, w.atStart, w.atEnd), (first, true, true));
     });
-  });
-
-  test('streakLengths', () {
-    expect(streakLengths([1, 2, 2, 5, 40]), [1, 2, 0, 1, 0, 0, 1]);
   });
 }

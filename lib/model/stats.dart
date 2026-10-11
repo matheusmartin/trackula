@@ -6,9 +6,6 @@ import 'log_entry.dart';
 /// A value on a day, for example the best day of a count.
 typedef DayValue = ({Day day, num value});
 
-/// A month of the calendar.
-typedef MonthKey = ({int year, int month});
-
 /// The yes/no states of [metricId] in [entries]: true for `yes`, false for `no`. Days without entry are left out.
 Map<Day, bool> yesNoStates(String metricId, List<LogEntry> entries) => {
   for (final e in entries)
@@ -22,7 +19,6 @@ final class YesNoStats {
     required this.yes,
     required this.no,
     required this.currentStreak,
-    required this.longestStreak,
     required this.streaks,
     required this.weekdayRates,
     required this.strength,
@@ -44,11 +40,11 @@ final class YesNoStats {
   /// Consecutive `yes` days up to today. If today has no `yes` yet, up to yesterday.
   final int currentStreak;
 
-  /// The longest run of `yes` days in the period.
-  final int longestStreak;
-
   /// The lengths of the runs of `yes` days in the period, oldest first.
   final List<int> streaks;
+
+  /// The longest run of `yes` days in the period.
+  int get longestStreak => streaks.fold(0, math.max);
 
   /// The share of `yes` days for each weekday, Monday first. Null if the period has no such weekday.
   final List<double?> weekdayRates;
@@ -62,21 +58,17 @@ final class YesNoStats {
 const strengthWeight = 0.05;
 
 /// The yes/no numbers of [states] for the period [days]. [today] is the last day of the period.
-YesNoStats yesNoStats(Map<Day, bool> states, List<Day> days, Day today) {
-  final streaks = _streaks(states, days);
-  return YesNoStats(
-    days: days.length,
-    yes: days.where((d) => states[d] == true).length,
-    no: days.where((d) => states[d] == false).length,
-    currentStreak: _currentStreak(states, today),
-    longestStreak: streaks.fold(0, math.max),
-    streaks: streaks,
-    weekdayRates: [
-      for (var weekday = DateTime.monday; weekday <= DateTime.sunday; weekday++) _weekdayRate(states, days, weekday),
-    ],
-    strength: _strength(states, days),
-  );
-}
+YesNoStats yesNoStats(Map<Day, bool> states, List<Day> days, Day today) => YesNoStats(
+  days: days.length,
+  yes: days.where((d) => states[d] == true).length,
+  no: days.where((d) => states[d] == false).length,
+  currentStreak: _currentStreak(states, today),
+  streaks: _streaks(states, days),
+  weekdayRates: [
+    for (var weekday = DateTime.monday; weekday <= DateTime.sunday; weekday++) _weekdayRate(states, days, weekday),
+  ],
+  strength: _strength(states, days),
+);
 
 /// The lengths of the runs of `yes` days in [days], oldest first.
 List<int> _streaks(Map<Day, bool> states, List<Day> days) {
@@ -158,7 +150,7 @@ final class CountStats {
   final List<num?> weekdayAverages;
 
   /// For each value (rounded to a whole number), the number of days with it, from the lowest value.
-  final List<(int, int)> distribution;
+  final List<({int value, int days})> distribution;
 
   /// The total up to each day of the period.
   final List<num> running;
@@ -185,7 +177,8 @@ CountStats countStats(Map<Day, num> values, List<Day> days) {
       for (var weekday = DateTime.monday; weekday <= DateTime.sunday; weekday++)
         _average(present.where((p) => p.day.weekday == weekday)),
     ],
-    distribution: [for (final e in counts.entries) (e.key, e.value)]..sort((a, b) => a.$1.compareTo(b.$1)),
+    distribution: [for (final e in counts.entries) (value: e.key, days: e.value)]
+      ..sort((a, b) => a.value.compareTo(b.value)),
     running: running,
   );
 }
@@ -200,8 +193,6 @@ final class NumberStats {
     required this.change,
     required this.low,
     required this.high,
-    required this.average,
-    required this.logged,
     required this.values,
     required this.trend,
     required this.histogram,
@@ -214,13 +205,15 @@ final class NumberStats {
   final num? change;
   final DayValue? low;
   final DayValue? high;
-  final num? average;
-
-  /// The number of days with a value.
-  final int logged;
 
   /// The value of each day of the period. Null if the day has no value.
   final List<num?> values;
+
+  /// The number of days with a value.
+  int get logged => values.nonNulls.length;
+
+  /// The average of the days with a value. Null if no day has a value.
+  num? get average => logged == 0 ? null : values.nonNulls.fold<num>(0, (total, v) => total + v) / logged;
 
   /// The smooth trend of each day: an exponential moving average. Null before the first value. See [trendWeight].
   final List<num?> trend;
@@ -241,10 +234,8 @@ NumberStats numberStats(Map<Day, num> values, List<Day> days) {
   return NumberStats(
     latest: present.lastOrNull,
     change: present.length < 2 ? null : present.last.value - present.first.value,
-    low: present.fold<DayValue?>(null, (low, p) => low == null || p.value < low.value ? p : low),
+    low: _lowest(present),
     high: _highest(present),
-    average: _average(present),
-    logged: present.length,
     values: [for (final d in days) values[d]],
     trend: _trend(values, days),
     histogram: _histogram(present),
@@ -283,13 +274,25 @@ List<DayValue> _present(Map<Day, num> values, List<Day> days) => [
 DayValue? _highest(List<DayValue> values) =>
     values.fold<DayValue?>(null, (high, p) => high == null || p.value > high.value ? p : high);
 
+/// The first day with the lowest value of [values]. Null if [values] is empty.
+DayValue? _lowest(List<DayValue> values) =>
+    values.fold<DayValue?>(null, (low, p) => low == null || p.value < low.value ? p : low);
+
 num? _average(Iterable<DayValue> values) =>
     values.isEmpty ? null : values.fold<num>(0, (total, p) => total + p.value) / values.length;
 
 /// The ranges of streak lengths in days, for [streakLengths]. The last range has no end.
-const streakRanges = [(1, 1), (2, 2), (3, 3), (4, 6), (7, 13), (14, 29), (30, null)];
+const streakRanges = [
+  (from: 1, to: 1),
+  (from: 2, to: 2),
+  (from: 3, to: 3),
+  (from: 4, to: 6),
+  (from: 7, to: 13),
+  (from: 14, to: 29),
+  (from: 30, to: null),
+];
 
 /// The number of [streaks] in each range of [streakRanges]. Example: streaks 1, 2, 2, 5 → 1, 2, 0, 1, 0, 0, 0.
 List<int> streakLengths(List<int> streaks) => [
-  for (final (from, to) in streakRanges) streaks.where((s) => s >= from && (to == null || s <= to)).length,
+  for (final (:from, :to) in streakRanges) streaks.where((s) => s >= from && (to == null || s <= to)).length,
 ];

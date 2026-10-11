@@ -3,6 +3,7 @@ import 'package:jaspr/jaspr.dart';
 
 import 'components/header.dart';
 import 'config.dart';
+import 'model/day_range.dart';
 import 'pages/setup.dart';
 import 'pages/sign_in.dart';
 import 'pages/today.dart';
@@ -11,7 +12,7 @@ import 'sheets/demo_store.dart';
 import 'sheets/store.dart';
 
 /// Root component. Shows sign-in, then sheet setup, then the Today page.
-class App extends StatefulComponent {
+final class App extends StatefulComponent {
   const App({super.key});
 
   @override
@@ -20,7 +21,7 @@ class App extends StatefulComponent {
 
 class _AppState extends State<App> {
   Session? _session;
-  String? _sheetId = savedSheetId;
+  String? _spreadsheetId = savedSpreadsheetId;
   bool _expired = false;
 
   /// The view of the Today page. The app always opens on the Today tiles.
@@ -33,11 +34,13 @@ class _AppState extends State<App> {
   bool _busy = false;
 
   /// True while the Today page shows a metric detail screen: then the bottom navigation bar is hidden.
-  bool _detail = false;
+  bool _showsDetail = false;
 
   void _setRange(DayRange r) => setState(() => _range = r);
 
-  void _setDetail({required bool open}) => setState(() => _detail = open);
+  void _setDetail({required bool open}) => setState(() => _showsDetail = open);
+
+  void _reloadToday() => _reload.run?.call();
 
   /// The Today page with the range of the bottom navigation bar.
   TodayPage _todayPage({required Store store, required bool Function() expired, VoidCallback? onExpired, Key? key}) =>
@@ -93,52 +96,56 @@ class _AppState extends State<App> {
     _expired = true;
   });
 
-  void _connect(String id) => setState(() => savedSheetId = _sheetId = id);
+  void _connect(String id) => setState(() => savedSpreadsheetId = _spreadsheetId = id);
 
-  void _disconnect() => setState(() => savedSheetId = _sheetId = null);
+  void _disconnect() => setState(() => savedSpreadsheetId = _spreadsheetId = null);
+
+  /// The app bar, the main content and the bottom navigation bar. They are direct children of `<body>`, as the
+  /// BeerCSS layout expects.
+  Component _layout(Header header, List<Component> content, {required bool showsNavigation}) => .fragment([
+    header,
+    main_(classes: 'responsive', content),
+    if (showsNavigation && !_showsDetail) _bottomNav(),
+  ]);
 
   @override
   Component build(BuildContext context) {
     if (_demo case final demo?) {
-      return .fragment([
-        Header(onReload: () => _reload.run?.call(), busy: _busy),
-        main_(classes: 'responsive', [
-          p(classes: 'secondary-text', [
-            .text('Demo mode: sample data in this tab only. Nothing goes to Google Sheets. A reload starts again.'),
-          ]),
-          _todayPage(store: demo, expired: () => false),
+      return _layout(Header(onReload: _reloadToday, busy: _busy), [
+        p(classes: 'secondary-text', [
+          .text('Demo mode: sample data in this tab only. Nothing goes to Google Sheets. A reload starts again.'),
         ]),
-        if (!_detail) _bottomNav(),
-      ]);
+        _todayPage(store: demo, expired: () => false),
+      ], showsNavigation: true);
     }
     final session = _session;
-    final sheetId = _sheetId;
+    final spreadsheetId = _spreadsheetId;
     // Signed out: only the full-screen sign-in page, without the top bar.
     if (session == null && hasClientId && hasApiKey) return SignInPage(expired: _expired, onSignedIn: _signedIn);
-    // Header and main are direct children of <body>, as the BeerCSS main layout expects.
-    return .fragment([
+    final connected = session != null && spreadsheetId != null;
+    return _layout(
       Header(
-        onReload: session == null || sheetId == null ? null : () => _reload.run?.call(),
+        onReload: connected ? _reloadToday : null,
         busy: _busy,
         onSignOut: session == null ? null : _signOut,
-        onDisconnect: session == null || sheetId == null ? null : _disconnect,
+        onDisconnect: connected ? _disconnect : null,
       ),
-      main_(classes: 'responsive', [
+      [
         if (!hasClientId || !hasApiKey)
           p(classes: 'secondary-text', [.text('Set GOOGLE_CLIENT_ID and GOOGLE_API_KEY in config.env. See README.md.')])
         else if (session == null)
           const .empty()
-        else if (sheetId == null)
+        else if (spreadsheetId == null)
           SetupPage(session: session, onConnected: _connect)
         else
           _todayPage(
-            key: ValueKey(sheetId),
-            store: session.store(sheetId),
+            key: ValueKey(spreadsheetId),
+            store: session.store(spreadsheetId),
             expired: () => session.expired,
             onExpired: _expire,
           ),
-      ]),
-      if (session != null && sheetId != null && !_detail) _bottomNav(),
-    ]);
+      ],
+      showsNavigation: connected,
+    );
   }
 }

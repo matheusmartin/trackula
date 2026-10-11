@@ -20,7 +20,7 @@ final class Parsed<T> {
 
 /// Thrown when a header row does not contain a required column.
 final class HeaderException implements Exception {
-  HeaderException(this.tab, this.missing);
+  const HeaderException(this.tab, this.missing);
 
   final String tab;
   final List<String> missing;
@@ -31,7 +31,7 @@ final class HeaderException implements Exception {
 
 final _idPattern = RegExp(r'^[a-z0-9_-]+$');
 
-/// Parses the `Metrics` tab. [rows] includes the header row.
+/// Parses the `Metrics` tab. [rows] includes the header row. Throws a [HeaderException] if a column is missing.
 Parsed<Metric> parseMetrics(List<List<Object?>> rows) {
   final columns = _columns(metricsTitle, rows, metricsHeader);
   final items = <Metric>[];
@@ -86,6 +86,7 @@ Metric _metric(_MetricRow row, String id) {
 }
 
 /// Parses the `Log` tab: column A is `date`, the other headers are metric ids. [rows] includes the header row.
+/// Throws a [HeaderException] if column A is not `date`.
 ({LogTable table, List<String> warnings}) parseLog(List<List<Object?>> rows, Map<String, Metric> metrics) {
   final header = rows.isEmpty ? const <Object?>[] : rows.first;
   if (header.isEmpty || '${header.first}'.trim().toLowerCase() != 'date') throw HeaderException(logTitle, ['date']);

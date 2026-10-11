@@ -23,7 +23,7 @@ import 'number_editor.dart';
 ///
 /// A tile with a value (saved or not) is green. An unsaved tile also has a green frame. Styles: `.tiles` and
 /// `.save-button` in lib/constants/theme.dart.
-class TodayTiles extends StatefulComponent {
+final class TodayTiles extends StatefulComponent {
   const TodayTiles({
     required this.metrics,
     required this.log,
@@ -144,7 +144,7 @@ class _TodayTilesState extends State<TodayTiles> {
     if (_drafts.containsKey(m.id)) 'unsaved',
   ].join(' ');
 
-  /// The icon and the name. No status line.
+  /// The icon and the name of [m].
   List<Component> _head(Metric m) => [
     metricIcon(m),
     div(classes: 'tile-text', [
@@ -170,38 +170,37 @@ class _TodayTilesState extends State<TodayTiles> {
   void _addCount(NumberMetric m, int sign, num? saved) =>
       _set(m, applyCountSteps(_shown(m, saved), [CountStep.add(sign * m.step)]), saved);
 
-  Component _count(NumberMetric m, num? saved) {
-    final v = _shown(m, saved);
-    final step = formatStep(m.step, m.step);
-    return div(classes: _classes(m, done: v != null, kind: 'count'), [
+  /// A tile with a counter.
+  Component _count(NumberMetric metric, num? saved) {
+    final value = _shown(metric, saved);
+    final step = formatStep(metric.step, metric.step);
+    return div(classes: _classes(metric, done: value != null, kind: 'count'), [
       button(
         classes: 'tile-main',
-        attributes: {'title': 'Tap or click: +$step. Double-tap or right-click: −$step.', 'aria-label': m.name},
-        onClick: () => _countInput.click(m.id, (sign) => _addCount(m, sign, saved)),
-        events: _countInput.events((sign) => _addCount(m, sign, saved)),
+        attributes: {'title': 'Tap or click: +$step. Double-tap or right-click: −$step.', 'aria-label': metric.name},
+        onClick: () => _countInput.click(metric.id, (sign) => _addCount(metric, sign, saved)),
+        events: _countInput.events((sign) => _addCount(metric, sign, saved)),
         [
-          ..._head(m),
+          ..._head(metric),
           // The counter: the value of today, 0 when empty.
-          span(classes: 'tile-counter', [.text(v == null ? '0' : formatStep(v, m.step))]),
+          span(classes: 'tile-counter', [.text(value == null ? '0' : formatStep(value, metric.step))]),
         ],
       ),
     ]);
   }
 
   /// A full-width tile with the ruler.
-  Component _number(NumberMetric m, Map<Day, num> values) {
+  Component _number(NumberMetric metric, Map<Day, num> values) {
     final saved = values[_today];
-    final v = _shown(m, saved);
     final near = nearestDay(values.keys, _today);
-    final start = near == null ? null : values[near];
-    return div(classes: _classes(m, done: v != null, kind: 'wide'), [
-      div(classes: 'tile-main', _head(m)),
+    return div(classes: _classes(metric, done: _shown(metric, saved) != null, kind: 'wide'), [
+      div(classes: 'tile-main', _head(metric)),
       NumberEditor(
-        key: ValueKey('${m.id} $_today'),
-        metric: m,
-        label: '${m.name} · today',
+        key: ValueKey('${metric.id} $_today'),
+        metric: metric,
+        label: '${metric.name} · today',
         current: saved,
-        start: start,
+        start: near == null ? null : values[near],
         busy: component.busy,
         autofocus: false,
         // The Save button saves. These run only without onChange.
@@ -209,7 +208,7 @@ class _TodayTilesState extends State<TodayTiles> {
         onClear: () {},
         onClose: () {},
         // On an empty day, a tap on the ruler at the start value is a change: it confirms that value.
-        onChange: (value) => _set(m, value, saved),
+        onChange: (value) => _set(metric, value, saved),
       ),
     ]);
   }

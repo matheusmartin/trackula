@@ -1,6 +1,6 @@
 import 'dart:async';
 
-/// Tells single taps from double-taps. One tap waits at a time, for any key, such as a cell.
+/// A filter that tells single taps from double-taps. One tap waits at a time, for any key, such as a cell.
 ///
 /// A single tap runs only when [wait] ends without a second tap on the same key. A second tap in that time
 /// is a double-tap: it runs at once and the single tap is dropped. A tap on another key runs the waiting
@@ -16,27 +16,28 @@ final class DoubleTap<K> {
 
   bool get _waiting => _timer?.isActive ?? false;
 
+  /// Adds a tap on [key]. [onSingle] runs after [wait] if no second tap comes, and [onDouble] runs at the second tap.
   void tap(K key, {required void Function() onSingle, required void Function() onDouble}) {
-    if (_waiting) {
+    if (_waiting && _key == key) {
       _timer!.cancel();
-      final single = _single;
       _single = null;
-      if (_key == key) return onDouble();
-      single?.call();
+      return onDouble();
     }
+    flush();
     _key = key;
     _single = onSingle;
-    _timer = Timer(wait, () {
-      final single = _single;
-      _single = null;
-      single?.call();
-    });
+    _timer = Timer(wait, _runSingle);
   }
 
   /// Runs the waiting single tap at once, if there is one.
   void flush() {
     if (!_waiting) return;
     _timer!.cancel();
+    _runSingle();
+  }
+
+  /// Runs the waiting single tap, and removes it so that it runs only once.
+  void _runSingle() {
     final single = _single;
     _single = null;
     single?.call();

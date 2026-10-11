@@ -11,14 +11,16 @@ import '../model/format.dart';
 /// The SVG stretches to the card width.
 ///
 /// - Line (default): the Y axis goes from the lowest to the highest value. Lines and dots keep their size.
-/// - Bars ([bars] true, for `count` metrics): the Y axis goes from 0 to the highest value.
-class TrendChart extends StatelessComponent {
-  const TrendChart({required this.days, required this.values, this.unit, this.bars = false, super.key});
+/// - Bars ([showsBars] true, for `count` metrics): the Y axis goes from 0 to the highest value.
+final class TrendChart extends StatelessComponent {
+  const TrendChart({required this.days, required this.values, this.unit, this.showsBars = false, super.key});
 
   final List<Day> days;
   final Map<Day, num> values;
   final String? unit;
-  final bool bars;
+
+  /// True if the chart shows bars from 0, for `count` metrics. Else it shows a line.
+  final bool showsBars;
 
   /// The size of the chart, in chart units.
   static const _width = 100.0, _height = 40.0;
@@ -28,7 +30,7 @@ class TrendChart extends StatelessComponent {
     final points = chartPoints(days, values, width: _width, height: _height);
     if (points.isEmpty) return .fragment([]);
     final high = points.map((pt) => pt.value).reduce(math.max);
-    final low = bars ? 0 : points.map((pt) => pt.value).reduce(math.min);
+    final low = showsBars ? 0 : points.map((pt) => pt.value).reduce(math.min);
 
     return div(classes: 'chart', styles: _chart, [
       div(styles: _yAxis, [
@@ -39,7 +41,7 @@ class TrendChart extends StatelessComponent {
         viewBox: '0 0 ${_coordinate(_width)} ${_coordinate(_height)}',
         styles: _svg,
         attributes: {'preserveAspectRatio': 'none', 'role': 'img', 'aria-label': _label(low, high)},
-        bars ? _bars() : _line(points),
+        showsBars ? _bars() : _line(points),
       ),
       div(styles: _xAxis, [
         small(styles: _text, [.text(shortDay(days.first))]),
@@ -117,10 +119,10 @@ class TrendChart extends StatelessComponent {
 
   /// Tooltip with the date and value.
   Component _title(Day day, num value) =>
-      Component.element(tag: 'title', children: [.text('$day: ${_format(value)} ${unit ?? ''}'.trim())]);
+      Component.element(tag: 'title', children: [.text('$day: ${withUnit(_format(value), unit)}')]);
 
   String _label(num low, num high) =>
-      'Values from ${_format(low)} to ${_format(high)} ${unit ?? ''}, ${shortDay(days.first)} to ${shortDay(days.last)}';
+      'Values from ${_format(low)} to ${withUnit(_format(high), unit)}, ${shortDay(days.first)} to ${shortDay(days.last)}';
 
   /// A coordinate in the SVG path.
   static String _coordinate(double value) => value.toStringAsFixed(2);

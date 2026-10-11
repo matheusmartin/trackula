@@ -55,7 +55,7 @@ sealed class LogWrite {
   const LogWrite();
 }
 
-/// Adds a row for a day that has no row yet.
+/// A new row for a day that has no row yet.
 final class AppendRow extends LogWrite {
   const AppendRow(this.date, this.column, this.value);
 
@@ -69,7 +69,7 @@ final class AppendRow extends LogWrite {
   List<Object> toCells() => [date.toString(), for (var c = 1; c < column; c++) '', value];
 }
 
-/// Sets one cell. A null [value] clears the cell.
+/// A new value for one cell. A null [value] clears the cell.
 final class SetCell extends LogWrite {
   const SetCell(this.row, this.column, this.value);
 
@@ -128,7 +128,8 @@ num? applyCountSteps(num? current, Iterable<CountStep> steps) {
 LogWrite? planCount(NumberMetric metric, Day date, List<CountStep> steps, LogTable log) =>
     _plan(metric, date, applyCountSteps(log.valueAt(metric.id, date), steps), log);
 
-/// Returns null if the cell already has [value]. The app compares the value, not the text: `yes` and 1 are equal.
+/// Returns the change that sets [metric] to [value] on [date]. Null if the cell already has [value]: the app compares
+/// the value, not the text, so `yes` and 1 are equal.
 LogWrite? _plan(Metric metric, Day date, num? value, LogTable log) {
   final column = log.columns[metric.id];
   if (column == null) throw MissingColumnException(metric.id);

@@ -8,10 +8,10 @@ import 'prefs.dart';
 
 /// A signed-in Google user. The access token stays in memory only.
 final class Session {
-  Session._(AccessCredentials credentials) : api = SheetsApi(authenticatedClient(BrowserClient(), credentials)) {
-    _expiry = credentials.accessToken.expiry;
-    accessToken = credentials.accessToken.data;
-  }
+  Session._(AccessCredentials credentials)
+    : api = SheetsApi(authenticatedClient(BrowserClient(), credentials)),
+      accessToken = credentials.accessToken.data,
+      _expiry = credentials.accessToken.expiry;
 
   /// Opens the Google sign-in popup. Call it from a click handler, or the browser can block the popup.
   static Future<Session> signIn({bool selectAccount = true}) async => Session._(
@@ -23,16 +23,16 @@ final class Session {
   );
 
   final SheetsApi api;
-  late final String accessToken;
-  late final DateTime _expiry;
+  final String accessToken;
+  final DateTime _expiry;
 
-  /// The token lasts 1 hour. There is no refresh token in the browser.
+  /// True if the access token expired. It lasts 1 hour, and there is no refresh token in the browser.
   bool get expired => DateTime.now().toUtc().isAfter(_expiry);
 
   SheetsStore store(String spreadsheetId) => SheetsStore(api, spreadsheetId);
 }
 
 /// The spreadsheet ID in this browser's local storage. Not secret: access needs a signed-in user.
-String? get savedSheetId => readPref('spreadsheetId');
+String? get savedSpreadsheetId => readPref('spreadsheetId');
 
-set savedSheetId(String? id) => writePref('spreadsheetId', id);
+set savedSpreadsheetId(String? id) => writePref('spreadsheetId', id);

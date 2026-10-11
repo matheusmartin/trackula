@@ -4,7 +4,7 @@ import 'package:jaspr/jaspr.dart';
 import 'icon_button.dart';
 
 /// Material top app bar with the app name and the session actions.
-class Header extends StatelessComponent {
+final class Header extends StatelessComponent {
   const Header({this.onReload, this.busy = false, this.onSignOut, this.onDisconnect, super.key});
 
   /// Reloads the sheet data. Null: no reload button, for example before a sheet is chosen.

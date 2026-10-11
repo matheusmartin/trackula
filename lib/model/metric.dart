@@ -30,6 +30,6 @@ final class NumberMetric extends Metric {
   final String? unit;
   final num step;
 
-  /// Kind `count`: the same as `number`, but the chart shows bars from 0 instead of a line.
+  /// True if the metric is kind `count`: the same as `number`, but the chart shows bars from 0 instead of a line.
   final bool isCount;
 }

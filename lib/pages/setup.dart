@@ -3,10 +3,9 @@ import 'package:jaspr/jaspr.dart';
 
 import '../services/picker.dart';
 import '../services/session.dart';
-import '../sheets/sheets_store.dart';
 
-/// Lets the user pick a spreadsheet from their Drive with the Google Picker.
-class SetupPage extends StatefulComponent {
+/// The page where the user picks a spreadsheet from their Drive with the Google Picker.
+final class SetupPage extends StatefulComponent {
   const SetupPage({required this.session, required this.onConnected, super.key});
 
   final Session session;
@@ -26,10 +25,10 @@ class _SetupPageState extends State<SetupPage> {
       _error = null;
     });
     try {
-      final picked = await pickSpreadsheet(component.session.accessToken);
-      if (picked == null) return;
-      await SheetsStore.ensureTabs(component.session.api, picked.id);
-      component.onConnected(picked.id);
+      final spreadsheetId = await pickSpreadsheet(component.session.accessToken);
+      if (spreadsheetId == null) return;
+      await component.session.store(spreadsheetId).ensureTabs();
+      component.onConnected(spreadsheetId);
     } on Exception catch (e) {
       setState(() => _error = '$e');
     } finally {

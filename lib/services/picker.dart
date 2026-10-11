@@ -5,9 +5,6 @@ import 'package:web/web.dart' as web;
 
 import '../config.dart';
 
-/// A spreadsheet that the user picked.
-typedef PickedSheet = ({String id, String name});
-
 /// Thrown when the browser cannot load the Google Picker, for example without a network connection.
 final class PickerException implements Exception {
   const PickerException(this.message);
@@ -18,19 +15,19 @@ final class PickerException implements Exception {
   String toString() => message;
 }
 
-/// Opens the Google Picker with the user's spreadsheets. Returns null if the user cancels.
+/// Opens the Google Picker with the user's spreadsheets. Returns the ID of the picked spreadsheet, or null if the user
+/// cancels. Throws a [PickerException] if the Picker cannot load.
 ///
 /// Picking a file gives this app `drive.file` access to it. See
 /// https://developers.google.com/workspace/drive/picker/guides/overview
-Future<PickedSheet?> pickSpreadsheet(String accessToken) async {
+Future<String?> pickSpreadsheet(String accessToken) async {
   await _loadPicker();
-  final result = Completer<PickedSheet?>();
+  final result = Completer<String?>();
 
   void onPick(_PickerResult r) {
     switch (r.action) {
       case 'picked':
-        final doc = r.docs!.toDart.first;
-        result.complete((id: doc.id, name: doc.name));
+        result.complete(r.docs!.toDart.first.id);
       case 'cancel':
         result.complete(null);
     }
@@ -113,5 +110,4 @@ extension type _PickerResult._(JSObject _) implements JSObject {
 
 extension type _PickerDoc._(JSObject _) implements JSObject {
   external String get id;
-  external String get name;
 }
