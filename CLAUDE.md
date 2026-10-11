@@ -1,65 +1,50 @@
 # Trackula: repository rules
 
-Read `README.md` first. It has the commands, the configuration and the overview. This file has the rules for how
-the code is organised. Write all docs, comments and commit messages in ASD-STE100 Simplified Technical English, as
-in `README.md`.
+Read `README.md` first. It has the overview, the commands, the configuration and the project structure. This file
+adds the rules for the code.
 
-## Folders
+## Standards
 
-| Folder            | Contents                                                              | Can import                                  |
-|-------------------|-----------------------------------------------------------------------|---------------------------------------------|
-| `lib/model/`      | Data model, parsing, validation, write planning, stats, zoom.         | `dart:*` and `lib/model/` only.             |
-| `lib/sheets/`     | The `Store` interface and its implementations (`SheetsStore`, `DemoStore`). | `lib/model/`, Google Sheets packages.  |
-| `lib/services/`   | Browser APIs: sign-in, Picker, browser storage, input helpers.        | `lib/model/`, `lib/sheets/`, `lib/config.dart`. |
-| `lib/components/` | UI parts that more than one page can use.                             | `lib/model/`, `lib/services/`.              |
-| `lib/pages/`      | One file for each screen.                                             | All of the above, and other pages.          |
-| `lib/constants/`  | App CSS (`@css`) on top of BeerCSS.                                   | No browser-only code.                       |
-| `lib/config.dart` | Reads the build defines. Nothing else.                                | —                                           |
-| `test/`           | Unit tests.                                                           | —                                           |
-| `docs/`           | Docs for users and developers.                                        | —                                           |
-| `web/`            | Static files: `index.html`, `theme.css`, icons.                       | —                                           |
-| `design/`         | Source files for the logo. Not part of the build.                     | —                                           |
+- Read and follow [Effective Dart](https://dart.dev/effective-dart): Style, Documentation, Usage and Design.
+  `analysis_options.yaml` turns on lints for many of its rules.
+- Follow Clean Code (Robert C. Martin):
+  - A name tells why the thing exists and what it does. Use short names, such as `m` or `d`, only in a small
+    scope, for example a lambda or a loop of a few lines.
+  - A function does one thing, at one level of abstraction. If a function is long, split it into named parts.
+  - A class has one responsibility.
+  - Do not repeat code. Put shared logic in one place and use it from all callers.
+  - A comment tells why, not what. Remove comments that only repeat the code, and remove commented-out code.
+  - Remove dead code: unused functions, parameters and files.
+- This project differs from Effective Dart in these points:
+  - The maximum line length is 120, not 80. `analysis_options.yaml` sets it for `dart format`.
+  - Write all docs, comments and commit messages in ASD-STE100 Simplified Technical English, as in `README.md`.
+- `dart analyze` must show no issues, and `dart test` must pass.
 
-Rules:
+## Imports between folders
 
-- Imports go in one direction only: `model` → `sheets` → `services` → `components` → `pages`. A folder must not
-  import a folder to its right. Example: `lib/components/` must not import `lib/pages/`.
-- `lib/model/` is pure Dart. Do not import `package:jaspr`, `package:web` or `package:googleapis` there. Put new
-  logic in `lib/model/` when you can, because there you can test it with `dart test`.
-- Do not put `@css` in a file that imports browser-only code (`package:web`, `googleapis_auth/auth_browser`). Jaspr
-  runs `@css` code on the Dart VM, and browser-only imports make the build fail.
-- Use relative imports inside `lib/`. Example: `import '../model/metric.dart';`.
-- Do not add a new folder in `lib/` without a good reason. If you add one, add it to this table and to the
-  "Project structure" section of `README.md`.
+- `lib/model/` can import only `dart:*` and other `lib/model/` files. It is pure Dart: you can test it with
+  `dart test`. Put logic here when you can.
+- `lib/sheets/` can import `lib/model/` and the Google Sheets packages.
+- `lib/services/` can import `lib/model/`, `lib/sheets/` and `lib/config.dart`.
+- `lib/components/` can import `lib/model/` and `lib/services/`.
+- `lib/pages/` can import all the folders above, and other pages.
+- If you add a folder in `lib/`, add it to this list and to "Project structure" in `README.md`.
 
-## Files and names
+## Tests
 
-- File names: `snake_case.dart`. A page file has the screen name, for example `metric_detail.dart`.
-- Test files: `test/<area>_test.dart`, where `<area>` is the `lib/model/` file or the feature. Example:
-  `test/zoom_test.dart` tests `lib/model/zoom.dart`.
-- Each public class and each public member has a `///` doc comment. The comment tells why, not only what.
+- The tests of `lib/<folder>/<name>.dart` are in `test/<name>_test.dart`. Example: `test/zoom_test.dart` tests
+  `lib/model/zoom.dart`.
+- When you change code that has tests, change or add tests in the same commit.
 
-## Code
-
-- Format with `dart format`. It reads the settings (line width 120) from `analysis_options.yaml`. Do not pass `--line-length`.
-- `dart analyze` must show no issues.
-- `dart test` must pass. Add or change tests when you change `lib/model/` or `lib/sheets/demo_store.dart`.
-- Colors: use the Material theme variables (`var(--primary)`…). Put new colors in `web/theme.css`, not in Dart code.
-
-## Data and docs
+## Docs
 
 - If you change the sheet format (tabs, columns, values), update `docs/data-model.md` in the same commit.
 - If you change a command, a requirement or the configuration, update `README.md` in the same commit.
 
 ## Dependencies
 
-- Add a package with `dart pub add <name>`. Do not edit `pubspec.lock` by hand.
+- Add or change a package with `dart pub add`.
 - The Jaspr version in `pubspec.yaml` and the `jaspr_cli` version in `.github/workflows/deploy.yml` must be the same.
-
-## Secrets
-
-- Do not commit `config.env`. Git ignores it.
-- Never add the OAuth client secret to the repository.
 
 ## Commits
 
