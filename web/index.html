@@ -9,9 +9,13 @@
         <!-- Fang T logo. favicon.ico is the same logo, for browsers without SVG icons. -->
         <link rel="icon" type="image/svg+xml" href="images/logo.svg">
 
-        <!-- BeerCSS: Material Design 3 styles and Material Symbols icons. Pinned version. -->
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/beercss@5.0.3/dist/cdn/beer.min.css">
-        <script type="module" src="https://cdn.jsdelivr.net/npm/beercss@5.0.3/dist/cdn/beer.min.js"></script>
+        <!-- BeerCSS: Material Design 3 styles and Material Symbols icons. Pinned version.
+             integrity: the browser does not use a file that is different from the pinned version. If you change the
+             version, set the new hashes: openssl dgst -sha384 -binary FILE | openssl base64 -A -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/beercss@5.0.3/dist/cdn/beer.min.css"
+              integrity="sha384-EqZ6IXmk+4jeYN6dm7SEK3B8T8AMiHLEujTTup/LU1rSEjt1Ce8Vz8uI6NQ8czHg" crossorigin="anonymous">
+        <script type="module" src="https://cdn.jsdelivr.net/npm/beercss@5.0.3/dist/cdn/beer.min.js"
+                integrity="sha384-7xZPd8qp8XUHrLKlKeZKr5yHcqeQ0Juz7GLT0AOsAIMhtHNqKJg5bfFCj782KnFh" crossorigin="anonymous"></script>
 
         <!-- Ember color theme. Loads after BeerCSS, so it replaces the BeerCSS colors. -->
         <link rel="stylesheet" href="theme.css">
