@@ -9,8 +9,9 @@
  * - Not Material:
  *   - --cell and --on-cell: the fill and text of a day with a value (table cells, calendars, heatmap, bars).
  *     --cell-image: the logo gradient on the table and calendar cells. --cell-empty: a day with no value.
- *     The cell colors are the same in both themes. White text on them: 4.6:1 or more. Cell to empty cell: 3:1 or
- *     more (WCAG 1.4.11).
+ *     The cell colors are the same in both themes. White text on them: 4.6:1 or more. Cell to empty cell: 3.7:1 in
+ *     the light theme and 2.4:1 in the dark theme. The dark value is a decision: the lighter slate empty cells give
+ *     the dark theme its blue look. The gradient and the white numbers also mark a filled cell.
  *   - --done, --on-done, --done-container, --on-done-container: the green of done tiles and of the score.
  *     --done-cell: the green cell fill of the score (see .score-theme in lib/constants/theme.dart).
  *   - --action-image and --on-action: a darker logo gradient for the main buttons, with white text (5:1 or more).
@@ -84,8 +85,8 @@ body.dark {
     --on-done: #0f2e13;
     --done-container: #1e3a22;
     --on-done-container: #c8ecc9;
-    /* Darker than --surface-container-high, so that a filled cell has a contrast of 3:1 or more to it. */
-    --cell-empty: #242c37;
+    /* The same as --surface-container-highest: a lighter slate, so that empty cells show the blue of the theme. */
+    --cell-empty: #323c49;
     --secondary: #f0b8a4;
     --on-secondary: #4a2214;
     --secondary-container: #5e2e22;
