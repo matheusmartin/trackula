@@ -21,6 +21,19 @@
   script, a font or an API from another origin, add the origin to the policy in `deploy.yml`.
 - Data model: [docs/data-model.md](docs/data-model.md).
 
+## Install the app
+
+- The app is a web app that you can install. On Android (Chrome): menu → "Install app" or "Add to Home screen". On
+  iOS (Safari): Share → "Add to Home Screen". On a computer (Chrome or Edge): the install icon in the address bar.
+- Files: `web/manifest.webmanifest` (name, colors, icons), `web/sw.js` (the service worker) and `web/register-sw.js`.
+- The service worker lets the app open without a network. It uses the network first and keeps the last good copy of
+  each app file and BeerCSS file. So a new deploy shows at the next open. Google sign-in, the Picker and the Sheets
+  API do not go through it: without a network, the app shows their errors. Demo mode works without a network.
+- The app does not register the service worker on `localhost`, so `jaspr serve` works as before. To test the worker,
+  serve `build/jaspr/` and open it on `127.0.0.1`. Example: `python3 -m http.server 8080 --bind 127.0.0.1 -d build/jaspr`.
+- If you change the BeerCSS version, change it also in `web/sw.js`.
+- The icons come from `web/images/logo.svg`. To make them again, run `design/logo/make.py`.
+
 ## Requirements
 
 - Dart SDK 3.10 or later. With Homebrew: `brew install dart-sdk`.
@@ -62,3 +75,4 @@
   - Do not put `@css` in files that import browser-only code (`package:web`, `googleapis_auth/auth_browser`). Jaspr runs `@css` code on the Dart VM to create `main.css`, and browser-only imports make it fail.
 - `lib/config.dart`: reads the OAuth client ID and the Picker API key from the build defines.
 - `test/`: unit tests.
+- `web/`: the page (`index.html`), the theme colors (`theme.css`), the icons, the manifest and the service worker.

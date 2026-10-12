@@ -13,6 +13,14 @@
         <!-- Fang T logo. favicon.ico is the same logo, for browsers without SVG icons. -->
         <link rel="icon" type="image/svg+xml" href="images/logo.svg">
 
+        <!-- Install the app: the manifest, the iOS home screen icon and the color of the browser bar (the app bar
+             color of each theme). The service worker lets the app open without a network. Icons: design/logo/make.py. -->
+        <link rel="manifest" href="manifest.webmanifest">
+        <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+        <meta name="theme-color" content="#b8321a" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#ff8c66" media="(prefers-color-scheme: dark)">
+        <script defer src="register-sw.js"></script>
+
         <!-- BeerCSS: Material Design 3 styles and Material Symbols icons. Pinned version.
              integrity: the browser does not use a file that is different from the pinned version. If you change the
              version, set the new hashes: openssl dgst -sha384 -binary FILE | openssl base64 -A -->
