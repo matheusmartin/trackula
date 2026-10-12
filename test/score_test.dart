@@ -37,12 +37,60 @@ void main() {
       expect(metricPoints(water, -3), 0);
     });
 
-    test('number: 1 if the value reaches the goal, 0 without goal', () {
-      expect(metricPoints(weight, 80), 1);
-      expect(metricPoints(weight, 80.1), 0);
-      expect(metricPoints(reading, 25), 1);
-      expect(metricPoints(reading, 15), 0);
+    test('number: 1 if the value reaches the goal, also after a value at the goal', () {
+      expect(metricPoints(weight, 80, previous: 79), 1);
+      expect(metricPoints(weight, 79.5, previous: 79.5), 1);
+      expect(metricPoints(reading, 25, previous: 30), 1);
+    });
+
+    test('number: 1 if the value is closer to the goal than the previous log, else 0', () {
+      expect(metricPoints(weight, 82.6, previous: 83), 1);
+      expect(metricPoints(weight, 82.8, previous: 82.6), 0);
+      expect(metricPoints(weight, 82.6, previous: 82.6), 0);
+      expect(metricPoints(reading, 15, previous: 10), 1);
+      expect(metricPoints(reading, 10, previous: 15), 0);
+    });
+
+    test('number: 1 for the first log, and always 0 without goal', () {
+      expect(metricPoints(weight, 90), 1);
       expect(metricPoints(waist, 90), 0);
+      expect(metricPoints(waist, 89, previous: 90), 0);
+    });
+  });
+
+  group('number metrics and the previous log', () {
+    test('the previous log is the latest earlier day with a value, also after missed days and in unsorted rows', () {
+      final log = parseLog(
+        [
+          ['date', 'weight'],
+          ['2026-10-02', 82.8],
+          ['2026-09-28', 83],
+          ['2026-10-03', 79.9],
+          ['2026-09-29', 82.6],
+          // 2026-09-30 and 2026-10-01 are missed. 2026-10-02 compares with 2026-09-29.
+        ],
+        {'weight': weight},
+      ).table;
+      expect(dayScores([weight], log), {
+        const Day(2026, 9, 28): 1,
+        d29: 1,
+        const Day(2026, 10, 2): 0,
+        const Day(2026, 10, 3): 1,
+      });
+    });
+
+    test('a changed past value also changes the score of the next log', () {
+      final rows = [
+        ['date', 'weight', 'Score'],
+        ['2026-09-28', 83, 1],
+        ['2026-09-29', 82.6, 1],
+        ['2026-09-30', 82.4, 1],
+      ];
+      expect(staleScoreCells(rows, [weight], 2), isEmpty);
+      rows[2][1] = 82.2;
+      expect(staleScoreCells(rows, [weight], 2), [(row: 4, score: 0)]);
+      rows[2][1] = '';
+      expect(staleScoreCells(rows, [weight], 2), [(row: 3, score: null)]);
     });
   });
 

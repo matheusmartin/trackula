@@ -68,10 +68,10 @@ Example:
 
 | date       | weight | meditate | water | reading | Score |
 |------------|--------|----------|-------|---------|-------|
-| 2026-09-29 | 82.4   |          | 8     | 20      | 9     |
-| 2026-09-30 | 82.1   | yes      | 5     | 25      | 7     |
+| 2026-09-29 | 82.4   |          | 8     | 20      | 10    |
+| 2026-09-30 | 82.1   | yes      | 5     | 25      | 8     |
 
-Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses, reading 25 min, score 7.
+Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses, reading 25 min, score 8.
 
 ## Score
 
@@ -82,10 +82,14 @@ the values and the goals.
 |----------|--------|---------|
 | `yesno`  | 1 if the value is the goal. 0 for the other value or for no value. | Goal `yes`: `yes` gives 1. Goal `no`: `no` gives 1. |
 | `count`  | 1 for each `step`, also above the goal. The goal does not change the points. A value below 0 gives 0. | `water` 5 with step 1 gives 5. `walk` 30 min with step 10 gives 3. |
-| `number` | 1 if the value reaches the goal. 0 without goal. | Goal `<= 80`: 79.5 gives 1, 82.1 gives 0. Goal `20`: 25 gives 1. |
+| `number` | 1 if the value reaches the goal, if it is closer to the goal than the previous log, or if it is the first log. Else 0. Always 0 without goal. | Goal `<= 80`: 83 (first log) gives 1, then 82.6 gives 1 (closer), then 82.8 gives 0 (farther), then 79.9 gives 1 (goal). |
 
-Example, with the metrics above, for 2026-09-30: weight 82.1 is above 80 (0), meditate `yes` (1), water 5 (5),
-reading 25 ≥ 20 (1). The score is 7.
+Example, with the metrics above, for 2026-09-30: weight 82.1 is closer to 80 than 82.4 of the previous log (1),
+meditate `yes` (1), water 5 (5), reading 25 ≥ 20 (1). The score is 8.
+
+The previous log of a `number` metric is the latest earlier day with a value of that metric. Missed days do not
+matter: a weekly value compares with the value of the week before. If a day has 2 or more rows, its last row is the
+value of the day.
 
 Rules:
 
@@ -98,7 +102,9 @@ Rules:
   changed. So the scores follow:
   - a new or changed value, also of a past day, in the app or by hand in the sheet,
   - a new goal, a new `step` or a new `kind` in the `Metrics` tab,
-  - a deleted metric: its values do not give points.
+  - a deleted metric: its values do not give points,
+  - for a `number` metric, a new, changed or deleted value also changes the score of the next day with a value of
+    that metric, because that day has a new previous log.
 - If you change the sheet by hand while the app is open, the scores change at the next load. Use the reload button.
 - If the app cannot write the scores, for example in a view-only sheet or at the request limit of the Sheets API, it
   shows a warning and continues. The next load tries again.
