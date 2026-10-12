@@ -6,6 +6,12 @@ Output:
 - design/logo/trackula-icon-512.png: the icon.
 - design/logo/trackula-logo.svg and .png: the icon and the word "Trackula", 1200 x 360, transparent background.
 - web/favicon.ico: the icon at 32 x 32 (PNG data), for browsers without SVG icons.
+- web/images/icon-192.png and icon-512.png: the icon for the web app manifest (web/manifest.webmanifest).
+- design/logo/trackula-icon-square.svg: the icon on a full square, without round corners.
+- web/images/icon-maskable-512.png: the icon on a full square, for the manifest. Android cuts it to its own shape. The
+  T is in the inner 80% circle, so no part of it is cut.
+- web/images/apple-touch-icon.png: the icon on a full square at 180 x 180, for the iOS home screen. iOS rounds the
+  corners.
 """
 import pathlib
 import re
@@ -32,6 +38,13 @@ def main():
     subprocess.run([svg2png, str(ICON), str(OUT / "trackula-icon-512.png"), "512", "512"], check=True)
     subprocess.run([svg2png, str(logo), str(OUT / "trackula-logo.png"), "1200", "360"], check=True)
     subprocess.run([svg2png, str(ICON), str(ROOT / "web/favicon.ico"), "32", "32"], check=True)
+    images = ROOT / "web/images"
+    for size in (192, 512):
+        subprocess.run([svg2png, str(ICON), str(images / f"icon-{size}.png"), str(size), str(size)], check=True)
+    square = OUT / "trackula-icon-square.svg"
+    square.write_text(icon.replace(' rx="112"', "", 1))
+    subprocess.run([svg2png, str(square), str(images / "icon-maskable-512.png"), "512", "512"], check=True)
+    subprocess.run([svg2png, str(square), str(images / "apple-touch-icon.png"), "180", "180"], check=True)
 
 
 if __name__ == "__main__":

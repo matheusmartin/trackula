@@ -12,10 +12,27 @@
 - If the picked sheet has no `Metrics` and `Log` tabs, the app adds them.
 - Frontend only. No backend. The browser signs in with Google and calls the Sheets API.
 - Language: Dart. Framework: [Jaspr](https://jaspr.site), client mode.
-- UI: [BeerCSS](https://www.beercss.com) 5.0.3 (Material Design 3 and Material Symbols icons), loaded from the jsdelivr CDN in `web/index.html`.
+- UI: [BeerCSS](https://www.beercss.com) 5.0.3 (Material Design 3 and Material Symbols icons), loaded from the jsdelivr CDN in `web/index.html`. Integrity hashes (`integrity`) make sure that the browser uses only the pinned files. If you change the BeerCSS version, set the new hashes.
 - Theme: Ember, from the orange-red logo gradient. Neutrals: light slate grey in the light theme, dark slate blue in the dark theme. Day cells and main buttons have the same colors in both themes. The device setting selects the theme. Colors: `web/theme.css`.
 - Hosting: static files (Cloudflare Pages or GitHub Pages).
+- Content Security Policy: the deploy (`.github/workflows/deploy.yml`) adds it to `index.html`. It lets the page load
+  code and data only from BeerCSS, Google sign-in, the Google Picker and the Sheets API. `jaspr serve` and a local
+  `jaspr build` do not have it: the development server runs inline scripts, and the policy blocks them. If you add a
+  script, a font or an API from another origin, add the origin to the policy in `deploy.yml`.
 - Data model: [docs/data-model.md](docs/data-model.md).
+
+## Install the app
+
+- The app is a web app that you can install. On Android (Chrome): menu → "Install app" or "Add to Home screen". On
+  iOS (Safari): Share → "Add to Home Screen". On a computer (Chrome or Edge): the install icon in the address bar.
+- Files: `web/manifest.webmanifest` (name, colors, icons), `web/sw.js` (the service worker) and `web/register-sw.js`.
+- The service worker lets the app open without a network. It uses the network first and keeps the last good copy of
+  each app file and BeerCSS file. So a new deploy shows at the next open. Google sign-in, the Picker and the Sheets
+  API do not go through it: without a network, the app shows their errors. Demo mode works without a network.
+- The app does not register the service worker on `localhost`, so `jaspr serve` works as before. To test the worker,
+  serve `build/jaspr/` and open it on `127.0.0.1`. Example: `python3 -m http.server 8080 --bind 127.0.0.1 -d build/jaspr`.
+- If you change the BeerCSS version, change it also in `web/sw.js`.
+- The icons come from `web/images/logo.svg`. To make them again, run `design/logo/make.py`.
 
 ## Requirements
 
@@ -44,6 +61,9 @@
 - Demo mode: open `http://localhost:8080/?demo`. Sample data in memory, no Google sign-in, no writes to a sheet. A reload starts again from the sample data. Use it to test the UI.
 - Run the tests: `dart test`
 - Build for production: `jaspr build --dart-define-from-file=config.env`. The output goes to `build/jaspr/`.
+- Check the code as CI does: `dart format --output=none --set-exit-if-changed .`, `dart analyze --fatal-infos` and
+  `dart test`. `.github/workflows/ci.yml` runs these checks on each pull request and on each push to `main`. It also
+  checks that the Jaspr version in `pubspec.yaml` and the `jaspr_cli` version in `deploy.yml` are the same.
 
 ## Project structure
 
@@ -55,3 +75,4 @@
   - Do not put `@css` in files that import browser-only code (`package:web`, `googleapis_auth/auth_browser`). Jaspr runs `@css` code on the Dart VM to create `main.css`, and browser-only imports make it fail.
 - `lib/config.dart`: reads the OAuth client ID and the Picker API key from the build defines.
 - `test/`: unit tests.
+- `web/`: the page (`index.html`), the theme colors (`theme.css`), the icons, the manifest and the service worker.
