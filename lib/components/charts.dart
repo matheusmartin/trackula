@@ -14,8 +14,12 @@ import '../model/zoom.dart';
 import '../services/pointer.dart';
 
 const _primary = 'var(--primary)';
-const _filled = 'color-mix(in srgb, var(--primary) 70%, var(--surface-container-highest))';
-const _empty = 'var(--surface-container-highest)';
+
+/// The fill of a day with a value: --cell in web/theme.css. The fallback is for an old theme.css without --cell.
+const _filled = 'var(--cell, var(--primary))';
+
+/// The fill of a day with no value: --cell-empty in web/theme.css. The fallback is for an old theme.css.
+const _empty = 'var(--cell-empty, var(--surface-container-highest))';
 const _second = 'var(--tertiary)';
 
 const _textStyle = Styles(raw: {'font-size': '0.7rem', 'line-height': '1.2', 'color': 'var(--on-surface-variant)'});

@@ -9,8 +9,9 @@ import 'parse.dart';
 const scoreHeader = 'Score';
 
 /// The score as a count metric, for the table, the calendars and the detail screen. It is not a row of the `Metrics`
-/// tab, and its cells are read-only: [dayScores] calculates its values.
-const scoreMetric = NumberMetric(id: scoreHeader, name: 'Score', unit: 'points', isCount: true, icon: 'star');
+/// tab, and its cells are read-only: [dayScores] calculates its values. It has no icon: the score card and the score
+/// detail screen show only its name.
+const scoreMetric = NumberMetric(id: scoreHeader, name: 'Score', unit: 'points', isCount: true, icon: '');
 
 /// True if [metric] is [scoreMetric].
 bool isScore(Metric metric) => metric.id == scoreHeader;

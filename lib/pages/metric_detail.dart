@@ -129,7 +129,7 @@ class _MetricDetailState extends State<MetricDetail> {
     return div(classes: isScore(_metric) ? 'metric-detail score-theme' : 'metric-detail', [
       nav(classes: 'detail-head', [
         if (component.onBack case final back?) iconButton(icon: 'arrow_back', title: 'Back', onClick: back),
-        metricIcon(_metric, large: true),
+        if (!isScore(_metric)) metricIcon(_metric, large: true),
         h5(classes: 'max', [.text(_metric.name)]),
       ]),
       _windowBar(window, steps, stepIndex, values),
