@@ -13,7 +13,7 @@
 - Frontend only. No backend. The browser signs in with Google and calls the Sheets API.
 - Language: Dart. Framework: [Jaspr](https://jaspr.site), client mode.
 - UI: [BeerCSS](https://www.beercss.com) 5.0.3 (Material Design 3 and Material Symbols icons), loaded from the jsdelivr CDN in `web/index.html`.
-- Theme: Ember, from the orange-red logo gradient. Light: warm light grey. Dark: slate blue. The device setting selects it. Colors: `web/theme.css`.
+- Theme: Ember, from the orange-red logo gradient. Neutrals: light slate grey in the light theme, dark slate blue in the dark theme. Day cells and main buttons have the same colors in both themes. The device setting selects the theme. Colors: `web/theme.css`.
 - Hosting: static files (Cloudflare Pages or GitHub Pages).
 - Data model: [docs/data-model.md](docs/data-model.md).
 

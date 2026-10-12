@@ -61,7 +61,7 @@ List<StyleRule> get styles => [
   // The title of the detail screen: a larger chip.
   css('.icon.large').styles(width: 2.75.rem, height: 2.75.rem, radius: .circular(10.px), fontSize: 1.5.rem),
   css('.icon.large i').styles(fontSize: 1.75.rem),
-  // Day cells. Empty cells use the strongest container color. Cells with a value use one fixed color.
+  // Day cells. Empty cells use --cell-empty, cells with a value use --cell. See web/theme.css.
   // BeerCSS styles every <button>, so reset its size and padding here.
   css('.cell').styles(
     padding: .zero,
@@ -79,7 +79,7 @@ List<StyleRule> get styles => [
       '-webkit-user-select': 'none',
       '-webkit-touch-callout': 'none',
       'color': 'var(--on-surface)',
-      'background-color': 'var(--surface-container-highest)',
+      'background-color': 'var(--cell-empty)',
     },
   ),
   // The logo gradient on --cell. See --cell, --on-cell and --cell-image in web/theme.css.
@@ -94,7 +94,7 @@ List<StyleRule> get styles => [
   // Days after today: shown in full months, but faded and not editable.
   css('.cell.future').styles(
     raw: {
-      'background-color': 'color-mix(in srgb, var(--surface-container-highest) 40%, transparent)',
+      'background-color': 'color-mix(in srgb, var(--cell-empty) 40%, transparent)',
       'cursor': 'default',
     },
   ),
@@ -279,7 +279,7 @@ List<StyleRule> get styles => [
       'inline-size': '100%',
       'block-size': '3.25rem',
       'margin-inline': '0',
-      'color': '#ffffff',
+      'color': 'var(--on-action)',
       'background-image': 'var(--action-image)',
     },
   ),
@@ -351,10 +351,9 @@ List<StyleRule> get styles => [
   ]),
 
   // score_chart.dart and the Score view: the score uses the green of done tiles (--done in web/theme.css), not the
-  // theme red. The charts and the icons use --primary, and the day fills use --cell, so they follow it.
-  css('.score-theme').styles(
-    raw: {'--primary': 'var(--done)', '--cell': 'var(--done)', '--on-cell': 'var(--on-done)', '--cell-image': 'none'},
-  ),
+  // theme red. The charts and the icons use --primary, and the day fills use --cell, so they follow it. --done-cell
+  // has the same weight as --cell in both themes: lines and text are light in the dark theme, fills are not.
+  css('.score-theme').styles(raw: {'--primary': 'var(--done)', '--cell': 'var(--done-cell)', '--cell-image': 'none'}),
   // score_chart.dart: the score card above the 5-day table and the 31-day calendars.
   css('article.score-card', [
     css('&').styles(margin: .only(bottom: 0.75.rem)),
