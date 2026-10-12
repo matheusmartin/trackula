@@ -49,6 +49,40 @@ jobs:
           fi
           jaspr build --dart-define=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" --dart-define=GOOGLE_API_KEY="$GOOGLE_API_KEY"
 
+      # The page can load code, styles and data only from these origins. The page keeps the Google access token in
+      # memory: this limits where other code can come from and where it can send data.
+      # - cdn.jsdelivr.net: BeerCSS. accounts.google.com/gsi: Google sign-in. apis.google.com and docs.google.com: the
+      #   Google Picker. sheets.googleapis.com: the Sheets API.
+      # - 'unsafe-inline' styles: the app sets style attributes, for example the ruler position.
+      # If you add a script, a font or an API from another origin, add the origin here.
+      - name: Add the Content Security Policy
+        env:
+          CSP: >-
+            default-src 'self';
+            script-src 'self' https://cdn.jsdelivr.net https://accounts.google.com/gsi/client https://apis.google.com;
+            style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com/gsi/style;
+            font-src 'self' https://cdn.jsdelivr.net;
+            img-src 'self' data: https:;
+            connect-src 'self' https://cdn.jsdelivr.net https://sheets.googleapis.com https://accounts.google.com/gsi/
+            https://apis.google.com;
+            frame-src https://accounts.google.com/gsi/ https://docs.google.com;
+            worker-src 'self';
+            manifest-src 'self';
+            object-src 'none';
+            base-uri 'self';
+            form-action 'none'
+        run: |
+          python3 - <<'EOF'
+          import os
+          path = 'build/jaspr/index.html'
+          marker = '<!-- content-security-policy -->'
+          html = open(path).read()
+          if marker not in html:
+              raise SystemExit(f'::error::{path} has no "{marker}" line.')
+          meta = f'<meta http-equiv="Content-Security-Policy" content="{os.environ["CSP"]}">'
+          open(path, 'w').write(html.replace(marker, meta))
+          EOF
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: build/jaspr

@@ -15,6 +15,10 @@
 - UI: [BeerCSS](https://www.beercss.com) 5.0.3 (Material Design 3 and Material Symbols icons), loaded from the jsdelivr CDN in `web/index.html`. Integrity hashes (`integrity`) make sure that the browser uses only the pinned files. If you change the BeerCSS version, set the new hashes.
 - Theme: Ember, from the orange-red logo gradient. Neutrals: light slate grey in the light theme, dark slate blue in the dark theme. Day cells and main buttons have the same colors in both themes. The device setting selects the theme. Colors: `web/theme.css`.
 - Hosting: static files (Cloudflare Pages or GitHub Pages).
+- Content Security Policy: the deploy (`.github/workflows/deploy.yml`) adds it to `index.html`. It lets the page load
+  code and data only from BeerCSS, Google sign-in, the Google Picker and the Sheets API. `jaspr serve` and a local
+  `jaspr build` do not have it: the development server runs inline scripts, and the policy blocks them. If you add a
+  script, a font or an API from another origin, add the origin to the policy in `deploy.yml`.
 - Data model: [docs/data-model.md](docs/data-model.md).
 
 ## Requirements
