@@ -44,6 +44,9 @@
 - Demo mode: open `http://localhost:8080/?demo`. Sample data in memory, no Google sign-in, no writes to a sheet. A reload starts again from the sample data. Use it to test the UI.
 - Run the tests: `dart test`
 - Build for production: `jaspr build --dart-define-from-file=config.env`. The output goes to `build/jaspr/`.
+- Check the code as CI does: `dart format --output=none --set-exit-if-changed .`, `dart analyze --fatal-infos` and
+  `dart test`. `.github/workflows/ci.yml` runs these checks on each pull request and on each push to `main`. It also
+  checks that the Jaspr version in `pubspec.yaml` and the `jaspr_cli` version in `deploy.yml` are the same.
 
 ## Project structure
 

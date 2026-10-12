@@ -1,0 +1,49 @@
+# Checks each pull request, and each push to main: format, analysis, tests and the Jaspr version rule. See CLAUDE.md.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# One run for each branch. A newer push cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The same SDK as deploy.yml.
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.13.4
+
+      - name: Install dependencies
+        run: dart pub get
+
+      - name: Check the format
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        run: dart analyze --fatal-infos
+
+      - name: Test
+        run: dart test
+
+      # The Jaspr version in pubspec.yaml and the jaspr_cli version in deploy.yml must be the same.
+      - name: Check the Jaspr versions
+        run: |
+          pubspec=$(sed -nE 's/^  jaspr: \^?([0-9][0-9.]*).*/\1/p' pubspec.yaml)
+          cli=$(sed -nE 's/.*activate jaspr_cli ([0-9][0-9.]*).*/\1/p' .github/workflows/deploy.yml)
+          echo "pubspec.yaml: jaspr $pubspec. deploy.yml: jaspr_cli $cli."
+          if [ -z "$pubspec" ] || [ "$pubspec" != "$cli" ]; then
+            echo "::error::Use the same version for jaspr in pubspec.yaml and for jaspr_cli in deploy.yml."
+            exit 1
+          fi
