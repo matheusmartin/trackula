@@ -14,7 +14,9 @@ import '../model/zoom.dart';
 import '../services/pointer.dart';
 
 const _primary = 'var(--primary)';
-const _filled = 'color-mix(in srgb, var(--primary) 70%, var(--surface-container-highest))';
+
+/// The fill of a day with a value: --cell in web/theme.css. The fallback is for an old theme.css without --cell.
+const _filled = 'var(--cell, var(--primary))';
 const _empty = 'var(--surface-container-highest)';
 const _second = 'var(--tertiary)';
 

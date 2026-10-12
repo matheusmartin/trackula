@@ -1,10 +1,14 @@
 /*
- * Blood orange color theme for BeerCSS (Material Design 3 variables).
+ * Ember color theme for BeerCSS (Material Design 3 variables).
  * - Light and dark themes. The device setting (prefers-color-scheme) selects one. There is no button in the app.
  * - Comes from the Fang T logo gradient: #F97316 (orange) to #BE123C (red).
- * - Light: surfaces are white with a little orange. Primary is the red end of the gradient.
- * - Dark: surfaces are warm dark brown. Primary and tertiary are light tones of the same red and orange, as in
- *   Material Design 3 dark schemes.
+ * - Light: surfaces are warm light grey (stone). Primary is vermilion, the red in the middle of the gradient.
+ *   Containers are apricot, not pink. Tertiary is amber.
+ * - Dark: surfaces are dark slate blue. Blue is opposite to orange, so the orange-red parts stand out. Primary is
+ *   coral and tertiary is amber, light tones of the gradient, as in Material Design 3 dark schemes.
+ * - Not Material: --cell and --on-cell are the fill and text of a day with a value (table cells, calendars, heatmap,
+ *   bars). --cell-image is the logo gradient on the table and calendar cells. --action-image is a darker logo gradient
+ *   for the main buttons, so that white text has a contrast of 5:1 or more.
  * Loads after BeerCSS, so these values replace the BeerCSS defaults. Light error colors come from BeerCSS.
  * The app CSS (lib/constants/theme.dart) and the charts use only these variables, so they follow the theme.
  */
@@ -16,79 +20,86 @@
 :root,
 body.light,
 body.dark {
-  --primary: #be123c;
+  --primary: #b8321a;
   --on-primary: #ffffff;
-  --primary-container: #f5d9e0;
-  --on-primary-container: #2b1b15;
+  --primary-container: #ffdfd4;
+  --on-primary-container: #4a1300;
   /* Not Material: the green of done and entered tiles on the Today screen, and of the score. */
   --done: #2e7d32;
+  --on-done: #ffffff;
   --done-container: #dcefdc;
   --on-done-container: #1b4d1f;
-  --secondary: #8f0e2d;
+  /* White text on the cell: 4.9:1. Cell to empty cell: 3.7:1. */
+  --cell: #d23424;
+  --on-cell: #ffffff;
+  --cell-image: linear-gradient(135deg, #e0520a, #be123c);
+  --action-image: linear-gradient(135deg, #c2410c, #9f1239);
+  --secondary: #87412f;
   --on-secondary: #ffffff;
-  --secondary-container: #edd8dd;
-  --on-secondary-container: #8f0e2d;
-  --tertiary: #f97316;
+  --secondary-container: #f7ddd2;
+  --on-secondary-container: #3f150a;
+  --tertiary: #b45309;
   --on-tertiary: #ffffff;
-  --tertiary-container: #fee9da;
-  --on-tertiary-container: #2b1b15;
-  --background: #fff9f6;
-  --on-background: #2b1b15;
-  --surface: #fff9f6;
-  --on-surface: #2b1b15;
-  --surface-variant: #fee3d0;
-  --on-surface-variant: #6e5249;
-  --outline: #6e5249;
-  --outline-variant: #fee3d0;
-  --inverse-surface: #2b1b15;
-  --inverse-on-surface: #fff9f6;
-  --inverse-primary: #be123c;
-  --surface-dim: #fff9f6;
-  --surface-bright: #fef2ea;
-  --surface-container-lowest: #fffcfb;
-  --surface-container-low: #fff6f0;
-  --surface-container: #fef2ea;
-  --surface-container-high: #feeadb;
-  --surface-container-highest: #fee3d0;
+  --tertiary-container: #fde7cf;
+  --on-tertiary-container: #3d1d00;
+  --background: #fcfaf9;
+  --on-background: #1f1a19;
+  --surface: #fcfaf9;
+  --on-surface: #1f1a19;
+  --surface-variant: #ece6e3;
+  --on-surface-variant: #5c5452;
+  --outline: #8a817e;
+  --outline-variant: #d9d1ce;
+  --inverse-surface: #34302f;
+  --inverse-on-surface: #f6f0ee;
+  --inverse-primary: #ff8c66;
+  --surface-dim: #e2dcd9;
+  --surface-bright: #fcfaf9;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f7f4f2;
+  --surface-container: #f3efed;
+  --surface-container-high: #ede8e6;
+  --surface-container-highest: #e6e0dd;
 }
 
 @media (prefers-color-scheme: dark) {
   :root,
   body.light,
   body.dark {
-    --primary: #ffb2bd;
-    --on-primary: #67001d;
-    --primary-container: #91002d;
-    --on-primary-container: #ffd9dd;
-    --done: #8fd694;
-    --done-container: #1f3d22;
+    --primary: #ff8c66;
+    --on-primary: #4a1300;
+    --primary-container: #7a2a14;
+    --on-primary-container: #ffdbcf;
+    --done: #86d38c;
+    --on-done: #0f2e13;
+    --done-container: #1e3a22;
     --on-done-container: #c8ecc9;
-    --secondary: #e7bcc1;
-    --on-secondary: #44292d;
-    --secondary-container: #5d3f43;
-    --on-secondary-container: #ffd9dd;
-    --tertiary: #ffb68a;
-    --on-tertiary: #522300;
-    --tertiary-container: #763400;
-    --on-tertiary-container: #ffdbc8;
-    --background: #1a1110;
-    --on-background: #f1dedc;
-    --surface: #1a1110;
-    --on-surface: #f1dedc;
-    --surface-variant: #534341;
-    --on-surface-variant: #d8c2bf;
-    --outline: #a08c8a;
-    --outline-variant: #534341;
-    --inverse-surface: #f1dedc;
-    --inverse-on-surface: #392e2d;
-    --inverse-primary: #be123c;
-    --surface-dim: #1a1110;
-    --surface-bright: #423736;
-    --surface-container-lowest: #140c0b;
-    --surface-container-low: #231918;
-    --surface-container: #271d1c;
-    --surface-container-high: #322827;
-    --surface-container-highest: #3d3231;
+    --secondary: #f0b8a4;
+    --on-secondary: #4a2214;
+    --secondary-container: #5e2e22;
+    --on-secondary-container: #ffdbcf;
+    --tertiary: #ffb067;
+    --on-tertiary: #4a2500;
+    --tertiary-container: #7a3d0b;
+    --on-tertiary-container: #ffdcc0;
+    --background: #141a22;
+    --on-background: #e8ecf2;
+    --surface: #141a22;
+    --on-surface: #e8ecf2;
+    --surface-variant: #27303c;
+    --on-surface-variant: #b7c0cc;
+    --outline: #8590a0;
+    --outline-variant: #36404c;
+    --inverse-surface: #e8ecf2;
+    --inverse-on-surface: #141a22;
+    --inverse-primary: #b8321a;
+    --surface-dim: #141a22;
+    --surface-bright: #323c49;
+    --surface-container-lowest: #141a22;
+    --surface-container-low: #1a212b;
+    --surface-container: #1f2732;
+    --surface-container-high: #27303c;
+    --surface-container-highest: #323c49;
     /* BeerCSS sets these only for body.dark. The body class stays "light", so they are set here. */
     --error: #ffb4ab;
     --on-error: #690005;
@@ -178,6 +189,12 @@ main.splash {
   block-size: 3.5rem;
   margin: 0;
   font-size: 1rem;
+}
+
+/* The sign-in button: the main button of the app, with the darker logo gradient. */
+.splash-actions button:not(:disabled) {
+  color: #ffffff;
+  background-image: var(--action-image);
 }
 
 /* Short screens, for example phones in landscape: less space, so the page fits without scrolling. */

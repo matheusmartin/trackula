@@ -82,12 +82,9 @@ List<StyleRule> get styles => [
       'background-color': 'var(--surface-container-highest)',
     },
   ),
-  // 70% primary: softer than the full primary. White text still has a contrast of 4:1, and the cell 3:1 to empty cells.
+  // The logo gradient on --cell. See --cell, --on-cell and --cell-image in web/theme.css.
   css('.cell.filled').styles(
-    raw: {
-      'color': 'var(--on-primary)',
-      'background-color': 'color-mix(in srgb, var(--primary) 70%, var(--surface-container-highest))',
-    },
+    raw: {'color': 'var(--on-cell)', 'background-color': 'var(--cell)', 'background-image': 'var(--cell-image)'},
   ),
   // Today: a soft ring, 40% of the text color. It shows on empty and on filled cells.
   css('.cell.today').styles(
@@ -272,15 +269,28 @@ List<StyleRule> get styles => [
   ]),
   // The Save button of the Today tiles: at the end of the page, below the tiles, as wide as the tiles. border-box:
   // BeerCSS buttons are content-box, so 100% plus the padding goes past the tiles. The corners of the tiles.
+  // Changes to save: the darker logo gradient (--action-image in web/theme.css), with white text in both themes.
   css('.save-button').styles(
     margin: .only(top: 1.5.rem, bottom: 1.rem),
     radius: .circular(16.px),
     fontSize: 1.rem,
-    raw: {'box-sizing': 'border-box', 'inline-size': '100%', 'block-size': '3.25rem', 'margin-inline': '0'},
+    raw: {
+      'box-sizing': 'border-box',
+      'inline-size': '100%',
+      'block-size': '3.25rem',
+      'margin-inline': '0',
+      'color': '#ffffff',
+      'background-image': 'var(--action-image)',
+    },
   ),
   // No changes: a quiet grey button with readable text, not the pale red of a disabled BeerCSS button.
   css('.save-button:disabled').styles(
-    raw: {'background-color': 'var(--surface-container-highest)', 'color': 'var(--on-surface-variant)', 'opacity': '1'},
+    raw: {
+      'background-color': 'var(--surface-container-highest)',
+      'background-image': 'none',
+      'color': 'var(--on-surface-variant)',
+      'opacity': '1',
+    },
   ),
 
   // habit_table.dart: 7-day table.
@@ -341,8 +351,10 @@ List<StyleRule> get styles => [
   ]),
 
   // score_chart.dart and the Score view: the score uses the green of done tiles (--done in web/theme.css), not the
-  // theme red. The charts and the icons use --primary, so they follow it.
-  css('.score-theme').styles(raw: {'--primary': 'var(--done)'}),
+  // theme red. The charts and the icons use --primary, and the day fills use --cell, so they follow it.
+  css('.score-theme').styles(
+    raw: {'--primary': 'var(--done)', '--cell': 'var(--done)', '--on-cell': 'var(--on-done)', '--cell-image': 'none'},
+  ),
   // score_chart.dart: the score card above the 5-day table and the 31-day calendars.
   css('article.score-card', [
     css('&').styles(margin: .only(bottom: 0.75.rem)),
