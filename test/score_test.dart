@@ -227,4 +227,8 @@ void main() {
     expect(isScore(scoreMetric), isTrue);
     expect(isScore(water), isFalse);
   });
+
+  test('scoreMetric has no icon', () {
+    expect(scoreMetric.icon, isEmpty);
+  });
 }

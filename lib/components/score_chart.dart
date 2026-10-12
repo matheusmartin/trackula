@@ -3,7 +3,6 @@ import 'package:jaspr/jaspr.dart';
 
 import '../model/day.dart';
 import '../model/score.dart';
-import 'metric_icon.dart';
 import 'trend_chart.dart';
 
 /// The score of [days] as a green line chart from 0, at the top of the 5-day table and of the 31-day calendars.
@@ -38,7 +37,6 @@ final class ScoreChart extends StatelessComponent {
         },
       },
       [
-        metricIcon(scoreMetric),
         span([.text(scoreMetric.name)]),
       ],
     ),
