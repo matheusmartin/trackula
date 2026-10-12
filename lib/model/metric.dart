@@ -52,4 +52,7 @@ final class NumberGoal {
 
   /// True if [dayValue] reaches the goal. The goal value itself reaches it.
   bool isReachedBy(num dayValue) => isMaximum ? dayValue <= value : dayValue >= value;
+
+  /// How far [dayValue] is from the goal: 0 if it reaches the goal. Example: goal at most 80, 82.5 → 2.5.
+  num distanceTo(num dayValue) => isReachedBy(dayValue) ? 0 : (dayValue - value).abs();
 }
