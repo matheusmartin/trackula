@@ -4,6 +4,7 @@ import 'package:jaspr/jaspr.dart';
 import '../components/habit_table.dart';
 import '../components/score_chart.dart';
 import '../components/today_tiles.dart';
+import '../model/count_queue.dart';
 import '../model/day.dart';
 import '../model/log_entry.dart';
 import '../model/main_view.dart';
@@ -69,11 +70,8 @@ class _TodayPageState extends State<TodayPage> {
   /// The id of the metric with the open detail screen. Null shows the table.
   String? _detailId;
 
-  /// Count taps that wait for a write, per metric id and day, in tap order.
-  final _queued = <(String, Day), List<CountStep>>{};
-
-  /// Count taps in the write that runs now. The table shows them until the new data arrives.
-  final _sending = <(String, Day), List<CountStep>>{};
+  /// The count taps that are not in the sheet yet. The table shows them at once.
+  final _counts = CountQueue();
 
   void _openDetail(String id) {
     setState(() => _detailId = id);
@@ -154,26 +152,20 @@ class _TodayPageState extends State<TodayPage> {
 
   /// Adds a count tap. The table shows it at once. The write starts when no other write runs.
   void _count(NumberMetric m, Day d, CountStep step) {
-    setState(() => (_queued[(m.id, d)] ??= []).add(step));
+    setState(() => _counts.add(m.id, d, step));
     _writeCounts();
   }
 
-  /// Writes the queued count taps: one write for each cell, with all taps of that cell.
+  /// Writes the queued count taps: one write for each cell, with all taps of that cell. See [CountQueue].
   ///
-  /// One write at a time, so two writes cannot overwrite each other. Each write adds the taps
-  /// to the latest value in the sheet. If a write fails, its taps are dropped and the error shows.
+  /// One write at a time: it waits while another load or write runs. If a write fails, its taps are dropped and the
+  /// error shows.
   void _writeCounts() {
-    if (_busy || _queued.isEmpty) return;
+    if (_busy || !_counts.hasQueued) return;
     final metrics = {for (final m in _data?.metrics ?? const <Metric>[]) m.id: m};
-    setState(() {
-      _sending.addAll(_queued);
-      _queued.clear();
-    });
-    final plans = [
-      for (final MapEntry(key: (id, day), value: steps) in _sending.entries)
-        if (metrics[id] case final NumberMetric metric) (LogTable log) => planCount(metric, day, steps, log),
-    ];
-    _run(() => _store.changeAll(plans), done: _sending.clear);
+    late final List<LogWrite? Function(LogTable log)> plans;
+    setState(() => plans = _counts.send(metrics));
+    _run(() => _store.changeAll(plans), done: _counts.sent);
   }
 
   @override
@@ -181,9 +173,7 @@ class _TodayPageState extends State<TodayPage> {
     final data = _data;
     final today = Day.today();
     final metrics = data?.metrics ?? const <Metric>[];
-    final pending = {
-      for (final key in {..._sending.keys, ..._queued.keys}) key: [...?_sending[key], ...?_queued[key]],
-    };
+    final pending = _counts.pending;
     final error = [
       if (_error case final e?) p(classes: 'error-text', [.text(e)]),
     ];
