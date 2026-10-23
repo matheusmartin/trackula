@@ -48,6 +48,11 @@ private val lightColors = lightColorScheme(
     surfaceContainer = Color(0xFFEEF1F4),
     surfaceContainerHigh = Color(0xFFE8EBEF),
     surfaceContainerHighest = Color(0xFFE2E6EB),
+    // The light error colors of BeerCSS, as in the Dart app.
+    error = Color(0xFFBA1A1A),
+    onError = Color(0xFFFFFFFF),
+    errorContainer = Color(0xFFFFDAD6),
+    onErrorContainer = Color(0xFF410002),
 )
 
 private val darkColors = darkColorScheme(
@@ -114,6 +119,8 @@ data class ExtraColors(
     val headerBrush: Brush,
 )
 
+// A linear gradient from the top-left corner to the bottom-right corner. On square cells and buttons, this is the 135°
+// of the CSS gradients. On the wide top bar, the color line is a little steeper than 135°.
 private val cellBrush = Brush.linearGradient(listOf(Color(0xFFCA4A09), Color(0xFFE41648)))
 private val actionBrush = Brush.linearGradient(listOf(Color(0xFFC2410C), Color(0xFF9F1239)))
 private val headerBrush = Brush.linearGradient(listOf(Color(0xFFF97316), Color(0xFFBE123C)))

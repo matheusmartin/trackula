@@ -3,6 +3,7 @@ package trackula.app.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -34,7 +35,7 @@ import trackula.app.resources.logo
 /**
  * The top app bar with the logo, the app name and the session actions, on the logo gradient in both themes.
  *
- * - [onReload] reloads the sheet data. Null: no reload button, for example before a sheet is chosen.
+ * - [onReload] reloads the sheet data. Null: no reload button, for example before the user chooses a sheet.
  * - [busy] is true while data loads or saves: a progress circle shows instead of the reload button.
  */
 @Composable
@@ -66,12 +67,14 @@ fun Header(
             )
             if (onReload != null) {
                 if (busy) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp).semantics { contentDescription = "Loading" },
-                        color = extra.onAction,
-                        strokeWidth = 3.dp,
-                    )
-                    Spacer(Modifier.width(12.dp))
+                    // The size of an icon button, so that the other buttons do not move.
+                    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp).semantics { contentDescription = "Loading" },
+                            color = extra.onAction,
+                            strokeWidth = 3.dp,
+                        )
+                    }
                 } else {
                     AppIconButton(icon = "refresh", title = "Reload", onClick = onReload)
                 }

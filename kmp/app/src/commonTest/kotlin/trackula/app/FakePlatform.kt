@@ -13,13 +13,15 @@ class FakePlatform(
     override var savedSpreadsheetId: String? = null,
 ) : Platform {
     val today = Day(2026, 10, 3)
-    var signIns = 0
+
+    /** The selectAccount argument of each sign-in. */
+    val signIns = mutableListOf<Boolean>()
     val session = FakeSession(today)
 
     override fun today(): Day = today
 
     override suspend fun signIn(selectAccount: Boolean): Session {
-        signIns++
+        signIns.add(selectAccount)
         return session
     }
 }

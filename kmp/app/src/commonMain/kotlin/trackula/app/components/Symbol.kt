@@ -3,6 +3,7 @@ package trackula.app.components
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
@@ -21,13 +22,15 @@ import trackula.app.resources.symbols
 @Composable
 fun Symbol(name: String, modifier: Modifier = Modifier, size: Dp = 24.dp, color: Color = LocalContentColor.current) {
     val fontSize = with(LocalDensity.current) { size.toSp() }
+    val font = Font(Res.font.symbols)
+    val family = remember(font) { FontFamily(font) }
     Text(
         text = name,
         modifier = modifier.clearAndSetSemantics {},
         color = color,
         fontSize = fontSize,
         lineHeight = fontSize,
-        fontFamily = FontFamily(Font(Res.font.symbols)),
+        fontFamily = family,
         maxLines = 1,
     )
 }

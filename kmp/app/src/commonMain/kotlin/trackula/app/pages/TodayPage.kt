@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
@@ -47,15 +48,19 @@ fun TodayPage(
     reload: ReloadHandle,
     onBusy: (Boolean) -> Unit,
 ) {
+    // The latest callbacks: the reload handle keeps one function for the life of the page.
+    val currentExpired by rememberUpdatedState(expired)
+    val currentOnExpired by rememberUpdatedState(onExpired)
+    val currentOnBusy by rememberUpdatedState(onBusy)
     var data by remember(store) { mutableStateOf<Snapshot?>(null) }
     var error by remember(store) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     /** Runs [task] and shows its data. */
     fun run(task: suspend () -> Snapshot) {
-        if (expired()) return onExpired()
+        if (currentExpired()) return currentOnExpired()
         error = null
-        onBusy(true)
+        currentOnBusy(true)
         scope.launch {
             try {
                 data = task()
@@ -64,7 +69,7 @@ fun TodayPage(
             } catch (e: Exception) {
                 error = errorText(e)
             } finally {
-                onBusy(false)
+                currentOnBusy(false)
             }
         }
     }

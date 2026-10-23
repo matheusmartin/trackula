@@ -14,6 +14,7 @@ allprojects {
     }
     // Generated code, for example the Compose resource accessors, has its own format.
     tasks.withType<org.jlleitschuh.gradle.ktlint.tasks.BaseKtLintCheckTask>().configureEach {
-        exclude { it.file.path.contains("${File.separator}build${File.separator}") }
+        val buildFolder = layout.buildDirectory.get().asFile
+        exclude { it.file.startsWith(buildFolder) }
     }
 }

@@ -7,6 +7,7 @@ coroutines = "1.11.0"
 serialization = "1.12.0"
 browser = "0.5.0"
 compose = "1.12.2"
+# The newest stable material3. Later versions are alpha. It works with compose 1.12: Gradle takes the newer compose.
 material3 = "1.9.0"
 
 [libraries]

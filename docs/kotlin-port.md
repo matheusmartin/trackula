@@ -94,5 +94,8 @@
   which does the same.
 - `CountInput` gets the event values (`pointerType`, `key`) from the UI, not the browser events.
 - The `Store` functions are `suspend` functions, in place of functions that return a `Future`.
+- The sign-in page has the layout of the Dart page, but not all of its CSS: the logo and text sizes are near the CSS
+  `min()` and `clamp()` values, and the page has no logo shadow, no Helvetica Neue wordmark font and no rules for short
+  screens. Compose draws text in its default font.
 - The buttons have no tooltip. Their name is for screen readers and tests (`contentDescription`).
 - `Metric` and the other model classes are data classes: two equal metrics are equal. Dart compared them by identity.
