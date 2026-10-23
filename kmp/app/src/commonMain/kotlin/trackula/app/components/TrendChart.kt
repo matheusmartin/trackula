@@ -19,8 +19,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -65,7 +65,7 @@ fun TrendChart(
     val high = points.maxOf { it.value }
     val low = if (showsBars || fromZero) 0.0 else points.minOf { it.value }
     val textStyle = TextStyle(fontSize = 10.sp, lineHeight = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    val valueStyle = TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = color)
+    val valueStyle = TextStyle(fontSize = 11.sp, lineHeight = 11.sp, fontWeight = FontWeight.SemiBold, color = color)
     val measurer = rememberTextMeasurer()
     val bars = if (showsBars) chartBars(days, values, CHART_WIDTH, CHART_HEIGHT) else emptyList()
     val sidePadding = if (showsValues) 12.dp else 0.dp
@@ -73,7 +73,11 @@ fun TrendChart(
         "${shortDay(days.first())} to ${shortDay(days.last())}"
 
     // A grid as in the Dart app: the Y axis labels on the left of the plot, and the first and last day below it.
-    Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    // Screen readers get one text for the whole chart: the range and the days. Not each axis label again.
+    Row(
+        Modifier.fillMaxWidth().padding(top = 12.dp).clearAndSetSemantics { contentDescription = label },
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         // All values 0 on a scale from 0: the only label is at the bottom, with the line or the bars.
         val onlyBottom = high == 0.0 && (showsBars || fromZero)
         Column(
@@ -89,8 +93,7 @@ fun TrendChart(
                 Modifier
                     .fillMaxWidth()
                     .padding(horizontal = sidePadding)
-                    .height(72.dp)
-                    .semantics { contentDescription = label },
+                    .height(72.dp),
             ) {
                 val sx = size.width / CHART_WIDTH.toFloat()
                 val sy = size.height / CHART_HEIGHT.toFloat()

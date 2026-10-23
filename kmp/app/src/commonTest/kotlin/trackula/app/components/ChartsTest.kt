@@ -1,6 +1,9 @@
 package trackula.app.components
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -23,23 +26,22 @@ class ChartsTest {
             }
         }
         onNodeWithContentDescription("Values from 81.25 to 82.5 kg, Sep 29 to Oct 3").assertExists()
-        onNodeWithText("Sep 29").assertExists()
-        onNodeWithText("Oct 3").assertExists()
+        // One text for the whole chart: the axis labels are not read again.
+        onAllNodesWithText("Sep 29").assertCountEquals(0)
     }
 
     @Test
-    fun aTrendChartFromZeroWithOnlyZerosShowsOneAxisLabel() = runComposeUiTest {
+    fun aBarChartWithOnlyZerosGoesFromZeroToZero() = runComposeUiTest {
         setContent {
             TrackulaTheme(dark = false) { TrendChart(days, mapOf(days[1] to 0.0), showsBars = true) }
         }
         onNodeWithContentDescription("Values from 0 to 0, Sep 29 to Oct 3").assertExists()
-        onNodeWithText("0").assertExists()
     }
 
     @Test
     fun aTrendChartWithoutValuesShowsNothing() = runComposeUiTest {
         setContent { TrackulaTheme(dark = false) { TrendChart(days, emptyMap()) } }
-        onNodeWithText("Sep 29").assertDoesNotExist()
+        onAllNodesWithContentDescription("Values from", substring = true).assertCountEquals(0)
     }
 
     @Test
@@ -52,7 +54,7 @@ class ChartsTest {
     }
 
     @Test
-    fun theScoreChartShowsTheValueAboveEachDotOfAShortPeriod() = runComposeUiTest {
+    fun theScoreChartGoesFromZeroInPoints() = runComposeUiTest {
         setContent { TrackulaTheme(dark = false) { ScoreChart(days, mapOf(days[0] to 3.0, days[4] to 5.0)) {} } }
         onNodeWithContentDescription("Values from 0 to 5 points, Sep 29 to Oct 3").assertExists()
     }

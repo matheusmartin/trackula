@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsEnabled
@@ -229,5 +230,48 @@ class TodayPageTest {
             substring = true,
         )[0].performSemanticsAction(SemanticsActions.OnClick)
         waitUntil(timeoutMillis = TIMEOUT) { valueToday("water") == 1.0 }
+    }
+
+    @Test
+    fun aFailedSaveStaysOnTheTodayTilesAlsoWhenQueuedTapsGetWrittenAfterIt() = runComposeUiTest {
+        showPage()
+        val gate = CompletableDeferred<Unit>()
+        store.gate = gate
+        // The Save fails. The write of the queued tap after it works, and it clears the error before it shows again.
+        store.failOnce = true
+        onNodeWithText("Meditate").performClick()
+        onNodeWithContentDescription("Save: Meditate").performClick()
+        // During the Save, the user goes to the table and taps a count cell: the tap waits in the queue.
+        view = MainView.SHORT
+        waitForIdle()
+        onAllNodesWithContentDescription("Water, $today", substring = true)[0].performMouseInput { click() }
+        view = MainView.TODAY
+        waitForIdle()
+
+        gate.complete(Unit)
+        waitUntil(timeoutMillis = TIMEOUT) { valueToday("water") == 1.0 }
+        waitForIdle()
+        assertEquals(MainView.TODAY, view)
+        assertNull(valueToday("meditate"))
+    }
+
+    @Test
+    fun theTableAndTheCalendarsStartWithTheScoreCardAndItsTitleOpensTheScoreView() = runComposeUiTest {
+        showPage(MainView.SHORT)
+        onNodeWithContentDescription("Show the score only").assertExists()
+        view = MainView.MONTH
+        waitForIdle()
+        onNodeWithContentDescription("Show the score only").performClick()
+        assertEquals(MainView.SCORE, view)
+    }
+
+    @Test
+    fun theScoreCardUsesAllMetricsAlsoWithAGroupFilter() = runComposeUiTest {
+        showPage(MainView.SHORT)
+        val score = onAllNodesWithContentDescription("points,", substring = true)[0]
+            .fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
+        onNodeWithText("Hygiene").performClick()
+        waitForIdle()
+        onNodeWithContentDescription(score.single()).assertExists()
     }
 }
