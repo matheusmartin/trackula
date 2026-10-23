@@ -50,15 +50,25 @@
    - `Config` gets its values from the `generateConfig` Gradle task: the environment variables `GOOGLE_CLIENT_ID` and
      `GOOGLE_API_KEY`, else `config.env`.
    - `capturePointer` waits for phase 5: only a DOM UI needs it.
-5. **UI** (`lib/components/`, `lib/pages/`, `lib/constants/`). This phase needs a decision: Compose Multiplatform for web
-   (canvas, Beta) or a DOM UI that keeps BeerCSS. See "Open decisions".
+5. **UI** (`lib/components/`, `lib/pages/`, `lib/constants/` → `kmp/app/`), in Compose Multiplatform. The app runs in
+   the browser as Wasm. The UI tests run on the JVM with the desktop version of Compose (`runComposeUiTest`).
+   - `Platform` and `Session` hold the browser parts, so the tests use a fake. `Main.kt` in wasmJsMain has the
+     browser version.
+   - The theme has the colors of `web/theme.css`: `Theme.kt`. Material Design 3 does not have the cell, done and
+     gradient colors, so `ExtraColors` has them.
+   - The app button icons come from `symbols.ttf`, a 7 KB subset of Material Symbols: `design/symbols/make.py`.
+   1. App shell: theme, header, bottom navigation bar, sign-in, setup and demo mode. Done.
+   2. Today page: tiles, the 5-day table, the number editor and the count input.
+   3. Charts on a Compose `Canvas`.
+   4. Detail page, month calendar and the score view.
 6. **Build and deploy.** `web/` files, service worker, Content Security Policy, `deploy.yml`, CI. Then remove the
    Dart code and update `README.md` and `CLAUDE.md`.
 
-## Open decisions
+## Decisions
 
-- **UI technology (phase 5).** Compose Multiplatform draws on a canvas: it removes BeerCSS, `theme.css` and the SVG
-  charts, and the download is larger. A DOM UI keeps them, but its Kotlin libraries get less work from JetBrains.
+- **UI technology (phase 5): Compose Multiplatform.** It draws on a canvas: it removes BeerCSS, `theme.css` and the
+  SVG charts, and the download is larger (about 12 MB of Wasm, 8 MB of it for Skia). In return, the same UI code can
+  later run as an Android or iOS app.
 
 ## Risks
 
@@ -84,4 +94,5 @@
   which does the same.
 - `CountInput` gets the event values (`pointerType`, `key`) from the UI, not the browser events.
 - The `Store` functions are `suspend` functions, in place of functions that return a `Future`.
+- The buttons have no tooltip. Their name is for screen readers and tests (`contentDescription`).
 - `Metric` and the other model classes are data classes: two equal metrics are equal. Dart compared them by identity.

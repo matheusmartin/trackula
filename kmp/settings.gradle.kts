@@ -3,15 +3,17 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
+        google()
     }
 }
 
 dependencyResolutionManagement {
     repositories {
         mavenCentral()
+        google()
     }
 }
 
 rootProject.name = "trackula"
 
-include(":model", ":sheets", ":services")
+include(":model", ":sheets", ":services", ":app")

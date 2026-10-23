@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.kotlin.multiplatform) apply false
+    alias(libs.plugins.compose) apply false
+    alias(libs.plugins.compose.compiler) apply false
     alias(libs.plugins.ktlint) apply false
 }
 
@@ -9,5 +11,9 @@ allprojects {
     apply(plugin = rootProject.libs.plugins.ktlint.get().pluginId)
     configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
         version.set(rootProject.libs.versions.ktlint.get())
+    }
+    // Generated code, for example the Compose resource accessors, has its own format.
+    tasks.withType<org.jlleitschuh.gradle.ktlint.tasks.BaseKtLintCheckTask>().configureEach {
+        exclude { it.file.path.contains("${File.separator}build${File.separator}") }
     }
 }
