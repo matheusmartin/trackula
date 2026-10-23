@@ -31,8 +31,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import trackula.app.components.DayLayout
 import trackula.app.components.HabitTable
+import trackula.app.components.ScoreChart
 import trackula.app.components.Symbol
 import trackula.app.components.TodayTiles
+import trackula.app.components.TrendChart
 import trackula.app.components.groupLabel
 import trackula.app.errorText
 import trackula.model.CountQueue
@@ -43,6 +45,7 @@ import trackula.model.LogWrite
 import trackula.model.MainView
 import trackula.model.Metric
 import trackula.model.NumberMetric
+import trackula.model.dayScores
 import trackula.sheets.Snapshot
 import trackula.sheets.Store
 
@@ -142,10 +145,12 @@ fun TodayPage(
     // Saves the values of the Today tiles. After a successful save, the page shows the last 5 days. The app still
     // opens on the Today tiles. After an error, the Today tiles stay.
     fun writeAll(plans: List<(LogTable) -> LogWrite?>, onDone: () -> Unit) {
-        val job = run(done = onDone) { store.changeAll(plans) } ?: return onDone()
+        // True after the save. Not the error state: a write of queued count taps can start and clear the error.
+        var saved = false
+        val job = run(done = onDone) { store.changeAll(plans).also { saved = true } } ?: return onDone()
         scope.launch {
             job.join()
-            if (error == null) currentOnView(MainView.SHORT)
+            if (saved) currentOnView(MainView.SHORT)
         }
     }
 
@@ -205,23 +210,32 @@ fun TodayPage(
                     pending = pending,
                 )
 
-                // The score view and the score chart come in a later step of the port.
+                // The score view comes with the detail screen, in a later step of the port.
                 MainView.SCORE -> Text(
                     "The score view is not ported yet.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
-                MainView.SHORT, MainView.MONTH -> HabitTable(
-                    metrics = shown,
-                    log = snapshot.log,
-                    today = today,
-                    days = view.daysUntil(today),
-                    layout = if (view == MainView.MONTH) DayLayout.CALENDARS else DayLayout.TABLE,
-                    busy = busy,
-                    onWrite = ::write,
-                    pending = pending,
-                    onCount = ::count,
-                )
+                MainView.SHORT, MainView.MONTH -> {
+                    val days = view.daysUntil(today)
+                    // The scores of all metrics, also with a group filter.
+                    ScoreChart(days, dayScores(metrics, snapshot.log, pending)) { currentOnView(MainView.SCORE) }
+                    HabitTable(
+                        metrics = shown,
+                        log = snapshot.log,
+                        today = today,
+                        days = days,
+                        layout = if (view == MainView.MONTH) DayLayout.CALENDARS else DayLayout.TABLE,
+                        busy = busy,
+                        onWrite = ::write,
+                        pending = pending,
+                        onCount = ::count,
+                        // Number metrics also get a line chart of the same days.
+                        calendarExtra = { m, values ->
+                            if (m is NumberMetric) TrendChart(days, values, m.unit, showsBars = m.isCount)
+                        },
+                    )
+                }
             }
         }
         if (snapshot.warnings.isNotEmpty()) Warnings(snapshot.warnings)

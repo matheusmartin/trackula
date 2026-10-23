@@ -59,10 +59,9 @@
    - All icons come from `symbols.ttf`: Material Symbols as a static TTF (1.4 MB, 0.5 MB with gzip), made by
      `design/symbols/make.py`. The Skia build of Compose for the web cannot read WOFF2.
    1. App shell: theme, header, bottom navigation bar, sign-in, setup and demo mode. Done.
-   2. Today page: tiles, the 5-day table, the 31-day calendars, the number editor and the count input. Done. The
-      score chart, the trend charts and the score view come with the charts.
-   3. Charts on a Compose `Canvas`.
-   4. Detail page, month calendar and the score view.
+   2. Today page: tiles, the 5-day table, the 31-day calendars, the number editor and the count input. Done.
+   3. The trend chart and the score chart of the 5-day and 31-day views, on a Compose `Canvas`. Done.
+   4. Detail page with its charts (`charts.dart`, `metric_charts.dart`), month calendar and the score view.
 6. **Build and deploy.** `web/` files, service worker, Content Security Policy, `deploy.yml`, CI. Then remove the
    Dart code and update `README.md` and `CLAUDE.md`.
 

@@ -172,7 +172,6 @@ class TodayPageTest {
         store.gate = gate
         val cell = onAllNodesWithContentDescription("Water, $today", substring = true)[0]
         cell.performMouseInput { click() }
-        waitUntil(timeoutMillis = TIMEOUT) { store.loads > 0 }
         cell.performMouseInput { click() }
         cell.performMouseInput { click() }
         // All taps show at once, before the writes end.
@@ -186,7 +185,7 @@ class TodayPageTest {
 
         gate.complete(Unit)
         waitUntil(timeoutMillis = TIMEOUT) { valueToday("water") == 3.0 }
-        // The first write has the first tap. The second write has the two taps of the first write time.
+        // The first write has the first tap. The second write has the two taps that came during the first write.
         assertEquals(2, store.writes.size)
     }
 
