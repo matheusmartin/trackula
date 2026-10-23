@@ -11,6 +11,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 
 // The Ember color theme, from the orange-red logo gradient: #F97316 to #BE123C. The same values as web/theme.css of
 // the Dart app. The device setting selects the light or the dark theme.
@@ -158,5 +159,19 @@ fun TrackulaTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable ()
     val colors: ColorScheme = if (dark) darkColors else lightColors
     CompositionLocalProvider(LocalExtraColors provides if (dark) darkExtra else lightExtra) {
         MaterialTheme(colorScheme = colors, content = content)
+    }
+}
+
+/**
+ * The green theme of the score: the charts and the icons use the green of done tiles in place of the theme red, and
+ * the day fills use the green cell color without the logo gradient.
+ */
+@Composable
+fun ScoreTheme(content: @Composable () -> Unit) {
+    val extra = LocalExtraColors.current
+    CompositionLocalProvider(
+        LocalExtraColors provides extra.copy(cell = extra.doneCell, cellBrush = SolidColor(extra.doneCell)),
+    ) {
+        MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = extra.done), content = content)
     }
 }

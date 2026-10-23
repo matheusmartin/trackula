@@ -58,6 +58,7 @@ class TodayPageTest {
                     onView = { view = it },
                     reload = ReloadHandle(),
                     onBusy = {},
+                    onDetail = {},
                     readPref = { prefs[it] },
                     writePref = { key, value -> if (value == null) prefs.remove(key) else prefs[key] = value },
                 )
@@ -237,7 +238,7 @@ class TodayPageTest {
         showPage()
         val gate = CompletableDeferred<Unit>()
         store.gate = gate
-        // The Save fails. The write of the queued tap after it works, and it clears the error before it shows again.
+        // The Save fails. The write of the queued tap after it works and clears the error.
         store.failOnce = true
         onNodeWithText("Meditate").performClick()
         onNodeWithContentDescription("Save: Meditate").performClick()

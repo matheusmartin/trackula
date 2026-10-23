@@ -54,8 +54,7 @@ private fun AppContent(platform: Platform) {
     // True while the Today page loads or writes: the app bar shows a progress circle instead of the reload button.
     var busy by remember { mutableStateOf(false) }
 
-    // True while the Today page shows a metric detail screen: then the bottom navigation bar is hidden. Step 5.4 of the
-    // port adds the detail screen, which sets it.
+    // True while the Today page shows a metric detail screen: then the bottom navigation bar is hidden.
     var showsDetail by remember { mutableStateOf(false) }
 
     val demo = remember { if (platform.isDemo) DemoStore(platform.today()) else null }
@@ -71,6 +70,7 @@ private fun AppContent(platform: Platform) {
         onView = { view = it },
         reload = reload,
         onBusy = { busy = it },
+        onDetail = { showsDetail = it },
         readPref = platform::readPref,
         writePref = platform::writePref,
     )

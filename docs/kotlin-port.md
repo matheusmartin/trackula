@@ -50,7 +50,7 @@
    - `Config` gets its values from the `generateConfig` Gradle task: the environment variables `GOOGLE_CLIENT_ID` and
      `GOOGLE_API_KEY`, else `config.env`.
    - `capturePointer` waits for phase 5: only a DOM UI needs it.
-5. **UI** (`lib/components/`, `lib/pages/`, `lib/constants/` → `kmp/app/`), in Compose Multiplatform. The app runs in
+5. **UI** (`lib/components/`, `lib/pages/`, `lib/constants/` → `kmp/app/`), in Compose Multiplatform. Done. The app runs in
    the browser as Wasm. The UI tests run on the JVM with the desktop version of Compose (`runComposeUiTest`).
    - `Platform` and `Session` hold the browser parts, so the tests use a fake. `Main.kt` in wasmJsMain has the
      browser version.
@@ -61,7 +61,7 @@
    1. App shell: theme, header, bottom navigation bar, sign-in, setup and demo mode. Done.
    2. Today page: tiles, the 5-day table, the 31-day calendars, the number editor and the count input. Done.
    3. The trend chart and the score chart of the 5-day and 31-day views, on a Compose `Canvas`. Done.
-   4. Detail page with its charts (`charts.dart`, `metric_charts.dart`), month calendar and the score view.
+   4. Detail page with its charts (`charts.dart`, `metric_charts.dart`), month calendar and the score view. Done.
 6. **Build and deploy.** `web/` files, service worker, Content Security Policy, `deploy.yml`, CI. Then remove the
    Dart code and update `README.md` and `CLAUDE.md`.
 
@@ -102,5 +102,7 @@
   (`contentDescription`).
 - The count input reads raw pointer events: a mouse press with the right button subtracts, and a touch press longer
   than the long-press time does nothing. The browser does not send a `contextmenu` event to the canvas.
+- The charts have no tooltip for each bar, dot or day. A screen reader gets one text for each chart.
+- The window bar of the detail screen does not stay at the top while the page scrolls.
 - The buttons have no tooltip. Their name is for screen readers and tests (`contentDescription`).
 - `Metric` and the other model classes are data classes: two equal metrics are equal. Dart compared them by identity.

@@ -17,7 +17,7 @@ class CountingStore(private val inner: Store) : Store() {
     var last: Snapshot? = null
     var failWrites = false
 
-    /** True: only the next write fails. */
+    /** True if the next write fails. That write sets it back to false. */
     var failOnce = false
     var gate: CompletableDeferred<Unit>? = null
 

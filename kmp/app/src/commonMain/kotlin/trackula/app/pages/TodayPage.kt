@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -46,6 +47,7 @@ import trackula.model.MainView
 import trackula.model.Metric
 import trackula.model.NumberMetric
 import trackula.model.dayScores
+import trackula.model.scoreMetric
 import trackula.sheets.Snapshot
 import trackula.sheets.Store
 
@@ -65,6 +67,8 @@ private fun groupOf(m: Metric): String = m.group ?: "other"
  * - [view]: the view of the bottom navigation bar. The App owns it, and [onView] changes it.
  * - [reload]: the reload button in the app bar calls it. The page sets it.
  * - [onBusy]: called when a load or a write starts and ends. The app bar shows a progress circle while it is true.
+ * - [onDetail]: called when a metric detail screen opens (true) or closes. The App hides the bottom navigation bar on
+ *   the detail screen.
  * - [readPref], [writePref]: the group filter stays in local storage.
  */
 @Composable
@@ -77,6 +81,7 @@ fun TodayPage(
     onView: (MainView) -> Unit,
     reload: ReloadHandle,
     onBusy: (Boolean) -> Unit,
+    onDetail: (Boolean) -> Unit,
     readPref: (String) -> String?,
     writePref: (String, String?) -> Unit,
 ) {
@@ -88,6 +93,9 @@ fun TodayPage(
     var data by remember(store) { mutableStateOf<Snapshot?>(null) }
     var busy by remember(store) { mutableStateOf(false) }
     var error by remember(store) { mutableStateOf<String?>(null) }
+    val currentOnDetail by rememberUpdatedState(onDetail)
+    // The id of the metric with the open detail screen. Null shows the table.
+    var detailId by remember(store) { mutableStateOf<String?>(null) }
     // The selected group, or null for all groups.
     var group by remember { mutableStateOf(readPref("group")) }
     // The count taps that are not in the sheet yet. The table shows them at once. The queue is not a state object,
@@ -161,6 +169,8 @@ fun TodayPage(
         writeCounts()
     }
 
+    // A new page (sign-out, another sheet) has no detail screen open: the App shows the bottom navigation bar again.
+    DisposableEffect(store) { onDispose { if (detailId != null) currentOnDetail(false) } }
     DisposableEffect(store, reload) {
         val handle: () -> Unit = { run { store.load() } }
         reload.run = handle
@@ -182,6 +192,44 @@ fun TodayPage(
     val metrics = snapshot?.metrics.orEmpty()
     val groups = metrics.map(::groupOf).distinct()
     val selectedGroup = group?.takeIf { it in groups }
+
+    // The scores of all metrics, also with a group filter.
+    val scores = if (snapshot == null) emptyMap() else dayScores(metrics, snapshot.log, pending)
+
+    fun openDetail(m: Metric) {
+        detailId = m.id
+        currentOnDetail(true)
+    }
+
+    fun closeDetail() {
+        detailId = null
+        currentOnDetail(false)
+    }
+
+    @Composable
+    fun detail(metric: Metric, onBack: (() -> Unit)?) = key(metric.id) {
+        MetricDetail(
+            metric = metric,
+            log = snapshot!!.log,
+            today = today,
+            busy = busy,
+            onWrite = ::write,
+            pending = pending,
+            onCount = ::count,
+            scores = scores,
+            onBack = onBack,
+        )
+    }
+
+    // The detail screen of one metric. If the metric is gone from the sheet, the table shows again.
+    val detailMetric = metrics.firstOrNull { it.id == detailId }
+    if (snapshot != null && detailMetric != null) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            detail(detailMetric, ::closeDetail)
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        }
+        return
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         // The score view shows all metrics: no group filter.
@@ -210,16 +258,11 @@ fun TodayPage(
                     pending = pending,
                 )
 
-                // The score view comes with the detail screen, in a later step of the port.
-                MainView.SCORE -> Text(
-                    "The score view is not ported yet.",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                MainView.SCORE -> detail(scoreMetric, onBack = null)
 
                 MainView.SHORT, MainView.MONTH -> {
                     val days = view.daysUntil(today)
-                    // The scores of all metrics, also with a group filter.
-                    ScoreChart(days, dayScores(metrics, snapshot.log, pending)) { currentOnView(MainView.SCORE) }
+                    ScoreChart(days, scores) { currentOnView(MainView.SCORE) }
                     HabitTable(
                         metrics = shown,
                         log = snapshot.log,
@@ -230,6 +273,7 @@ fun TodayPage(
                         onWrite = ::write,
                         pending = pending,
                         onCount = ::count,
+                        onOpen = ::openDetail,
                         // Number metrics also get a line chart of the same days.
                         calendarExtra = { m, values ->
                             if (m is NumberMetric) TrendChart(days, values, m.unit, showsBars = m.isCount)

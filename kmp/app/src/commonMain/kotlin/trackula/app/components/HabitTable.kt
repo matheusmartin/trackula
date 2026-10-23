@@ -85,6 +85,8 @@ enum class DayLayout {
  * - [pending]: count taps that are not written yet. The table shows them at once.
  * - [onOpen]: opens the detail screen of a metric. Null: the metric names are not links.
  * - [calendarExtra]: more content below each calendar, for example a chart of the metric. The table has none.
+ * - [calendarColumns]: a fixed number of calendar columns. Null: as many as fit, each at least 280 dp wide.
+ * - [calendarCellSize]: the size of a calendar cell. The detail screen has larger cells than the Today page.
  */
 @Composable
 fun HabitTable(
@@ -100,6 +102,8 @@ fun HabitTable(
     onOpen: ((Metric) -> Unit)? = null,
     showsTitle: Boolean = true,
     calendarExtra: @Composable (Metric, Map<Day, Double>) -> Unit = { _, _ -> },
+    calendarColumns: Int? = null,
+    calendarCellSize: Dp = 26.dp,
 ) {
     // The metric and day open in the editor.
     var editing by remember { mutableStateOf<MetricDay?>(null) }
@@ -206,7 +210,7 @@ fun HabitTable(
 
         DayLayout.CALENDARS -> BoxWithConstraints(Modifier.fillMaxWidth()) {
             // As many columns as fit, each at least 280 dp wide.
-            val columns = maxOf(1, ((maxWidth + 12.dp) / (280.dp + 12.dp)).toInt())
+            val columns = calendarColumns ?: maxOf(1, ((maxWidth + 12.dp) / (280.dp + 12.dp)).toInt())
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 for (row in metrics.chunked(columns)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -216,7 +220,7 @@ fun HabitTable(
                                 AppCard(Modifier.weight(1f)) {
                                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                         if (showsTitle) MetricName(m, onOpen)
-                                        MonthGrid(days) { d -> cell(m, d, values, 26.dp) }
+                                        MonthGrid(days) { d -> cell(m, d, values, calendarCellSize) }
                                         calendarExtra(m, values)
                                         val open = editing
                                         if (m is NumberMetric && open != null && open.metricId == m.id) {
