@@ -276,7 +276,7 @@ fun columnLetter(index: Int): String {
 private fun isEmpty(cell: Any?): Boolean = cell == null || cell == false || (cell is String && cell.isBlank())
 
 /** The text of a [cell], as Dart compiled to JavaScript gives it. A number has no ".0": 8.0 is "8". Null is "". */
-internal fun cellText(cell: Any?): String = when (cell) {
+fun cellText(cell: Any?): String = when (cell) {
     null -> ""
     is String -> cell
     is Number -> numberText(cell.toDouble())

@@ -38,9 +38,10 @@
    1. `Numbers` (`toFixed`, `roundHalfAwayFromZero`), `Day`, `Format`, `Zoom`, `NumberInput`, `MainView`, `Chart`. `Format` uses `BarUnit` of `Zoom`.
    2. `Metric`, `LogEntry`, `Parse`, `CountQueue`, `Summary`.
    3. `Score`, `Stats`.
-3. **Sheets** (`lib/sheets/` → `kmp/sheets/`). The `Store` interface, `DemoStore` and `SheetsStore`. KMP has no Sheets
-   client: `SheetsStore` calls the Sheets REST API with Ktor and `kotlinx.serialization`. Tests use the Ktor
-   `MockEngine` in place of the Dart fake API.
+3. **Sheets** (`lib/sheets/` → `kmp/sheets/`). The `Store` class, `DemoStore` and `SheetsStore`. KMP has no Sheets
+   client: `SheetsClient` calls the Sheets REST API with Ktor and the JSON elements of `kotlinx.serialization`, and
+   the `HttpClient` that the caller gives sends the access token. Tests use the Ktor `MockEngine` with an in-memory
+   sheet, as the Dart tests did. Done.
 4. **Services** (`lib/services/`). Google sign-in (Google Identity Services token client), the Google Picker, browser
    storage, pointer input and double tap. Wasm interop with JavaScript.
 5. **UI** (`lib/components/`, `lib/pages/`, `lib/constants/`). This phase needs a decision: Compose Multiplatform for web
@@ -71,4 +72,7 @@
 - `trim()` in Kotlin does not remove U+FEFF, and `\s` in a regular expression on the JVM does not find a no-break
   space. Dart removed and found both. So a cell with only U+FEFF is not empty, and the goal `<=`, no-break space, `75`
   is not valid.
+- `DemoStore` gets today from the caller, and its sample values are different: Kotlin `Random(7)` gives other numbers
+  than Dart `Random(7)`.
+- The `Store` functions are `suspend` functions, in place of functions that return a `Future`.
 - `Metric` and the other model classes are data classes: two equal metrics are equal. Dart compared them by identity.
