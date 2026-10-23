@@ -55,6 +55,8 @@
   3. Add `--dart-define-from-file=config.env` to `jaspr serve` and `jaspr build`.
 - GitHub Actions: set the repository secrets `GOOGLE_CLIENT_ID` and `GOOGLE_API_KEY` in Settings → Secrets and variables → Actions → Secrets. The deploy fails if they are not set.
 - If a value is missing, the app shows a message and does not start the sign-in.
+- The Kotlin port reads the same values when Gradle builds it: from the environment variables `GOOGLE_CLIENT_ID` and
+  `GOOGLE_API_KEY`, else from `config.env`. See `generateConfig` in `kmp/services/build.gradle.kts`.
 
 ## Commands
 

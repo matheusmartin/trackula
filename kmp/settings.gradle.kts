@@ -14,4 +14,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "trackula"
 
-include(":model", ":sheets")
+include(":model", ":sheets", ":services")

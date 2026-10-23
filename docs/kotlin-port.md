@@ -42,8 +42,14 @@
    client: `SheetsClient` calls the Sheets REST API with Ktor and the JSON elements of `kotlinx.serialization`, and
    the `HttpClient` that the caller gives sends the access token. Tests use the Ktor `MockEngine` with an in-memory
    sheet, as the Dart tests did. Done.
-4. **Services** (`lib/services/`). Google sign-in (Google Identity Services token client), the Google Picker, browser
-   storage, pointer input and double tap. Wasm interop with JavaScript.
+4. **Services** (`lib/services/`, `lib/config.dart` → `kmp/services/`). Done.
+   - Common code with tests: `DoubleTap` (coroutines, tests with a virtual clock), `CountInput` (the input logic
+     without browser types, so it works with each UI), `AccessToken` (the expiry) and `Config`.
+   - Wasm only: `Session` (the Google Identity Services token client), `Picker`, `Prefs` (local storage), `today()`
+     and the script loader. These call browser APIs, so only a test in a browser can test them: see phase 6.
+   - `Config` gets its values from the `generateConfig` Gradle task: the environment variables `GOOGLE_CLIENT_ID` and
+     `GOOGLE_API_KEY`, else `config.env`.
+   - `capturePointer` waits for phase 5: only a DOM UI needs it.
 5. **UI** (`lib/components/`, `lib/pages/`, `lib/constants/`). This phase needs a decision: Compose Multiplatform for web
    (canvas, Beta) or a DOM UI that keeps BeerCSS. See "Open decisions".
 6. **Build and deploy.** `web/` files, service worker, Content Security Policy, `deploy.yml`, CI. Then remove the
@@ -74,5 +80,8 @@
   is not valid.
 - `DemoStore` gets today from the caller, and its sample values are different: Kotlin `Random(7)` gives other numbers
   than Dart `Random(7)`.
+- `Session.signIn` calls the Google Identity Services token client itself. Dart used the googleapis_auth package,
+  which does the same.
+- `CountInput` gets the event values (`pointerType`, `key`) from the UI, not the browser events.
 - The `Store` functions are `suspend` functions, in place of functions that return a `Future`.
 - `Metric` and the other model classes are data classes: two equal metrics are equal. Dart compared them by identity.
