@@ -64,6 +64,7 @@
 - Check the code as CI does: `dart format --output=none --set-exit-if-changed .`, `dart analyze --fatal-infos` and
   `dart test`. `.github/workflows/ci.yml` runs these checks on each pull request and on each push to `main`. It also
   checks that the Jaspr version in `pubspec.yaml` and the `jaspr_cli` version in `deploy.yml` are the same.
+- Check the Kotlin port: `cd kmp && ./gradlew check`. It needs JDK 21. CI runs it too.
 
 ## Project structure
 
@@ -75,4 +76,5 @@
   - Do not put `@css` in files that import browser-only code (`package:web`, `googleapis_auth/auth_browser`). Jaspr runs `@css` code on the Dart VM to create `main.css`, and browser-only imports make it fail.
 - `lib/config.dart`: reads the OAuth client ID and the Picker API key from the build defines.
 - `test/`: unit tests.
+- `kmp/`: the port to Kotlin Multiplatform. Work in progress. See [docs/kotlin-port.md](docs/kotlin-port.md).
 - `web/`: the page (`index.html`), the theme colors (`theme.css`), the icons, the manifest and the service worker.

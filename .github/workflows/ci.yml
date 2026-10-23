@@ -47,3 +47,23 @@ jobs:
             echo "::error::Use the same version for jaspr in pubspec.yaml and for jaspr_cli in deploy.yml."
             exit 1
           fi
+
+  # The Kotlin Multiplatform port in kmp/. See docs/kotlin-port.md.
+  kotlin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kmp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # Compiles with warnings as errors, and runs the tests on the JVM and on Wasm (Node.js).
+      - name: Check
+        run: ./gradlew check --console=plain
