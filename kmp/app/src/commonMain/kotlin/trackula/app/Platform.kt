@@ -17,8 +17,11 @@ interface Platform {
     /** Today in the time zone of the device. */
     fun today(): Day
 
-    /** The spreadsheet ID in local storage. Null if the user did not choose a sheet. */
-    var savedSpreadsheetId: String?
+    /** The setting [key] in local storage. Null if it is not set, or if storage is blocked. */
+    fun readPref(key: String): String?
+
+    /** Sets the setting [key] in local storage. A null [value] removes it. */
+    fun writePref(key: String, value: String?)
 
     /**
      * Opens the Google sign-in popup. Call it from a click handler, or the browser can block the popup. With
@@ -41,3 +44,8 @@ interface Session {
     /** The store of the spreadsheet [spreadsheetId]. */
     fun store(spreadsheetId: String): Store
 }
+
+/** The spreadsheet ID in local storage. Null if the user did not choose a sheet. Not secret: access needs a sign-in. */
+var Platform.savedSpreadsheetId: String?
+    get() = readPref("spreadsheetId")
+    set(value) = writePref("spreadsheetId", value)

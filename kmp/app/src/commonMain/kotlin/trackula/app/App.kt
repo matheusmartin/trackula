@@ -68,8 +68,11 @@ private fun AppContent(platform: Platform) {
         expired = isExpired,
         onExpired = onExpired,
         view = view,
+        onView = { view = it },
         reload = reload,
         onBusy = { busy = it },
+        readPref = platform::readPref,
+        writePref = platform::writePref,
     )
 
     if (demo != null) {

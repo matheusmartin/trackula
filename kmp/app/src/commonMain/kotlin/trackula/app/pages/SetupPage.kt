@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import trackula.app.Session
+import trackula.app.components.AppCard
 import trackula.app.components.Symbol
 import trackula.app.errorText
 
@@ -51,7 +51,7 @@ fun SetupPage(session: Session, onConnected: (spreadsheetId: String) -> Unit) {
         }
     }
 
-    Card(Modifier.fillMaxWidth()) {
+    AppCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("Choose a sheet", style = MaterialTheme.typography.headlineSmall)
             Text(

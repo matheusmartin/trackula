@@ -8,7 +8,6 @@ import kotlinx.browser.document
 import trackula.model.Day
 import trackula.services.Config
 import trackula.services.pickSpreadsheet
-import trackula.services.savedSpreadsheetId
 import trackula.sheets.SheetsStore
 import trackula.sheets.Store
 import trackula.services.Session as GoogleSession
@@ -29,11 +28,9 @@ private object BrowserPlatform : Platform {
 
     override fun today(): Day = browserToday()
 
-    override var savedSpreadsheetId: String?
-        get() = trackula.services.savedSpreadsheetId
-        set(value) {
-            trackula.services.savedSpreadsheetId = value
-        }
+    override fun readPref(key: String): String? = trackula.services.readPref(key)
+
+    override fun writePref(key: String, value: String?) = trackula.services.writePref(key, value)
 
     override suspend fun signIn(selectAccount: Boolean): Session =
         BrowserSession(GoogleSession.signIn(selectAccount, config))

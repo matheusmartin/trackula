@@ -92,14 +92,16 @@ class AppTest {
     }
 
     @Test
-    fun theReloadButtonReloadsTheDemoData() = runComposeUiTest {
-        setContent { App(FakePlatform(isDemo = true)) }
+    fun theReloadButtonLoadsTheDataAgain() = runComposeUiTest {
+        val platform = FakePlatform(savedSpreadsheetId = "sheet-1")
+        setContent { App(platform) }
+        onNodeWithText("Sign in with Google").performClick()
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weight").fetchSemanticsNodes().isNotEmpty() }
+        val loads = platform.session.store.loads
+
         onNodeWithContentDescription("Reload").performClick()
-        waitUntil(timeoutMillis = TIMEOUT) {
-            onAllNodesWithContentDescription("Reload").fetchSemanticsNodes().isNotEmpty()
-        }
-        onNodeWithText("Weight").assertExists()
+        waitUntil(timeoutMillis = TIMEOUT) { platform.session.store.loads == loads + 1 }
+        onNodeWithContentDescription("Reload").assertExists()
     }
 
     @Test

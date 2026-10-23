@@ -56,9 +56,11 @@
      browser version.
    - The theme has the colors of `web/theme.css`: `Theme.kt`. Material Design 3 does not have the cell, done and
      gradient colors, so `ExtraColors` has them.
-   - The app button icons come from `symbols.ttf`, a 7 KB subset of Material Symbols: `design/symbols/make.py`.
+   - All icons come from `symbols.ttf`: Material Symbols as a static TTF (1.4 MB, 0.5 MB with gzip), made by
+     `design/symbols/make.py`. The Skia build of Compose for the web cannot read WOFF2.
    1. App shell: theme, header, bottom navigation bar, sign-in, setup and demo mode. Done.
-   2. Today page: tiles, the 5-day table, the number editor and the count input.
+   2. Today page: tiles, the 5-day table, the 31-day calendars, the number editor and the count input. Done. The
+      score chart, the trend charts and the score view come with the charts.
    3. Charts on a Compose `Canvas`.
    4. Detail page, month calendar and the score view.
 6. **Build and deploy.** `web/` files, service worker, Content Security Policy, `deploy.yml`, CI. Then remove the
@@ -97,5 +99,9 @@
 - The sign-in page has the layout of the Dart page, but not all of its CSS: the logo and text sizes are near the CSS
   `min()` and `clamp()` values, and the page has no logo shadow, no Helvetica Neue wordmark font and no rules for short
   screens. Compose draws text in its default font.
+- The table cells, tiles and the ruler have no tooltip: their text is for screen readers and tests
+  (`contentDescription`).
+- The count input reads raw pointer events: a mouse press with the right button subtracts, and a touch press longer
+  than the long-press time does nothing. The browser does not send a `contextmenu` event to the canvas.
 - The buttons have no tooltip. Their name is for screen readers and tests (`contentDescription`).
 - `Metric` and the other model classes are data classes: two equal metrics are equal. Dart compared them by identity.

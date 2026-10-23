@@ -10,8 +10,17 @@ import kotlin.time.Duration
 class FakePlatform(
     override val config: Config = Config("123-abc.apps.googleusercontent.com", "key"),
     override val isDemo: Boolean = false,
-    override var savedSpreadsheetId: String? = null,
+    savedSpreadsheetId: String? = null,
 ) : Platform {
+    /** The local storage. */
+    val prefs = mutableMapOf<String, String>().apply { savedSpreadsheetId?.let { put("spreadsheetId", it) } }
+
+    override fun readPref(key: String): String? = prefs[key]
+
+    override fun writePref(key: String, value: String?) {
+        if (value == null) prefs.remove(key) else prefs[key] = value
+    }
+
     val today = Day(2026, 10, 3)
 
     /** The selectAccount argument of each sign-in. */
@@ -30,7 +39,7 @@ class FakePlatform(
 class FakeSession(today: Day) : Session {
     override var expired = false
     val prepared = mutableListOf<String>()
-    private val store = DemoStore(today, delay = Duration.ZERO)
+    val store = CountingStore(DemoStore(today, delay = Duration.ZERO))
 
     override suspend fun pickSpreadsheet(): String = "sheet-1"
 
