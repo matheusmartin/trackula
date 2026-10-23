@@ -271,8 +271,10 @@ private fun ChartsArea(window: ZoomWindow, moveTo: (Day?) -> Unit, content: @Com
 
                     // The distance from the press, as in the Dart app: not from the end of the touch slop.
                     fun dragTo(x: Float) {
-                        val bars =
-                            roundHalfAwayFromZero(((x - down.position.x) / (size.width / start.starts.size)).toDouble())
+                        // No bars, for example with a value after today: nothing to move.
+                        if (start.starts.isEmpty()) return
+                        val barWidth = size.width.toFloat() / start.starts.size
+                        val bars = roundHalfAwayFromZero(((x - down.position.x) / barWidth).toDouble())
                         move(start.endMovedBy(-bars.toInt()))
                     }
                     // Also the move that crosses the touch slop moves the window: a fast swipe can have only one move.
