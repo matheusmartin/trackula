@@ -62,8 +62,8 @@ class DemoStore(today: Day, private val delay: Duration = 400.milliseconds) : St
         )
 
         /**
-         * The waist [daysAgo] days before today: once a week, from 92 cm to 95 cm, in steps of 0.5 cm. Null on the
-         * other days.
+         * The waist [daysAgo] days before today, for the 120 days of [sampleLog]: once a week, it goes down from 95 cm
+         * (119 days ago) to 92 cm (7 days ago), in steps of 0.5 cm. Null on the other days.
          */
         fun sampleWaist(daysAgo: Int): Double? =
             if (daysAgo % 7 == 0) roundHalfAwayFromZero((95 - (120 - daysAgo) / 40.0) * 2) / 2 else null
