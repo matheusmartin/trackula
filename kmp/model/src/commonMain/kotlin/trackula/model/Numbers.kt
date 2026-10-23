@@ -22,7 +22,7 @@ internal expect fun toFixed(value: Double, decimals: Int): String
 internal expect fun numberText(value: Double): String
 
 /** [value] rounded to a whole number. A half rounds away from zero, as `round()` in Dart. Example: -2.5 → -3.0. */
-internal fun roundHalfAwayFromZero(value: Double): Double {
+fun roundHalfAwayFromZero(value: Double): Double {
     val whole = truncate(value)
     return if (abs(value - whole) >= 0.5) whole + sign(value) else whole
 }

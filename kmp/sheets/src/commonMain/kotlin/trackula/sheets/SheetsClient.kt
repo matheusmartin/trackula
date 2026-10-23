@@ -1,6 +1,7 @@
 package trackula.sheets
 
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.expectSuccess
 import io.ktor.client.request.parameter
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
@@ -108,6 +109,8 @@ class SheetsClient(private val http: HttpClient, val spreadsheetId: String) {
     ): JsonObject {
         val response = http.request(url) {
             this.method = method
+            // This function checks the status, also if the caller's client sets expectSuccess.
+            expectSuccess = false
             for ((name, values) in parameters) values.forEach { parameter(name, it) }
             if (body != null) setBody(TextContent(body.toString(), ContentType.Application.Json))
         }
@@ -139,7 +142,7 @@ internal fun cellOf(element: JsonElement): Any? {
     }
 }
 
-/** The JSON of [cells] for a request. A whole number has no fraction, so the sheet shows 5 and not 5.0. */
+/** The JSON of a [cell] for a request. A whole number has no fraction, so the sheet shows 5 and not 5.0. */
 internal fun cellJson(cell: Any?): JsonElement = when (cell) {
     null -> JsonNull
 

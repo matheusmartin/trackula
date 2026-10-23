@@ -38,6 +38,8 @@ class FakeSheets(
     val metrics: MutableList<MutableList<Any?>>,
     val log: MutableList<MutableList<Any?>>,
     logColumns: Int,
+    /** The titles of the tabs that the spreadsheet has. `addSheet` adds a title. */
+    val tabs: MutableSet<String> = mutableSetOf(METRICS_TITLE, LOG_TITLE),
 ) {
     val columnCounts = mutableMapOf(METRICS_TITLE to 26, LOG_TITLE to logColumns)
 
@@ -52,6 +54,9 @@ class FakeSheets(
 
     /** The ranges of each `values:batchUpdate` call that writes to the `Score` column. */
     val scoreWrites = mutableListOf<List<String>>()
+
+    /** Each request of each `:batchUpdate` call, as JSON, in order. */
+    val requests = mutableListOf<JsonObject>()
 
     /** The letters of the `Log` columns that got the number rule `=ISNUMBER(…)`, in the order of the requests. */
     val numberRuleColumns = mutableListOf<String>()
@@ -122,7 +127,7 @@ class FakeSheets(
         put(
             "sheets",
             buildJsonArray {
-                for ((title, id) in tabIds) {
+                for ((title, id) in tabIds.filterKeys { it in tabs }) {
                     add(
                         buildJsonObject {
                             putJsonObject("properties") {
@@ -138,7 +143,22 @@ class FakeSheets(
     }
 
     private fun batchUpdate(body: JsonObject): JsonElement {
+        val replies = mutableListOf<JsonElement>()
         for (request in body.getValue("requests").jsonArray.map { it.jsonObject }) {
+            requests.add(request)
+            val reply = request["addSheet"]?.jsonObject?.let { addSheet ->
+                val title = addSheet.getValue("properties").jsonObject.getValue("title").jsonPrimitive.content
+                tabs.add(title)
+                buildJsonObject {
+                    putJsonObject("addSheet") {
+                        putJsonObject("properties") {
+                            put("sheetId", tabIds.getValue(title))
+                            put("title", title)
+                        }
+                    }
+                }
+            }
+            replies.add(reply ?: JsonObject(emptyMap()))
             request["appendDimension"]?.jsonObject?.let { append ->
                 val title = tabIds.entries.first { it.value == append.getValue("sheetId").jsonPrimitive.int }.key
                 columnCounts[title] = columnCounts.getValue(title) + append.getValue("length").jsonPrimitive.int
@@ -151,7 +171,7 @@ class FakeSheets(
                 }
             }
         }
-        return buildJsonObject { put("replies", JsonArray(emptyList())) }
+        return buildJsonObject { put("replies", JsonArray(replies)) }
     }
 
     private fun batchGet(ranges: List<String>): JsonElement = buildJsonObject {

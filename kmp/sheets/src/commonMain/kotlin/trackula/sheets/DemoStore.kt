@@ -8,8 +8,8 @@ import trackula.model.SetCell
 import trackula.model.metricsHeader
 import trackula.model.parseLog
 import trackula.model.parseMetrics
+import trackula.model.roundHalfAwayFromZero
 import trackula.model.roundToStep
-import kotlin.math.round
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -79,7 +79,13 @@ class DemoStore(today: Day, private val delay: Duration = 400.milliseconds) : St
                             roundToStep(weight, 0.1)
                         }
 
-                        m[0] == "waist" -> if (i % 7 == 0) round((95 - (120 - i) / 40.0) * 2) / 2 else ""
+                        m[0] == "waist" -> if (i % 7 ==
+                            0
+                        ) {
+                            roundHalfAwayFromZero((95 - (120 - i) / 40.0) * 2) / 2
+                        } else {
+                            ""
+                        }
 
                         m[2] == "yesno" -> if (random.nextDouble() < 0.75) "yes" else "no"
 

@@ -1,9 +1,11 @@
 package trackula.sheets
 
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import trackula.model.CountStep
 import trackula.model.Day
 import trackula.model.LOG_TITLE
+import trackula.model.METRICS_TITLE
 import trackula.model.NumberMetric
 import trackula.model.YesNoMetric
 import trackula.model.metricsHeader
@@ -241,5 +243,129 @@ class SheetsStoreTest {
         fake.store.load()
         assertEquals(1, fake.scoreWrites.size)
         assertEquals(listOf<Double?>(null, null, null), fake.logColumn("Score"))
+    }
+}
+
+/**
+ * The JSON of the `:batchUpdate` requests, field by field. The Dart app used the typed classes of the googleapis
+ * package. The Kotlin code writes the JSON itself, so these tests find a wrong field name before the real API does.
+ * The expected JSON is in the form of the Sheets API v4 reference.
+ */
+class SheetsRequestsTest {
+    private fun json(text: String) = Json.parseToJsonElement(text)
+
+    /** The rule of [column] of the tab [tabId] with [condition]. */
+    private fun rule(tabId: Int, column: Int, condition: String) = """
+        {"setDataValidation": {
+            "range": {"sheetId": $tabId, "startRowIndex": 1, "startColumnIndex": $column, "endColumnIndex": ${column + 1}},
+            "rule": {"condition": $condition, "strict": true, "showCustomUi": true}}}
+    """
+
+    private fun formula(formula: String) =
+        """{"type": "CUSTOM_FORMULA", "values": [{"userEnteredValue": ${Json.encodeToString(formula)}}]}"""
+
+    private val metricsRules = listOf(
+        rule(
+            1,
+            2,
+            """{"type": "ONE_OF_LIST", "values": [{"userEnteredValue": "yesno"}, {"userEnteredValue": "number"},
+            {"userEnteredValue": "count"}]}""",
+        ),
+        rule(1, 6, formula("""=OR(REGEXMATCH(G2, "^[a-z0-9_]+$"), LEN(G2) <= 16)""")),
+        rule(
+            1,
+            7,
+            formula(
+                """=OR(ISNUMBER(H2), REGEXMATCH(LOWER(TO_TEXT(H2)), "^ *(yes|no|(<=|>=)? *-?[0-9]+([.][0-9]+)?) *$"))""",
+            ),
+        ),
+    )
+
+    private val dateRules = listOf(
+        """{"repeatCell": {
+            "range": {"sheetId": 2, "startRowIndex": 1, "startColumnIndex": 0, "endColumnIndex": 1},
+            "cell": {"userEnteredFormat": {"numberFormat": {"type": "DATE", "pattern": "yyyy-mm-dd"}}},
+            "fields": "userEnteredFormat.numberFormat"}}""",
+        rule(2, 0, """{"type": "DATE_IS_VALID"}"""),
+    )
+
+    @Test
+    fun ensureTabsAddsBothTabsWithTheirHeadersAndRules() = runTest {
+        val fake = FakeSheets(mutableListOf(), mutableListOf(), logColumns = 26, tabs = mutableSetOf())
+        fake.store.ensureTabs()
+
+        val addSheet = { title: String ->
+            """{"addSheet": {"properties": {"title": "$title", "gridProperties": {"frozenRowCount": 1}}}}"""
+        }
+        assertEquals(
+            (listOf(addSheet(METRICS_TITLE), addSheet(LOG_TITLE)) + metricsRules + dateRules).map(::json),
+            fake.requests,
+        )
+        assertEquals<List<Any?>>(metricsHeader, fake.metrics[0])
+        assertEquals(4, fake.metrics.size)
+        assertEquals(listOf<Any?>("date"), fake.log.single())
+
+        // The new tabs load without warnings, and the load adds the metric columns and the Score column.
+        assertEquals(emptyList(), fake.store.load().warnings)
+        assertEquals(listOf<Any?>("date", "weight", "meditate", "water", "Score"), fake.log[0])
+    }
+
+    @Test
+    fun ensureTabsChangesNothingIfBothTabsAreThere() = runTest {
+        val fake = FakeSheets(mutableListOf(), mutableListOf(), logColumns = 26)
+        fake.store.ensureTabs()
+        assertEquals(emptyList(), fake.requests)
+        assertEquals(listOf("GET "), fake.calls)
+    }
+
+    @Test
+    fun refreshRulesSendsTheRulesOfBothTabs() = runTest {
+        val fake = FakeSheets(
+            metrics = mutableListOf(
+                metricsHeader.toMutableList(),
+                mutableListOf("weight", "Weight", "number", "kg", 0.1, "body", "monitor_weight", "<= 80"),
+                mutableListOf("meditate", "Meditate", "yesno", "", "", "habits", "self_improvement", "yes"),
+            ),
+            log = mutableListOf(mutableListOf("date", "meditate", "weight", "gone", "Score")),
+            logColumns = 5,
+        )
+        fake.store.refreshRules()
+
+        val clearRules = """{"setDataValidation": {"range": {"sheetId": 1, "startRowIndex": 1}}}"""
+        val yesNo = """{"type": "ONE_OF_LIST", "values": [{"userEnteredValue": "yes"}, {"userEnteredValue": "no"}]}"""
+        assertEquals(
+            (
+                listOf(clearRules) + metricsRules + dateRules +
+                    listOf(
+                        rule(2, 1, yesNo),
+                        rule(2, 2, formula("=ISNUMBER(C2)")),
+                        // Column D has no metric: no rule.
+                        rule(2, 4, formula("=ISNUMBER(E2)")),
+                    )
+                ).map(::json),
+            fake.requests,
+        )
+    }
+
+    @Test
+    fun aNewColumnAppendsTheDimensionThatTheLogTabNeeds() = runTest {
+        val fake = FakeSheets(
+            metrics = mutableListOf(
+                metricsHeader.toMutableList(),
+                mutableListOf("water", "Water", "count", "glasses", 1, "habits", "water_drop", 8),
+            ),
+            log = mutableListOf(mutableListOf("date")),
+            logColumns = 1,
+        )
+        fake.store.load()
+
+        assertEquals(
+            listOf(
+                """{"appendDimension": {"sheetId": 2, "dimension": "COLUMNS", "length": 2}}""",
+                rule(2, 1, formula("=ISNUMBER(B2)")),
+                rule(2, 2, formula("=ISNUMBER(C2)")),
+            ).map(::json),
+            fake.requests,
+        )
     }
 }
