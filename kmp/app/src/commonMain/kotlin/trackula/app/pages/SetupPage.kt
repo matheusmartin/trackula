@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,14 +34,18 @@ fun SetupPage(session: Session, onConnected: (spreadsheetId: String) -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
+    // The latest parameters: Compose can keep a function reference of an earlier composition, with its values.
+    val currentSession by rememberUpdatedState(session)
+    val connected by rememberUpdatedState(onConnected)
+
     fun choose() {
         busy = true
         error = null
         scope.launch {
             try {
-                val spreadsheetId = session.pickSpreadsheet() ?: return@launch
-                session.prepare(spreadsheetId)
-                onConnected(spreadsheetId)
+                val spreadsheetId = currentSession.pickSpreadsheet() ?: return@launch
+                currentSession.prepare(spreadsheetId)
+                connected(spreadsheetId)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

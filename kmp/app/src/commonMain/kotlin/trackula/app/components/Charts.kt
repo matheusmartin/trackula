@@ -148,7 +148,7 @@ fun ChartGrid(items: List<ChartItem>) {
 fun KeyNumbers(items: List<Pair<String, String>>) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         // No empty columns, as the CSS `auto-fit`: few tiles stretch to fill the row.
-        val columns = min(items.size, max(1, ((maxWidth + 8.dp) / (144.dp + 8.dp)).toInt())).coerceAtLeast(1)
+        val columns = min(items.size, max(1, ((maxWidth + 8.dp) / (144.dp + 8.dp)).toInt()))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             for (row in items.chunked(columns)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

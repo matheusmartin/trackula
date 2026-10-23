@@ -129,7 +129,7 @@ fun TodayTiles(
     val unsaved = metrics.filter { it.id in drafts }.map { it.name }
     Column {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val columns = if (maxWidth >= 640.dp) 4 else 2
+            val columns = if (maxWidth >= WIDE_CONTENT) 4 else 2
             val isWide = { m: Metric -> m is NumberMetric && !m.isCount }
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 for (row in tileRows(metrics, columns, isWide)) {

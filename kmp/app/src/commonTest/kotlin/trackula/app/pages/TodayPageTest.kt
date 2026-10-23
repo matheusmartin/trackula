@@ -278,7 +278,10 @@ class TodayPageTest {
 
     @Test
     fun saveAfterAGroupChangeSavesTheTilesOfTheNewGroup() = runComposeUiTest {
+        // The page opens on another group: the first tiles do not have "Morning teeth".
+        prefs["group"] = "Health"
         showPage()
+        onNodeWithText("Morning teeth").assertDoesNotExist()
         onNodeWithText("Hygiene").performClick()
         waitForIdle()
         onNodeWithText("Morning teeth").performClick()

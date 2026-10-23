@@ -267,15 +267,22 @@ private fun ChartsArea(window: ZoomWindow, moveTo: (Day?) -> Unit, content: @Com
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     // A drag starts after the touch slop, so that a tap on a heatmap day still works.
-                    awaitHorizontalTouchSlopOrCancellation(down.id) { change, _ -> change.consume() }
-                        ?: return@awaitEachGesture
                     val start = currentWindow
+
                     // The distance from the press, as in the Dart app: not from the end of the touch slop.
+                    fun dragTo(x: Float) {
+                        val bars =
+                            roundHalfAwayFromZero(((x - down.position.x) / (size.width / start.starts.size)).toDouble())
+                        move(start.endMovedBy(-bars.toInt()))
+                    }
+                    // Also the move that crosses the touch slop moves the window: a fast swipe can have only one move.
+                    awaitHorizontalTouchSlopOrCancellation(down.id) { change, _ ->
+                        change.consume()
+                        dragTo(change.position.x)
+                    } ?: return@awaitEachGesture
                     horizontalDrag(down.id) { change ->
                         change.consume()
-                        val dx = change.position.x - down.position.x
-                        val bars = roundHalfAwayFromZero((dx / (size.width.toFloat() / start.starts.size)).toDouble())
-                        move(start.endMovedBy(-bars.toInt()))
+                        dragTo(change.position.x)
                     }
                 }
             }

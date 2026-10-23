@@ -193,13 +193,14 @@ class MetricDetailTest {
     @Test
     fun aSideDragOnTheChartsMovesTheWindowByBarsFromThePress() = runComposeUiTest {
         weightAtOneMonth()
-        // 5 bars on the width of the charts: a drag to the right of 1.2 bars moves the window 1 week back.
+        // 5 bars on the width of the charts: a drag to the right of 0.55 bar moves the window 1 week back. From the end
+        // of the touch slop (18 px), the drag is less than half a bar: then it does not move the window.
         // The charts area has the width of the test window.
         val bar = onRoot().fetchSemanticsNode().size.width / 5f
         onNodeWithText("Averages and range").performTouchInput {
             down(center)
-            moveBy(Offset(bar * 0.6f, 0f))
-            moveBy(Offset(bar * 0.6f, 0f))
+            moveBy(Offset(bar * 0.275f, 0f))
+            moveBy(Offset(bar * 0.275f, 0f))
             up()
         }
         waitForIdle()
