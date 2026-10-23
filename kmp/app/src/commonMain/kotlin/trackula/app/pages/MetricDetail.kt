@@ -1,9 +1,13 @@
 package trackula.app.pages
 
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellation
+import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
@@ -129,6 +133,8 @@ private fun DetailContent(
     val steps = zoomSteps(first, today)
     val index = min(stepIndex ?: defaultStepIndex(steps), steps.lastIndex)
     val window = ZoomWindow(steps[index], first, today, end)
+    // The latest window: Compose can keep a function reference of an earlier composition, with its values.
+    val currentWindow by rememberUpdatedState(window)
 
     fun moveTo(newEnd: Day?) {
         if (newEnd == end) return
@@ -139,7 +145,7 @@ private fun DetailContent(
     // Zooms to the step [to]. At the newest bar, the window stays at the newest bar. Else it keeps the same time in
     // view. [all]: the step that a tap on the All label goes back to.
     fun zoom(to: Int, all: Int? = null) {
-        if (!window.atEnd) end = window.to
+        if (!currentWindow.atEnd) end = currentWindow.to
         stepIndex = to
         beforeAll = all
     }
@@ -205,24 +211,28 @@ private fun WindowBar(
     val count = window.starts.size
     val box = window.boxOn(BarUnit.WEEK)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AppIconButton("zoom_in", "Zoom in", { zoom(index - 1, null) }, enabled = index > 0, small = true)
-            // A fixed width, so that the zoom buttons do not move when the label changes.
-            TextButton(
-                onClick = { if (atAll) zoom(back, null) else zoom(last, index) },
-                modifier = Modifier
-                    .widthIn(min = 88.dp)
-                    .semantics { contentDescription = if (atAll) "Back to ${steps[back].label}" else "Show all" },
-            ) { Text(if (atAll) "All" else steps[index].label) }
-            AppIconButton("zoom_out", "Zoom out", { zoom(index + 1, null) }, enabled = !atAll, small = true)
-            Box(Modifier.weight(1f))
-            AppIconButton("chevron_left", "Earlier", {
-                moveTo(window.endMovedBy(-count))
-            }, enabled = !window.atStart, small = true)
-            Text(formatDateRange(window.from, window.to), style = MaterialTheme.typography.bodyMedium)
-            AppIconButton("chevron_right", "Later", {
-                moveTo(window.endMovedBy(count))
-            }, enabled = !window.atEnd, small = true)
+        // Zoom buttons on the left, dates with arrows on the right. Narrow screens: the dates go below the zoom buttons.
+        FlowRow(horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.Center) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AppIconButton("zoom_in", "Zoom in", { zoom(index - 1, null) }, enabled = index > 0, small = true)
+                // A fixed width, so that the zoom buttons do not move when the label changes.
+                TextButton(
+                    onClick = { if (atAll) zoom(back, null) else zoom(last, index) },
+                    modifier = Modifier
+                        .widthIn(min = 88.dp)
+                        .semantics { contentDescription = if (atAll) "Back to ${steps[back].label}" else "Show all" },
+                ) { Text(if (atAll) "All" else steps[index].label) }
+                AppIconButton("zoom_out", "Zoom out", { zoom(index + 1, null) }, enabled = !atAll, small = true)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AppIconButton("chevron_left", "Earlier", {
+                    moveTo(window.endMovedBy(-count))
+                }, enabled = !window.atStart, small = true)
+                Text(formatDateRange(window.from, window.to), style = MaterialTheme.typography.bodyMedium)
+                AppIconButton("chevron_right", "Later", {
+                    moveTo(window.endMovedBy(count))
+                }, enabled = !window.atEnd, small = true)
+            }
         }
         Overview(
             weeks = zoomBars(
@@ -249,29 +259,24 @@ private fun WindowBar(
 private fun ChartsArea(window: ZoomWindow, moveTo: (Day?) -> Unit, content: @Composable () -> Unit) {
     val currentWindow by rememberUpdatedState(window)
     val move by rememberUpdatedState(moveTo)
-    // The window at the drag start, and the drag distance in pixels.
-    var dragWindow by remember { mutableStateOf<ZoomWindow?>(null) }
-    var dragX by remember { mutableFloatStateOf(0f) }
     // Side wheel movement that is less than one bar, in pixels.
     var wheel by remember { mutableFloatStateOf(0f) }
     Column(
         modifier = Modifier
             .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragStart = {
-                        dragWindow = currentWindow
-                        dragX = 0f
-                    },
-                    onDragEnd = { dragWindow = null },
-                    onDragCancel = { dragWindow = null },
-                ) { change, amount ->
-                    val start = dragWindow ?: return@detectHorizontalDragGestures
-                    change.consume()
-                    dragX += amount
-                    val bars = roundHalfAwayFromZero(
-                        (dragX / (size.width.toFloat() / start.starts.size)).toDouble(),
-                    ).toInt()
-                    move(start.endMovedBy(-bars))
+                awaitEachGesture {
+                    val down = awaitFirstDown(requireUnconsumed = false)
+                    // A drag starts after the touch slop, so that a tap on a heatmap day still works.
+                    awaitHorizontalTouchSlopOrCancellation(down.id) { change, _ -> change.consume() }
+                        ?: return@awaitEachGesture
+                    val start = currentWindow
+                    // The distance from the press, as in the Dart app: not from the end of the touch slop.
+                    horizontalDrag(down.id) { change ->
+                        change.consume()
+                        val dx = change.position.x - down.position.x
+                        val bars = roundHalfAwayFromZero((dx / (size.width.toFloat() / start.starts.size)).toDouble())
+                        move(start.endMovedBy(-bars.toInt()))
+                    }
                 }
             }
             .pointerInput(Unit) {

@@ -19,10 +19,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -87,6 +89,12 @@ fun TodayTiles(
     val scope = rememberCoroutineScope()
     val countInput = remember(scope) { CountInput<String>(scope) }
 
+    // The latest parameters for save: Compose can keep a function reference of an earlier composition, with its
+    // values. Example: after a tap on another group chip, the tiles of the new group.
+    val latestMetrics by rememberUpdatedState(metrics)
+    val latestToday by rememberUpdatedState(today)
+    val writeAll by rememberUpdatedState(onWriteAll)
+
     // The value that a tile shows: unsaved, then being saved, then saved.
     fun shown(m: Metric, saved: Double?): Double? = when (m.id) {
         in drafts -> drafts[m.id]
@@ -100,6 +108,8 @@ fun TodayTiles(
     }
 
     fun save() {
+        val metrics = latestMetrics
+        val today = latestToday
         val plans = metrics.filter { it.id in drafts }.map { m ->
             val v = drafts[m.id]
             val plan: (LogTable) -> LogWrite? = when {
@@ -113,7 +123,7 @@ fun TodayTiles(
         saving.putAll(drafts)
         drafts.clear()
         // The write ended: the new data has the saved values, or the error shows.
-        onWriteAll(plans) { saving.clear() }
+        writeAll(plans) { saving.clear() }
     }
 
     val unsaved = metrics.filter { it.id in drafts }.map { it.name }

@@ -11,6 +11,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -78,7 +79,7 @@ fun MonthCalendar(
 
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         // Phones: one month. Wider screens: the month before on the left, and a title with both months.
-        val two = maxWidth >= 640.dp
+        val two = maxWidth >= WIDE_CONTENT
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Edit days", style = MaterialTheme.typography.titleMedium)
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -115,8 +116,9 @@ fun MonthCalendar(
                 },
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (two) calendar(daysOfMonth(before), Modifier.weight(1f))
-                calendar(daysOfMonth(month), Modifier.weight(1f))
+                // Keys: when the width changes, each month keeps its own state, for example an open editor.
+                if (two) key("previous") { calendar(daysOfMonth(before), Modifier.weight(1f)) }
+                key("calendar") { calendar(daysOfMonth(month), Modifier.weight(1f)) }
             }
         }
     }

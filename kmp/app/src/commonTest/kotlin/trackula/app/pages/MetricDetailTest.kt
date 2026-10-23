@@ -7,15 +7,22 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import androidx.compose.ui.test.v2.runComposeUiTest
 import trackula.app.CountingStore
 import trackula.app.TrackulaTheme
@@ -162,5 +169,86 @@ class MetricDetailTest {
         onNodeWithText("Score").assertExists()
         onNodeWithText("Edit days").assertDoesNotExist()
         onNodeWithContentDescription("Back").assertDoesNotExist()
+    }
+
+    /** Zooms the detail screen of Weight to 1 month: 5 weeks, from Monday 2026-08-31 to today. */
+    private fun ComposeUiTest.weightAtOneMonth() {
+        showPage()
+        openDetail("Weight")
+        onNodeWithContentDescription("Zoom in").performClick()
+        waitForIdle()
+        onNodeWithText(formatDateRange(Day(2026, 8, 31), today)).assertExists()
+    }
+
+    @Test
+    fun aTapOnTheOverviewMovesTheWindowThere() = runComposeUiTest {
+        weightAtOneMonth()
+        // The overview starts at the first week of the data, 2026-06-01: a tap at the left end shows the oldest weeks.
+        onNodeWithContentDescription("All data").performTouchInput { click(centerLeft) }
+        waitForIdle()
+        onNodeWithContentDescription("Earlier").assertIsNotEnabled()
+        onNodeWithContentDescription("Later").assertIsEnabled()
+    }
+
+    @Test
+    fun aSideDragOnTheChartsMovesTheWindowByBarsFromThePress() = runComposeUiTest {
+        weightAtOneMonth()
+        // 5 bars on the width of the charts: a drag to the right of 1.2 bars moves the window 1 week back.
+        // The charts area has the width of the test window.
+        val bar = onRoot().fetchSemanticsNode().size.width / 5f
+        onNodeWithText("Averages and range").performTouchInput {
+            down(center)
+            moveBy(Offset(bar * 0.6f, 0f))
+            moveBy(Offset(bar * 0.6f, 0f))
+            up()
+        }
+        waitForIdle()
+        onNodeWithText(formatDateRange(Day(2026, 8, 24), Day(2026, 9, 27))).assertExists()
+    }
+
+    @Test
+    fun aHeatmapTapShowsItsMonthAndAMoveOfTheWindowGoesBackToTheWindowEnd() = runComposeUiTest {
+        weightAtOneMonth()
+        // The heatmap of 1 month starts on Monday 2026-08-31, in the top left corner.
+        val heatmap = onNodeWithContentDescription("Days from 2026-08-31 to $today")
+        heatmap.performScrollTo()
+        heatmap.performTouchInput { click(Offset(2f, 2f)) }
+        waitForIdle()
+        onNodeWithText("August 2026", substring = true).assertExists()
+        onNodeWithText("October 2026", substring = true).assertDoesNotExist()
+
+        onNodeWithContentDescription("Earlier").performScrollTo().performClick()
+        waitForIdle()
+        // The window now ends on 2026-08-30: the calendar shows its month.
+        onNodeWithText("August 2026", substring = true).assertExists()
+        onNodeWithContentDescription("Next month").assertIsEnabled()
+    }
+
+    @Test
+    fun aSwipeOnTheCalendarShowsTheMonthBeforeButNotAMonthAfterThisMonth() = runComposeUiTest {
+        showPage()
+        openDetail("Meditate")
+        val calendar = onAllNodesWithContentDescription("Meditate, $today", substring = true)[0]
+        calendar.performScrollTo()
+        // To the left: the next month. This month is the newest: nothing changes.
+        calendar.performTouchInput { swipeLeft(startX = centerX + 100f, endX = centerX - 100f) }
+        waitForIdle()
+        onNodeWithContentDescription("Next month").assertIsNotEnabled()
+        // To the right: the month before.
+        calendar.performTouchInput { swipeRight(startX = centerX - 100f, endX = centerX + 100f) }
+        waitForIdle()
+        onNodeWithContentDescription("Next month").assertIsEnabled()
+    }
+
+    @Test
+    fun aZoomAwayFromTheNewestBarKeepsTheSameEnd() = runComposeUiTest {
+        weightAtOneMonth()
+        onNodeWithContentDescription("Earlier").performClick()
+        waitForIdle()
+        onNodeWithText(formatDateRange(Day(2026, 7, 27), Day(2026, 8, 30))).assertExists()
+        // 2 weeks: the 14 days that end on 2026-08-30.
+        onNodeWithContentDescription("Zoom in").performClick()
+        waitForIdle()
+        onNodeWithText(formatDateRange(Day(2026, 8, 17), Day(2026, 8, 30))).assertExists()
     }
 }

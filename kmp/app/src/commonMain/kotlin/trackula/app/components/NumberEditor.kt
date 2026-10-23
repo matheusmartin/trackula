@@ -112,8 +112,15 @@ fun NumberEditor(
     onChange: ((Double?) -> Unit)? = null,
     compact: Boolean = false,
 ) {
-    val step = metric.step
+    // The latest parameters for the input functions below: Compose can keep a function reference of an earlier
+    // composition, with its values.
+    val step by rememberUpdatedState(metric.step)
     val change by rememberUpdatedState(onChange)
+    val dayValue by rememberUpdatedState(current)
+    val startValue by rememberUpdatedState(start)
+    val save by rememberUpdatedState(onSave)
+    val clear by rememberUpdatedState(onClear)
+    val close by rememberUpdatedState(onClose)
     var value by remember { mutableDoubleStateOf(current ?: start ?: 0.0) }
     // The text field. Empty if the metric has no value on any day.
     var text by remember { mutableStateOf(if (current == null && start == null) "" else formatStep(value, step)) }
@@ -143,21 +150,21 @@ fun NumberEditor(
     }
 
     // Saves the value. An empty text field clears the day.
-    fun save() {
+    fun saveValue() {
         if (change != null) return
         val typed = parseDecimal(text)
         when {
-            typed != null -> onSave(typed)
-            text.isBlank() && current != null -> onClear()
-            else -> error = "Enter a number, for example ${formatStep(start ?: (step * 10), step)}."
+            typed != null -> save(typed)
+            text.isBlank() && dayValue != null -> clear()
+            else -> error = "Enter a number, for example ${formatStep(startValue ?: (step * 10), step)}."
         }
     }
 
     fun fieldKey(event: KeyEvent): Boolean {
         if (event.type != KeyEventType.KeyDown) return false
         when (event.key) {
-            Key.Enter, Key.NumPadEnter -> save()
-            Key.Escape -> onClose()
+            Key.Enter, Key.NumPadEnter -> saveValue()
+            Key.Escape -> close()
             Key.DirectionUp -> set(value + step)
             Key.DirectionDown -> set(value - step)
             else -> return false
@@ -168,8 +175,8 @@ fun NumberEditor(
     fun rulerKey(event: KeyEvent): Boolean {
         if (event.type != KeyEventType.KeyDown) return false
         val steps = when (event.key) {
-            Key.Enter, Key.NumPadEnter -> return true.also { save() }
-            Key.Escape -> return true.also { onClose() }
+            Key.Enter, Key.NumPadEnter -> return true.also { saveValue() }
+            Key.Escape -> return true.also { close() }
             Key.DirectionRight, Key.DirectionUp -> 1
             Key.DirectionLeft, Key.DirectionDown -> -1
             Key.PageUp -> 10
@@ -221,7 +228,7 @@ fun NumberEditor(
             onKey = ::rulerKey,
         )
         if (onChange == null) {
-            Button(onClick = ::save, enabled = !busy) { Text("Save") }
+            Button(onClick = ::saveValue, enabled = !busy) { Text("Save") }
         }
         error?.let { Text(it, color = colors.error) }
     }

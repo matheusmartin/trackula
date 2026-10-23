@@ -221,8 +221,12 @@ fun TodayPage(
         )
     }
 
-    // The detail screen of one metric. If the metric is gone from the sheet, the table shows again.
+    // The detail screen of one metric. If the metric is gone from the sheet, the table shows again, with the bottom
+    // navigation bar.
     val detailMetric = metrics.firstOrNull { it.id == detailId }
+    LaunchedEffect(detailId, detailMetric == null, snapshot == null) {
+        if (detailId != null && snapshot != null && detailMetric == null) closeDetail()
+    }
     if (snapshot != null && detailMetric != null) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             detail(detailMetric, ::closeDetail)

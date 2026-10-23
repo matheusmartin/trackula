@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,12 +63,16 @@ fun SignInPage(platform: Platform, expired: Boolean, onSignedIn: (Session) -> Un
     val colors = MaterialTheme.colorScheme
     val extra = LocalExtraColors.current
 
+    // The latest parameters: Compose can keep a function reference of an earlier composition, with its values.
+    val isExpired by rememberUpdatedState(expired)
+    val signedIn by rememberUpdatedState(onSignedIn)
+
     fun signIn() {
         busy = true
         error = null
         scope.launch {
             try {
-                onSignedIn(platform.signIn(selectAccount = !expired))
+                signedIn(platform.signIn(selectAccount = !isExpired))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

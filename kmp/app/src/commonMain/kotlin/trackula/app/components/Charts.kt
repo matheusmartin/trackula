@@ -74,6 +74,12 @@ private val COLUMN_WIDTH = 41.6.dp
 /** The largest width of one bar column. A wide card with few bars shows them centered, not stretched. */
 private val MAX_COLUMN_WIDTH = 56.dp
 
+/**
+ * The content width of a wide screen: a 640 dp window, as the `min-width: 640px` of the Dart CSS, without the 16 dp
+ * page padding on each side.
+ */
+internal val WIDE_CONTENT = 608.dp
+
 /** The height of a bar or line chart. */
 private val PLOT_HEIGHT = 96.dp
 
@@ -124,7 +130,7 @@ class ChartItem(val wide: Boolean, val content: @Composable (Modifier) -> Unit)
 @Composable
 fun ChartGrid(items: List<ChartItem>) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val columns = if (maxWidth >= 640.dp) 2 else 1
+        val columns = if (maxWidth >= WIDE_CONTENT) 2 else 1
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             for (row in tileRows(items, columns) { it.wide }) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -141,7 +147,8 @@ fun ChartGrid(items: List<ChartItem>) {
 @Composable
 fun KeyNumbers(items: List<Pair<String, String>>) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val columns = max(1, ((maxWidth + 8.dp) / (144.dp + 8.dp)).toInt())
+        // No empty columns, as the CSS `auto-fit`: few tiles stretch to fill the row.
+        val columns = min(items.size, max(1, ((maxWidth + 8.dp) / (144.dp + 8.dp)).toInt())).coerceAtLeast(1)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             for (row in items.chunked(columns)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -349,11 +356,7 @@ fun LineChart(
                     if (dots) {
                         val radius = (if (values.size > 60) 1.5.dp else 2.5.dp).toPx()
                         values.forEachIndexed { i, v ->
-                            if (v !=
-                                null
-                            ) {
-                                drawCircle(dotColor, radius, Offset(x(i), y(v) * sy))
-                            }
+                            v?.let { drawCircle(dotColor, radius, Offset(x(i), y(it) * sy)) }
                         }
                     }
                 }
@@ -529,7 +532,7 @@ fun Overview(weeks: List<ZoomBar>, fromZero: Boolean, from: Day, to: Day, onPoin
             .fillMaxWidth()
             .height(32.dp)
             .semantics { contentDescription = "All data" }
-            .pointerInput(weeks.size) {
+            .pointerInput(first, last) {
                 // A press and each move: all moves go to the overview, also vertical ones.
                 awaitEachGesture {
                     var event = awaitPointerEvent()
@@ -584,13 +587,8 @@ fun DayHeatmap(
     modifier: Modifier = Modifier,
     onDay: ((Day) -> Unit)? = null,
 ) {
-    val description = if (onDay ==
-        null
-    ) {
-        "One cell for each day of the window."
-    } else {
-        "Tap a day to show its month in the calendar."
-    }
+    val description =
+        onDay?.let { "Tap a day to show its month in the calendar." } ?: "One cell for each day of the window."
     ChartCard(title, description, modifier) {
         if (to.serial - from.serial + 1 > MAX_HEATMAP_DAYS) {
             return@ChartCard Text("Zoom in to 1 year or less to see single days.", style = labelStyle())

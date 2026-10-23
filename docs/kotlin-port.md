@@ -35,7 +35,8 @@
 
 1. **Project.** Gradle project in `kmp/`, version catalog, wrapper and a CI job. Done.
 2. **Model** (`lib/model/` → `kmp/model/`, targets JVM and Wasm). Pure Kotlin, no dependencies. Done.
-   1. `Numbers` (`toFixed`, `roundHalfAwayFromZero`), `Day`, `Format`, `Zoom`, `NumberInput`, `MainView`, `Chart`. `Format` uses `BarUnit` of `Zoom`.
+   1. `Numbers` (`toFixed`, `roundHalfAwayFromZero`), `Day`, `Format`, `Zoom`, `NumberInput`, `MainView`, `Chart`.
+      `Format` uses `BarUnit` of `Zoom`.
    2. `Metric`, `LogEntry`, `Parse`, `CountQueue`, `Summary`.
    3. `Score`, `Stats`.
 3. **Sheets** (`lib/sheets/` → `kmp/sheets/`). The `Store` class, `DemoStore` and `SheetsStore`. KMP has no Sheets
@@ -50,8 +51,8 @@
    - `Config` gets its values from the `generateConfig` Gradle task: the environment variables `GOOGLE_CLIENT_ID` and
      `GOOGLE_API_KEY`, else `config.env`.
    - `capturePointer` waits for phase 5: only a DOM UI needs it.
-5. **UI** (`lib/components/`, `lib/pages/`, `lib/constants/` → `kmp/app/`), in Compose Multiplatform. Done. The app runs in
-   the browser as Wasm. The UI tests run on the JVM with the desktop version of Compose (`runComposeUiTest`).
+5. **UI** (`lib/components/`, `lib/pages/`, `lib/constants/` → `kmp/app/`), in Compose Multiplatform. Done. The app
+   runs in the browser as Wasm. The UI tests run on the JVM with the desktop version of Compose (`runComposeUiTest`).
    - `Platform` and `Session` hold the browser parts, so the tests use a fake. `Main.kt` in wasmJsMain has the
      browser version.
    - The theme has the colors of `web/theme.css`: `Theme.kt`. Material Design 3 does not have the cell, done and

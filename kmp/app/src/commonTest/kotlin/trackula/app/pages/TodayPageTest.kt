@@ -275,4 +275,14 @@ class TodayPageTest {
         waitForIdle()
         onNodeWithContentDescription(score.single()).assertExists()
     }
+
+    @Test
+    fun saveAfterAGroupChangeSavesTheTilesOfTheNewGroup() = runComposeUiTest {
+        showPage()
+        onNodeWithText("Hygiene").performClick()
+        waitForIdle()
+        onNodeWithText("Morning teeth").performClick()
+        onNodeWithContentDescription("Save: Morning teeth").performClick()
+        waitUntil(timeoutMillis = TIMEOUT) { valueToday("teeth") == 1.0 }
+    }
 }
