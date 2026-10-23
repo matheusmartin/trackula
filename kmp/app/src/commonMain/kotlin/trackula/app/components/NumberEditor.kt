@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -260,6 +259,8 @@ private fun Ruler(
     // The pointer x and the value at the press. A drag measures from the press, not from the end of the touch slop.
     var pressX by remember { mutableFloatStateOf(0f) }
     var pressValue by remember { mutableDoubleStateOf(value) }
+    // False after a press of another mouse button than the primary button: then a drag does nothing.
+    var primaryPress by remember { mutableStateOf(true) }
     // Wheel movement that is less than one tick, in ticks.
     var wheel by remember { mutableFloatStateOf(0f) }
     val measurer = rememberTextMeasurer()
@@ -298,12 +299,12 @@ private fun Ruler(
             .pointerInput(Unit) {
                 // A press confirms the value, also without a move.
                 awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    if (down.type == PointerType.Mouse &&
-                        !currentEvent.buttons.isPrimaryPressed
-                    ) {
-                        return@awaitEachGesture
-                    }
+                    // A raw press event: awaitFirstDown does not see a press of the right mouse button.
+                    var event = awaitPointerEvent()
+                    while (event.type != PointerEventType.Press) event = awaitPointerEvent()
+                    val down = event.changes.first()
+                    primaryPress = down.type != PointerType.Mouse || event.buttons.isPrimaryPressed
+                    if (!primaryPress) return@awaitEachGesture
                     focus.requestFocus()
                     pressX = down.position.x
                     pressValue = currentValue
@@ -312,6 +313,7 @@ private fun Ruler(
             }
             .pointerInput(step) {
                 detectHorizontalDragGestures { change, _ ->
+                    if (!primaryPress) return@detectHorizontalDragGestures
                     change.consume()
                     set(pressValue - (change.position.x - pressX) / TICK.toPx() * step, true)
                 }
@@ -324,7 +326,8 @@ private fun Ruler(
                         val delta = event.changes.first().scrollDelta
                         if (pageScrolls && abs(delta.y) >= abs(delta.x)) continue
                         event.changes.forEach { it.consume() }
-                        wheel += if (abs(delta.x) > abs(delta.y)) delta.x else delta.y
+                        // On the web, Compose gives the wheel movement in pixels, as the browser: 9 pixels are one tick.
+                        wheel += (if (abs(delta.x) > abs(delta.y)) delta.x else delta.y) / TICK.value
                         val steps = truncate(wheel)
                         if (steps != 0f) {
                             wheel -= steps

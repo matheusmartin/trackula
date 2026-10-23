@@ -19,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
@@ -68,7 +67,8 @@ import trackula.services.CountInput
  * A tile with a value (saved or not) is green. An unsaved tile also has a green frame. Phones: 2 columns. Wider
  * screens: 4 columns. Number tiles take a full row.
  *
- * - [onWriteAll]: saves several values in one task, in order. For the Save button.
+ * - [onWriteAll]: saves several values in one task, in order, for the Save button. It calls its `onDone` when the
+ *   write ends, also after an error.
  * - [pending]: count taps of the table views that are not written yet. The tiles show them.
  */
 @Composable
@@ -77,7 +77,7 @@ fun TodayTiles(
     log: LogTable,
     today: Day,
     busy: Boolean,
-    onWriteAll: (List<(LogTable) -> LogWrite?>) -> Unit,
+    onWriteAll: (plans: List<(LogTable) -> LogWrite?>, onDone: () -> Unit) -> Unit,
     pending: Map<MetricDay, List<CountStep>>,
 ) {
     // Unsaved values, by metric id. Yes/no: 1 for `yes`, 0 for `no`. Null clears the day.
@@ -86,9 +86,6 @@ fun TodayTiles(
     val saving = remember { mutableStateMapOf<String, Double?>() }
     val scope = rememberCoroutineScope()
     val countInput = remember(scope) { CountInput<String>(scope) }
-
-    // The write ended: the new data has the saved values, or the error shows.
-    LaunchedEffect(busy) { if (!busy) saving.clear() }
 
     // The value that a tile shows: unsaved, then being saved, then saved.
     fun shown(m: Metric, saved: Double?): Double? = when (m.id) {
@@ -115,7 +112,8 @@ fun TodayTiles(
         // The number editors keep their values: the new data shows the same values.
         saving.putAll(drafts)
         drafts.clear()
-        onWriteAll(plans)
+        // The write ended: the new data has the saved values, or the error shows.
+        onWriteAll(plans) { saving.clear() }
     }
 
     val unsaved = metrics.filter { it.id in drafts }.map { it.name }

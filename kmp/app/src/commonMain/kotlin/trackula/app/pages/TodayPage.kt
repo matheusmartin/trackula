@@ -26,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import trackula.app.components.DayLayout
 import trackula.app.components.HabitTable
@@ -116,7 +118,8 @@ fun TodayPage(
                 done?.invoke()
                 counts++
                 currentOnBusy(false)
-                writeCounts()
+                // The page is gone, for example after a sign-out: no new write.
+                if (currentCoroutineContext().isActive) writeCounts()
             }
         }
     }
@@ -138,8 +141,8 @@ fun TodayPage(
 
     // Saves the values of the Today tiles. After a successful save, the page shows the last 5 days. The app still
     // opens on the Today tiles. After an error, the Today tiles stay.
-    fun writeAll(plans: List<(LogTable) -> LogWrite?>) {
-        val job = run { store.changeAll(plans) } ?: return
+    fun writeAll(plans: List<(LogTable) -> LogWrite?>, onDone: () -> Unit) {
+        val job = run(done = onDone) { store.changeAll(plans) } ?: return onDone()
         scope.launch {
             job.join()
             if (error == null) currentOnView(MainView.SHORT)
