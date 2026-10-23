@@ -13,7 +13,8 @@
   `kmp/model/src/commonMain/kotlin/trackula/model/LogEntry.kt`.
 - The tests of `<Name>.kt` are in `<Name>Test.kt` in `src/commonTest/`. They run on the JVM and on Wasm (Node.js).
 - Write KDoc and comments in ASD-STE100 Simplified Technical English, as in the Dart code.
-- `cd kmp && ./gradlew check` must pass. The compiler treats warnings as errors.
+- `cd kmp && ./gradlew check` must pass. The compiler treats warnings as errors. ktlint checks the format
+  (`intellij_idea` style, 120 characters). `./gradlew ktlintFormat` corrects most problems.
 - A reviewer agent reviews each commit before the next step starts.
 
 ## Type mapping
@@ -22,7 +23,7 @@
 |---|---|
 | `num` | `Double`. A whole number is a `Double` with no fraction: 3 is 3.0. The app runs as JavaScript, where 3 and 3.0 are the same, so the ported tests compare `Double` values. |
 | `int` | `Int` |
-| A cell (`Object?`) | `Any?`: a `String`, a `Number`, a `Boolean` or null. The code reads each `Number` as a `Double`. A sealed `Cell` type is safer, but it makes each test row longer. The Sheets code converts the JSON values at the boundary. |
+| A cell (`Object?`) | `Any?`: a `String`, a `Number`, a `Boolean` or null. The code reads each `Number` as a `Double`, and `cellText` gives the same text as Dart compiled to JavaScript. A sealed `Cell` type is safer, but it makes each test row longer. The Sheets code converts the JSON values at the boundary. |
 | Record, `typedef` of a record | `data class` |
 | `(String, Day)` key | `MetricDay` |
 | `sealed class`, `enum` | `sealed class`, `enum class` |
@@ -33,7 +34,7 @@
 ## Phases
 
 1. **Project.** Gradle project in `kmp/`, version catalog, wrapper and a CI job. Done.
-2. **Model** (`lib/model/` → `kmp/model/`, targets JVM and Wasm). Pure Kotlin, no dependencies.
+2. **Model** (`lib/model/` → `kmp/model/`, targets JVM and Wasm). Pure Kotlin, no dependencies. Done.
    1. `Numbers` (`toFixed`, `roundHalfAwayFromZero`), `Day`, `Format`, `Zoom`, `NumberInput`, `MainView`, `Chart`. `Format` uses `BarUnit` of `Zoom`.
    2. `Metric`, `LogEntry`, `Parse`, `CountQueue`, `Summary`.
    3. `Score`, `Stats`.
@@ -66,3 +67,8 @@
   `1e3`. Dart also accepted `0x10`, `NaN` and `Infinity`.
 - `stepDecimals` gives at most 6 decimals for any step. Dart read the text of the step, so it gave 0 for `1e-7`.
 - `Day.fromSerial` returns null for NaN and for days after 9999-12-31. Dart threw an error.
+- `yesNoStats` with no days gives an empty strength list. Dart threw an error.
+- `trim()` in Kotlin does not remove U+FEFF, and `\s` in a regular expression on the JVM does not find a no-break
+  space. Dart removed and found both. So a cell with only U+FEFF is not empty, and the goal `<=`, no-break space, `75`
+  is not valid.
+- `Metric` and the other model classes are data classes: two equal metrics are equal. Dart compared them by identity.

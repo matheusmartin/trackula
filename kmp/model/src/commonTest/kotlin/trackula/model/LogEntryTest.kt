@@ -23,8 +23,12 @@ class LogEntryTest {
 
     @Test
     fun aDayWithoutARowGetsANewRow() {
-        assertEquals(listOf("2026-09-29", "", "yes"), (planYesNo(meditate, d29, log, done = true) as AppendRow).toCells())
-        assertEquals(listOf("2026-09-29", "", "no"), (planYesNo(meditate, d29, log, done = false) as AppendRow).toCells())
+        assertEquals(AppendRow(d29, 2, "yes"), planYesNo(meditate, d29, log, done = true))
+        assertEquals(listOf("2026-09-29", "", "yes"), AppendRow(d29, 2, "yes").toCells())
+        assertEquals(
+            listOf("2026-09-29", "", "no"),
+            (planYesNo(meditate, d29, log, done = false) as AppendRow).toCells(),
+        )
     }
 
     @Test

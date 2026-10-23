@@ -13,8 +13,8 @@ sealed class Metric {
 /**
  * A habit that is done or not done. One value per day: `yes` or `no`.
  *
- * [goalIsYes] is true if the goal is `yes`, the default. It is false if the goal is `no`: a habit to stop, for example
- * smoking.
+ * @property goalIsYes True if the goal is `yes`, the default. False if the goal is `no`: a habit to stop, for example
+ *   smoking.
  */
 data class YesNoMetric(
     override val id: String,
@@ -27,8 +27,9 @@ data class YesNoMetric(
 /**
  * A quantity or a measurement. Kinds `number` and `count`. One value per day, for example a weight or a day total.
  *
- * [isCount] is true if the metric is kind `count`: the same as `number`, but the chart shows bars from 0 instead of a
- * line. [goal] is the day goal. Null if the metric has no goal.
+ * @property isCount True if the metric is kind `count`: the same as `number`, but the chart shows bars from 0 instead
+ *   of a line.
+ * @property goal The day goal. Null if the metric has no goal.
  */
 data class NumberMetric(
     override val id: String,
@@ -44,7 +45,7 @@ data class NumberMetric(
 /**
  * The day goal of a [NumberMetric]: at least [value], or at most [value] if [isMaximum].
  *
- * [isMaximum] is true if the goal is a maximum, for example a weight of at most 75 kg. Else it is a minimum.
+ * @property isMaximum True if the goal is a maximum, for example a weight of at most 75 kg. Else it is a minimum.
  */
 data class NumberGoal(val value: Double, val isMaximum: Boolean = false) {
     /** True if [dayValue] reaches the goal. The goal value itself reaches it. */

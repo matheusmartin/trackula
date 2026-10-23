@@ -38,9 +38,18 @@ fun formatCompact(value: Double): String =
 /** [text] and the [unit] after a space. Only [text] if [unit] is null. Example: ("82.1", "kg") → "82.1 kg". */
 fun withUnit(text: String, unit: String?): String = if (unit == null) text else "$text $unit"
 
-/** [value] with its sign, at most 2 decimals and the [unit]. Examples: −1.3 → "−1.3 kg", 0.5 → "+0.5 kg", 0 → "0 kg". */
+/**
+ * [value] with its sign, at most 2 decimals and the [unit]. Examples: −1.3 → "−1.3 kg", 0.5 → "+0.5 kg",
+ * 0 → "0 kg".
+ */
 fun formatSigned(value: Double, unit: String?): String {
-    val sign = if (value > 0) "+" else if (value < 0) "−" else ""
+    val sign = if (value > 0) {
+        "+"
+    } else if (value < 0) {
+        "−"
+    } else {
+        ""
+    }
     return "$sign${withUnit(formatNumber(abs(value), 2), unit)}"
 }
 
@@ -94,8 +103,10 @@ fun quarterOf(month: Int): Int = (month + 2) / 3
  */
 fun barLabel(start: Day, unit: BarUnit, first: Boolean = false): String = when (unit) {
     BarUnit.DAY, BarUnit.WEEK -> shortDay(start)
+
     BarUnit.MONTH ->
         if (start.month == 1 || first) "${shortMonth(start.month)} ’${start.year.mod(100)}" else shortMonth(start.month)
+
     BarUnit.QUARTER -> "Q${quarterOf(start.month)} ’${start.year.mod(100)}"
 }
 

@@ -36,5 +36,12 @@ fun dayValuesWithPending(
  *
  * The number editor of an empty day starts at the value of this day.
  */
-fun nearestDay(days: Iterable<Day>, day: Day): Day? =
-    days.filter { it < day }.maxOrNull() ?: days.filter { it > day }.minOrNull()
+fun nearestDay(days: Iterable<Day>, day: Day): Day? {
+    var before: Day? = null
+    var after: Day? = null
+    for (d in days) {
+        if (d < day && (before == null || d > before)) before = d
+        if (d > day && (after == null || d < after)) after = d
+    }
+    return before ?: after
+}

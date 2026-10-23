@@ -18,7 +18,10 @@ data class Parsed<T>(val items: List<T>, val warnings: List<String>)
 
 /** Thrown when a header row does not contain a required column. */
 class HeaderException(val tab: String, val missing: List<String>) :
-    Exception("Tab \"$tab\" has no column(s): ${missing.joinToString(", ")}")
+    Exception("Tab \"$tab\" has no column(s): ${missing.joinToString(", ")}") {
+    /** The message only, without the class name, as in Dart. The app shows this text. */
+    override fun toString(): String = message.orEmpty()
+}
 
 /** Thrown when a row of the `Metrics` tab is not valid. The message tells the problem. */
 private class InvalidRowException(message: String) : Exception(message)
@@ -62,6 +65,7 @@ private fun metric(row: MetricRow, id: String): Metric {
     val goal = row.cell("goal")
     return when (val kind = row.text("kind")) {
         "yesno" -> YesNoMetric(id = id, name = name, icon = icon, group = group, goalIsYes = yesNoGoal(goal))
+
         "number", "count" -> NumberMetric(
             id = id,
             name = name,
@@ -72,6 +76,7 @@ private fun metric(row: MetricRow, id: String): Metric {
             goal = numberGoal(goal),
             group = group,
         )
+
         else -> throw InvalidRowException("invalid kind \"${kind ?: ""}\"")
     }
 }
@@ -155,7 +160,11 @@ fun parseLog(rows: List<List<Any?>>, metrics: Map<String, Metric>): ParsedLog {
  * The 0-based column index of each metric in the `Log` [header]. Adds a warning to [warnings] for each duplicate
  * column.
  */
-private fun logColumns(header: List<Any?>, metrics: Map<String, Metric>, warnings: MutableList<String>): Map<String, Int> {
+private fun logColumns(
+    header: List<Any?>,
+    metrics: Map<String, Metric>,
+    warnings: MutableList<String>,
+): Map<String, Int> {
     val columns = mutableMapOf<String, Int>()
     for (c in 1 until header.size) {
         val id = cellText(header[c]).trim()
@@ -210,16 +219,19 @@ fun textDateRows(rows: List<List<Any?>>): List<TextDateRow> = (1 until rows.size
  */
 private fun yesNoValue(cell: Any?): Double? = when (cell) {
     true -> 1.0
+
     is Number -> when (cell.toDouble()) {
         1.0 -> 1.0
         0.0 -> 0.0
         else -> null
     }
+
     is String -> when (cell.trim().lowercase()) {
         "yes", "true", "1" -> 1.0
         "no", "false", "0" -> 0.0
         else -> null
     }
+
     else -> null
 }
 
@@ -263,11 +275,11 @@ fun columnLetter(index: Int): String {
 /** Empty checkbox cells return `false`, so `false` counts as empty. */
 private fun isEmpty(cell: Any?): Boolean = cell == null || cell == false || (cell is String && cell.isBlank())
 
-/** The text of a [cell]. A number has no zeros at the end: 8.0 is "8". Null is "". */
+/** The text of a [cell], as Dart compiled to JavaScript gives it. A number has no ".0": 8.0 is "8". Null is "". */
 internal fun cellText(cell: Any?): String = when (cell) {
     null -> ""
     is String -> cell
-    is Number -> formatTrimmed(cell.toDouble())
+    is Number -> numberText(cell.toDouble())
     else -> cell.toString()
 }
 

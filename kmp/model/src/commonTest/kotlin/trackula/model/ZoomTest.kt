@@ -45,7 +45,8 @@ class ZoomTest {
     fun zoomBarsRateCountsDaysWithoutEntryAsNotYesAndOnlyDaysFromFirstToToday() {
         val starts = listOf(mon.addDays(-7), mon)
         val values = mapOf(mon.addDays(-7) to 1.0, mon.addDays(-6) to 0.0, mon to 1.0, mon.addDays(1) to 1.0)
-        val bars = zoomBars(values, Aggregate.RATE, starts, BarUnit.WEEK, first = mon.addDays(-7), today = mon.addDays(2))
+        val bars =
+            zoomBars(values, Aggregate.RATE, starts, BarUnit.WEEK, first = mon.addDays(-7), today = mon.addDays(2))
         assertEquals(1.0 / 7, bars[0].value!!, 1e-9)
         assertEquals(2.0 / 3, bars[1].value!!, 1e-9)
     }
@@ -57,7 +58,10 @@ class ZoomTest {
         val sum = zoomBars(values, Aggregate.SUM, starts, BarUnit.WEEK, first = mon.addDays(-7), today = mon)
         assertEquals(listOf(6.0, 3.0), sum.map { it.value })
         val avg = zoomBars(values, Aggregate.AVERAGE, starts, BarUnit.WEEK, first = mon.addDays(-7), today = mon)
-        assertEquals(listOf(Triple(3.0, 2.0, 4.0), Triple(3.0, 3.0, 3.0)), avg.map { Triple(it.value, it.low, it.high) })
+        assertEquals(
+            listOf(Triple(3.0, 2.0, 4.0), Triple(3.0, 3.0, 3.0)),
+            avg.map { Triple(it.value, it.low, it.high) },
+        )
     }
 
     @Test

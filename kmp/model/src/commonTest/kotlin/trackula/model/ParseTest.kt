@@ -159,6 +159,24 @@ class ParseTest {
         val p = parseMetrics(rows(metricsHeader, listOf("year", 2026, "number", "", "0.5", "", 7)))
         val metric = assertIs<NumberMetric>(p.items.single())
         assertEquals(Triple("2026", 0.5, "7"), Triple(metric.name, metric.step, metric.icon))
+        val small = parseMetrics(rows(metricsHeader, listOf("x", 0.1234567, "yesno", "", "", "", "check", 1e-7)))
+        assertTrue("invalid goal \"1e-7\"" in small.warnings.single())
+    }
+
+    @Test
+    fun parseLogReadsNumbersAsTextWithASignOrWithoutDigitsBeforeOrAfterThePoint() {
+        val p = parseLog(
+            rows(listOf("date", "weight", "water"), listOf("2026-09-30", "+82", ".5"), listOf("2026-10-01", "8.")),
+            metrics,
+        )
+        assertEquals(emptyList(), p.warnings)
+        assertEquals(listOf(82.0, 0.5, 8.0), p.table.entries.map { it.value })
+    }
+
+    @Test
+    fun exceptionTextIsTheMessageOnlyAsInDart() {
+        assertEquals("Tab \"Log\" has no column(s): date", HeaderException(LOG_TITLE, listOf("date")).toString())
+        assertEquals("The log tab has no column \"water\".", MissingColumnException("water").toString())
     }
 
     @Test

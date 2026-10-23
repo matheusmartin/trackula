@@ -14,6 +14,7 @@ fun yesNoStates(metricId: String, entries: List<LogEntry>): Map<Day, Boolean> =
  * The numbers and charts of a yes/no metric in a period.
  *
  * @property days The number of days in the period.
+ * @property yes The number of `yes` days in the period.
  * @property no Missed days: `no`.
  * @property currentStreak Consecutive `yes` days up to today. If today has no `yes` yet, up to yesterday.
  * @property streaks The lengths of the runs of `yes` days in the period, oldest first.
@@ -94,7 +95,8 @@ private fun weekdayRate(states: Map<Day, Boolean>, days: List<Day>, weekday: Int
 /**
  * The habit strength of each day of [days]. See [STRENGTH_WEIGHT].
  *
- * The strength starts at the first entry, so a long period does not start with many empty days at 0.
+ * The strength starts at the first entry, so a long period does not start with many empty days at 0. An empty [days]
+ * gives an empty list.
  */
 private fun strength(states: Map<Day, Boolean>, days: List<Day>): List<Double> {
     val first = earliestDay(states.keys) ?: return days.map { 0.0 }
@@ -120,6 +122,7 @@ data class ValueDays(val value: Int, val days: Int)
 /**
  * The numbers and charts of a count metric in a period.
  *
+ * @property total The sum of the values in the period.
  * @property logged The number of days with a value.
  * @property best The day with the highest value. Null if no day has a value.
  * @property weekdayAverages The average of the days with a value for each weekday, Monday first. Null if no such day
@@ -162,7 +165,13 @@ fun countStats(values: Map<Day, Double>, days: List<Day>): CountStats {
     )
 }
 
-/** A range of values, from [from] to [to], and the number of [days] in it. */
+/**
+ * A range of values and the number of days in it.
+ *
+ * @property from The lowest value of the range.
+ * @property to The end of the range. The last range of a histogram includes it.
+ * @property days The number of days with a value in the range.
+ */
 data class Bin(val from: Double, val to: Double, val days: Int)
 
 /**
@@ -170,6 +179,8 @@ data class Bin(val from: Double, val to: Double, val days: Int)
  *
  * @property latest The last value of the period. Null if no day has a value.
  * @property change The last value minus the first value of the period. Null with fewer than 2 values.
+ * @property low The first day with the lowest value. Null if no day has a value.
+ * @property high The first day with the highest value. Null if no day has a value.
  * @property values The value of each day of the period. Null if the day has no value.
  * @property trend The smooth trend of each day: an exponential moving average. Null before the first value. See
  *   [TREND_WEIGHT].
@@ -203,7 +214,7 @@ fun numberStats(values: Map<Day, Double>, days: List<Day>): NumberStats {
     return NumberStats(
         latest = present.lastOrNull(),
         change = if (present.size < 2) null else present.last().value - present.first().value,
-        low = present.minByOrNull { it.value },
+        low = lowest(present),
         high = highest(present),
         values = days.map { values[it] },
         trend = trend(values, days),
@@ -220,7 +231,10 @@ private fun trend(values: Map<Day, Double>, days: List<Day>): List<Double?> {
     }
 }
 
-/** The values of [present] in [HISTOGRAM_BINS] ranges. One range if all values are equal. Empty if [present] is empty. */
+/**
+ * The values of [present] in [HISTOGRAM_BINS] ranges. One range if all values are equal. Empty if [present] is
+ * empty.
+ */
 private fun histogram(present: List<DayValue>): List<Bin> {
     if (present.isEmpty()) return emptyList()
     val low = present.minOf { it.value }
@@ -236,9 +250,19 @@ private fun present(values: Map<Day, Double>, days: List<Day>): List<DayValue> =
     days.mapNotNull { d -> values[d]?.let { DayValue(d, it) } }
 
 /** The first day with the highest value of [values]. Null if [values] is empty. */
-private fun highest(values: List<DayValue>): DayValue? = values.maxByOrNull { it.value }
+private fun highest(values: List<DayValue>): DayValue? =
+    values.fold(null as DayValue?) { high, p -> if (high == null || p.value > high.value) p else high }
 
-private fun average(values: List<DayValue>): Double? = if (values.isEmpty()) null else values.sumOf { it.value } / values.size
+/**
+ * The first day with the lowest value of [values]. Null if [values] is empty. It compares with `<`, as Dart does, so
+ * -0.0 and 0.0 are equal.
+ */
+private fun lowest(values: List<DayValue>): DayValue? =
+    values.fold(null as DayValue?) { low, p -> if (low == null || p.value < low.value) p else low }
+
+/** The average of [values]. Null if [values] is empty. */
+private fun average(values: List<DayValue>): Double? =
+    if (values.isEmpty()) null else values.sumOf { it.value } / values.size
 
 /** A range of streak lengths in days. A null [to] has no end. */
 data class StreakRange(val from: Int, val to: Int?)

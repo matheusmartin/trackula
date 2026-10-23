@@ -28,6 +28,7 @@ fun isScore(metric: Metric): Boolean = metric.id == SCORE_HEADER
  */
 fun metricPoints(metric: Metric, value: Double, previous: Double? = null): Double = when (metric) {
     is YesNoMetric -> if ((value == 1.0) == metric.goalIsYes) 1.0 else 0.0
+
     is NumberMetric -> {
         val goal = metric.goal
         when {
@@ -67,7 +68,10 @@ fun dayScores(
     return points.mapValues { (_, p) -> total(p) }
 }
 
-/** The value of each metric of [byId] on each day of [log]. If a day has more than one row, the value of its last row. */
+/**
+ * The value of each metric of [byId] on each day of [log]. If a day has more than one row, the value of its last
+ * row.
+ */
 private fun lastRowValues(byId: Map<String, Metric>, log: LogTable): Map<MetricDay, Double> = log.entries
     .filter { it.metricId in byId && log.rows[it.date] == it.row }
     .associate { MetricDay(it.metricId, it.date) to it.value }
@@ -89,9 +93,15 @@ private fun previousValues(values: Map<MetricDay, Double>): Map<MetricDay, Doubl
 }
 
 /** The 0-based index of the score column in the `Log` [header]. Null if the tab has no score column. */
-fun scoreColumn(header: List<Any?>): Int? = (1 until header.size).firstOrNull { cellText(header[it]).trim() == SCORE_HEADER }
+fun scoreColumn(header: List<Any?>): Int? =
+    (1 until header.size).firstOrNull { cellText(header[it]).trim() == SCORE_HEADER }
 
-/** A cell of the score column that must change: its 1-based [row] and the new [score]. A null score clears the cell. */
+/**
+ * A cell of the score column that must change.
+ *
+ * @property row The 1-based row of the cell.
+ * @property score The new score. Null clears the cell.
+ */
 data class ScoreCell(val row: Int, val score: Double?)
 
 /**
@@ -106,14 +116,15 @@ fun staleScoreCells(rows: List<List<Any?>>, metrics: List<Metric>, column: Int):
     val byId = metrics.associateBy { it.id }
     val log = parseLog(rows, byId).table
     val previous = previousValues(lastRowValues(byId, log))
-    val points = mutableMapOf<Int, MutableList<Double>>()
+    val pointsByRow = mutableMapOf<Int, MutableList<Double>>()
     for (e in log.entries) {
         val metric = byId.getValue(e.metricId)
-        points.getOrPut(e.row) { mutableListOf() }.add(metricPoints(metric, e.value, previous[MetricDay(e.metricId, e.date)]))
+        val points = metricPoints(metric, e.value, previous[MetricDay(e.metricId, e.date)])
+        pointsByRow.getOrPut(e.row) { mutableListOf() }.add(points)
     }
     return (1 until rows.size).mapNotNull { i ->
         val row = i + 1
-        val score = points[row]?.let(::total)
+        val score = pointsByRow[row]?.let(::total)
         if (shows(rows[i].getOrNull(column), score)) null else ScoreCell(row, score)
     }
 }

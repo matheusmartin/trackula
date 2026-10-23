@@ -12,7 +12,8 @@ class StatsTest {
     private fun range(n: Int) = (0 until n).map(::day)
 
     // Mo yes, Tu yes, We no, Th (none), Fr yes, Sa yes, Su yes.
-    private val states = mapOf(day(0) to true, day(1) to true, day(2) to false, day(4) to true, day(5) to true, day(6) to true)
+    private val states =
+        mapOf(day(0) to true, day(1) to true, day(2) to false, day(4) to true, day(5) to true, day(6) to true)
 
     @Test
     fun yesNoStatsCountsYesNoAndDaysWithoutEntry() {
@@ -51,6 +52,11 @@ class StatsTest {
     }
 
     @Test
+    fun yesNoStatsWithNoDaysHasNoStrength() {
+        assertEquals(emptyList(), yesNoStats(states, emptyList(), day(6)).strength)
+    }
+
+    @Test
     fun yesNoStatesReadsYesAsTrueAndNoAsFalse() {
         val entries = listOf(
             LogEntry(row = 2, date = day(0), metricId = "m", value = 1.0),
@@ -75,6 +81,13 @@ class StatsTest {
         assertEquals(listOf(2.5, 5.0, null, 5.0, null, null, null), s.weekdayAverages)
         assertEquals(listOf(ValueDays(2, 1), ValueDays(3, 1), ValueDays(5, 2)), s.distribution)
         assertEquals(listOf(3.0, 8.0, 8.0, 13.0, 13.0, 13.0, 13.0, 15.0), s.running)
+    }
+
+    @Test
+    fun countStatsRoundsAHalfAwayFromZeroInTheDistributionAndTheFirstHighestDayIsBest() {
+        val s = countStats(mapOf(day(0) to 2.5, day(1) to -2.5, day(2) to 2.5), range(3))
+        assertEquals(listOf(ValueDays(-3, 1), ValueDays(3, 2)), s.distribution)
+        assertEquals(DayValue(day(0), 2.5), s.best)
     }
 
     @Test
@@ -108,6 +121,14 @@ class StatsTest {
         val s = numberStats(numbers, range(9))
         assertEquals(HISTOGRAM_BINS, s.histogram.size)
         assertEquals(4, s.histogram.sumOf { it.days })
+    }
+
+    @Test
+    fun numberStatsGivesTheFirstDayOfATieAndPutsTheHighestValueInTheLastRange() {
+        val s = numberStats(mapOf(day(0) to 0.0, day(1) to -0.0, day(2) to 8.0, day(3) to 8.0), range(4))
+        assertEquals(day(0) to day(2), s.low?.day to s.high?.day)
+        assertEquals(listOf(2, 0, 0, 0, 0, 0, 0, 2), s.histogram.map { it.days })
+        assertEquals(Bin(7.0, 8.0, 2), s.histogram.last())
     }
 
     @Test

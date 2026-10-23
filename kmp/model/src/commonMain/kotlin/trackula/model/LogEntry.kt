@@ -5,17 +5,17 @@ import kotlin.math.max
 /**
  * A non-empty value cell of the `Log` tab.
  *
- * [row] is the 1-based row number in the `Log` tab. Row 1 is the header. [value] is the value. For yesno metrics: 1 is
- * `yes`, 0 is `no`.
+ * @property row The 1-based row number in the `Log` tab. Row 1 is the header.
+ * @property value The value. For yesno metrics: 1 is `yes`, 0 is `no`.
  */
 data class LogEntry(val row: Int, val date: Day, val metricId: String, val value: Double)
 
 /**
  * The `Log` tab: one row per day, one column per metric. See docs/data-model.md.
  *
- * - [entries]: all valid, non-empty value cells.
- * - [rows]: the 1-based row number of each day. If a day has more than one row, the last row.
- * - [columns]: the 0-based column index of each metric. Column 0 is `date`.
+ * @property entries All valid, non-empty value cells.
+ * @property rows The 1-based row number of each day. If a day has more than one row, the last row.
+ * @property columns The 0-based column index of each metric. Column 0 is `date`.
  */
 data class LogTable(val entries: List<LogEntry>, val rows: Map<Day, Int>, val columns: Map<String, Int>) {
     fun valueAt(metricId: String, date: Day): Double? {
@@ -31,7 +31,10 @@ data class MetricDay(val metricId: String, val day: Day)
  * Thrown when the `Log` tab has no column for a metric. This occurs when someone deletes the metric row in the sheet
  * while the app is open.
  */
-class MissingColumnException(val metricId: String) : Exception("The log tab has no column \"$metricId\".")
+class MissingColumnException(val metricId: String) : Exception("The log tab has no column \"$metricId\".") {
+    /** The message only, without the class name, as in Dart. The app shows this text. */
+    override fun toString(): String = message.orEmpty()
+}
 
 /** A change to the `Log` tab. */
 sealed class LogWrite
@@ -49,10 +52,13 @@ data class SetCell(val row: Int, val column: Int, val value: Any?) : LogWrite()
  * The `Log` cell for a [value]: `yes` (1) or `no` (0) for yesno metrics, the number for number metrics.
  * Null is an empty cell.
  */
-fun cellValue(metric: Metric, value: Double?): Any? = when {
-    value == null -> null
-    metric is YesNoMetric -> if (value == 1.0) "yes" else "no"
-    else -> value
+fun cellValue(metric: Metric, value: Double?): Any? = if (value == null) {
+    null
+} else {
+    when (metric) {
+        is YesNoMetric -> if (value == 1.0) "yes" else "no"
+        is NumberMetric -> value
+    }
 }
 
 /**

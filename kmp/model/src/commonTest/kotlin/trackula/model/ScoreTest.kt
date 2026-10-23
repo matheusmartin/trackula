@@ -27,10 +27,10 @@ class ScoreTest {
 
     @Test
     fun metricPointsYesNoGives1IfTheValueIsTheGoal() {
-        assertEquals(
-            listOf(1.0, 0.0, 1.0, 0.0),
-            listOf(metricPoints(meditate, 1.0), metricPoints(meditate, 0.0), metricPoints(smoke, 0.0), metricPoints(smoke, 1.0)),
-        )
+        assertEquals(1.0, metricPoints(meditate, 1.0))
+        assertEquals(0.0, metricPoints(meditate, 0.0))
+        assertEquals(1.0, metricPoints(smoke, 0.0))
+        assertEquals(0.0, metricPoints(smoke, 1.0))
     }
 
     @Test
@@ -124,6 +124,16 @@ class ScoreTest {
             MetricDay("water", d29) to listOf(CountStep(-1.0)),
         )
         assertEquals(mapOf(d29 to 5.0, d30 to 2.0), dayScores(dayMetrics, dayLog, pending))
+    }
+
+    @Test
+    fun dayScoresIgnoresTapsOnAYesNoMetricAndRemovesADayThatTheTapsEmpty() {
+        val pending = mapOf(
+            MetricDay("meditate", d30) to listOf(CountStep(1.0)),
+            MetricDay("water", d29) to listOf(CountStep(-3.0)),
+        )
+        val log = parseLog(rows(listOf("date", "water"), listOf("2026-09-29", 3)), byId(water, meditate)).table
+        assertEquals(emptyMap(), dayScores(listOf(water, meditate), log, pending))
     }
 
     @Test

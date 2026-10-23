@@ -90,6 +90,14 @@ class CountQueueTest {
     }
 
     @Test
+    fun aTapAfterSendDoesNotChangeThePlanOfTheWriteThatRuns() {
+        val queue = CountQueue().apply { add("water", d30, plus) }
+        val plan = queue.send(metrics).single()
+        queue.add("water", d30, plus)
+        assertEquals(SetCell(2, 1, 4.0), plan(log(listOf("2026-09-30", 3))))
+    }
+
+    @Test
     fun sendDuringAWriteThrowsSoTwoWritesCannotOverwriteEachOther() {
         val queue = CountQueue().apply { add("water", d30, plus) }
         queue.send(metrics)

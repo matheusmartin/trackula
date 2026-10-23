@@ -10,8 +10,14 @@ class NumbersTest {
         assertEquals(
             listOf("81.3", "82.0", "2.67", "-3", "1250", "-0.00", "0.00", "0.300000"),
             listOf(
-                toFixed(81.25, 1), toFixed(82.0, 1), toFixed(2.675, 2), toFixed(-2.5, 0), toFixed(1250.0, 0),
-                toFixed(-0.001, 2), toFixed(-0.0, 2), toFixed(0.1 + 0.2, 6),
+                toFixed(81.25, 1),
+                toFixed(82.0, 1),
+                toFixed(2.675, 2),
+                toFixed(-2.5, 0),
+                toFixed(1250.0, 0),
+                toFixed(-0.001, 2),
+                toFixed(-0.0, 2),
+                toFixed(0.1 + 0.2, 6),
             ),
         )
     }
@@ -22,6 +28,16 @@ class NumbersTest {
             listOf("NaN", "Infinity", "-Infinity"),
             listOf(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY).map { toFixed(it, 2) },
         )
+    }
+
+    @Test
+    fun numberTextGivesTheJavaScriptText() {
+        assertEquals(
+            listOf("8", "-2.5", "0.1234567", "0.000001", "1e-7", "-1.5e-7", "123456789012345680000", "1e+21", "0"),
+            listOf(8.0, -2.5, 0.1234567, 0.000001, 1e-7, -1.5e-7, 123456789012345678000.0, 1e21, -0.0)
+                .map(::numberText),
+        )
+        assertEquals(listOf("NaN", "-Infinity"), listOf(Double.NaN, Double.NEGATIVE_INFINITY).map(::numberText))
     }
 
     @Test

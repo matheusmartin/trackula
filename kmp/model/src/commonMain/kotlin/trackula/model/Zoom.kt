@@ -80,7 +80,10 @@ fun zoomSteps(first: Day, today: Day): List<ZoomStep> {
     return steps
 }
 
-/** The index in [steps] of the step that the detail screen opens with: 3 months, or the last step if there are fewer. */
+/**
+ * The index in [steps] of the step that the detail screen opens with: 3 months, or the last step if there are
+ * fewer.
+ */
 fun defaultStepIndex(steps: List<ZoomStep>): Int = steps.indexOf(ZoomStep.MONTH3).takeIf { it >= 0 } ?: steps.lastIndex
 
 /** True if [step] shows all bars from [first] to [today]. */

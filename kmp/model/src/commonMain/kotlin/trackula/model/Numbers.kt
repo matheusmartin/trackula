@@ -14,6 +14,13 @@ import kotlin.math.truncate
  */
 internal expect fun toFixed(value: Double, decimals: Int): String
 
+/**
+ * [value] as text, as `String(value)` in JavaScript and `'$value'` in Dart compiled to JavaScript: the shortest digits
+ * that read back as [value], and no ".0" for a whole number. Examples: 8.0 → "8", 0.1234567 → "0.1234567",
+ * 1e-7 → "1e-7", 1e21 → "1e+21".
+ */
+internal expect fun numberText(value: Double): String
+
 /** [value] rounded to a whole number. A half rounds away from zero, as `round()` in Dart. Example: -2.5 → -3.0. */
 internal fun roundHalfAwayFromZero(value: Double): Double {
     val whole = truncate(value)

@@ -89,7 +89,8 @@ class DayTest {
         assertEquals(MonthKey(2025, 12), addMonths(MonthKey(2026, 1), -1))
         assertEquals(MonthKey(2027, 2), addMonths(MonthKey(2026, 11), 3))
         val february = daysOfMonth(MonthKey(2028, 2))
-        assertEquals(Triple(29, Day(2028, 2, 1), Day(2028, 2, 29)), Triple(february.size, february.first(), february.last()))
+        assertEquals(29, february.size)
+        assertEquals(Day(2028, 2, 1) to Day(2028, 2, 29), february.first() to february.last())
     }
 
     @Test
