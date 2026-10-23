@@ -1,6 +1,7 @@
 package trackula.model
 
 import java.math.BigDecimal
+import java.math.MathContext
 import java.math.RoundingMode
 
 // BigDecimal has no negative zero. JavaScript keeps the sign of a negative value that rounds to 0: -0.001 → "-0.00".
@@ -11,13 +12,17 @@ internal actual fun toFixed(value: Double, decimals: Int): String {
     return if (value < 0 && !text.startsWith("-")) "-$text" else text
 }
 
-// Java 19 and later give the shortest digits that read back as the value. This puts them in the JavaScript form:
-// ECMAScript Number::toString, with value = 0.digits × 10^n.
+// Java 19 and later give the shortest digits that read back as the value, with one exception: when 1 digit is
+// enough, Java can give 2 digits that are closer to the value, for example 4.9e-324. JavaScript always takes the 1
+// digit, so this tries it first. Then it puts the digits in the JavaScript form: ECMAScript Number::toString, with
+// value = 0.digits × 10^n.
 internal actual fun numberText(value: Double): String {
     if (value.isNaN()) return "NaN"
     if (value.isInfinite()) return if (value > 0) "Infinity" else "-Infinity"
     if (value == 0.0) return "0"
-    val decimal = BigDecimal(value.toString()).stripTrailingZeros()
+    val javaDigits = BigDecimal(value.toString()).stripTrailingZeros()
+    val oneDigit = javaDigits.round(MathContext(1, RoundingMode.HALF_EVEN))
+    val decimal = if (oneDigit.toDouble() == value) oneDigit.stripTrailingZeros() else javaDigits
     val digits = decimal.unscaledValue().abs().toString()
     val k = digits.length
     val n = k - decimal.scale()

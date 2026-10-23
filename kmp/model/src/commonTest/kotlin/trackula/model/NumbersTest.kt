@@ -38,6 +38,7 @@ class NumbersTest {
                 .map(::numberText),
         )
         assertEquals(listOf("NaN", "-Infinity"), listOf(Double.NaN, Double.NEGATIVE_INFINITY).map(::numberText))
+        assertEquals(listOf("5e-324", "1e-323", "5e-323"), listOf(5e-324, 1e-323, 5e-323).map(::numberText))
     }
 
     @Test
