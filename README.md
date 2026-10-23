@@ -67,8 +67,8 @@
 - Check the code as CI does: `dart format --output=none --set-exit-if-changed .`, `dart analyze --fatal-infos` and
   `dart test`. `.github/workflows/ci.yml` runs these checks on each pull request and on each push to `main`. It also
   checks that the Jaspr version in `pubspec.yaml` and the `jaspr_cli` version in `deploy.yml` are the same.
-- Check the Kotlin port: `cd kmp && ./gradlew check`. It needs JDK 21. It compiles, runs the tests on the JVM and on
-  Wasm, and runs ktlint. `./gradlew ktlintFormat` corrects the format. CI runs the check too.
+- Check the Kotlin port: `cd kmp && ./gradlew build`. It needs JDK 21. It compiles and packs each module, runs the
+  tests on the JVM and on Wasm, and runs ktlint. `./gradlew ktlintFormat` corrects the format. CI runs the check too.
 
 ## Project structure
 

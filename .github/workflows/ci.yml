@@ -64,6 +64,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # Compiles with warnings as errors, and runs the tests on the JVM and on Wasm (Node.js).
+      # Compiles and packs each module with warnings as errors, runs ktlint, and runs the tests on the JVM and on Wasm
+      # (Node.js).
       - name: Check
-        run: ./gradlew check --console=plain
+        run: ./gradlew build --console=plain

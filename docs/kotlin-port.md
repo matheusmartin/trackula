@@ -13,7 +13,7 @@
   `kmp/model/src/commonMain/kotlin/trackula/model/LogEntry.kt`.
 - The tests of `<Name>.kt` are in `<Name>Test.kt` in `src/commonTest/`. They run on the JVM and on Wasm (Node.js).
 - Write KDoc and comments in ASD-STE100 Simplified Technical English, as in the Dart code.
-- `cd kmp && ./gradlew check` must pass. The compiler treats warnings as errors. ktlint checks the format
+- `cd kmp && ./gradlew build` must pass. The compiler treats warnings as errors. ktlint checks the format
   (`intellij_idea` style, 120 characters). `./gradlew ktlintFormat` corrects most problems.
 - A reviewer agent reviews each commit before the next step starts.
 

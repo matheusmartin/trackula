@@ -14,7 +14,9 @@ import kotlin.time.Duration.Companion.milliseconds
  * is a double-tap: it runs at once and the single tap is dropped. A tap on another key runs the waiting
  * single tap at once. Fast repeated taps on one key alternate: 3 quick taps are a double-tap and a single tap.
  *
- * The wait runs in [scope]. Cancel the scope, or call [dispose], when the input goes away.
+ * The wait runs in [scope]. Cancel the scope, or call [dispose], when the input goes away. The single tap runs in
+ * [scope] too, so give a scope with a `SupervisorJob`, for example `MainScope()`: then an exception in a single tap
+ * does not cancel the scope and stop the next taps.
  */
 class DoubleTap<K>(private val scope: CoroutineScope, private val wait: Duration = 300.milliseconds) {
     private var key: K? = null

@@ -27,7 +27,8 @@ internal suspend fun loadScript(src: String, error: String) {
     try {
         load.await()
     } catch (e: ScriptException) {
-        loads.remove(src)
+        // Another caller can have started a new load after this failure: keep it.
+        if (loads[src] === load) loads.remove(src)
         throw e
     }
 }

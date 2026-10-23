@@ -39,11 +39,11 @@ class Session private constructor(val token: AccessToken) {
     /** True if the access token expired. It lasts 1 hour, and there is no refresh token in the browser. */
     val expired: Boolean get() = token.expired
 
+    /** The HTTP client of this session. Each request sends the access token. */
+    private val http by lazy { HttpClient(Js) { defaultRequest { bearerAuth(token.value) } } }
+
     /** The store of the spreadsheet [spreadsheetId]. Its requests send the access token of this session. */
-    fun store(spreadsheetId: String): SheetsStore {
-        val http = HttpClient(Js) { defaultRequest { bearerAuth(token.value) } }
-        return SheetsStore(SheetsClient(http, spreadsheetId))
-    }
+    fun store(spreadsheetId: String): SheetsStore = SheetsStore(SheetsClient(http, spreadsheetId))
 
     companion object {
         /** The scope of the token: only the files that the user picks or that the app makes. */
