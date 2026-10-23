@@ -4,6 +4,8 @@ plugins {
 }
 
 kotlin {
+    jvmToolchain(21)
+
     // The JVM target runs the tests fast. The app uses the Wasm target. The Wasm tests run on Node.js.
     jvm()
     @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)

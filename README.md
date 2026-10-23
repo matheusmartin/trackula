@@ -38,6 +38,7 @@
 
 - Dart SDK 3.10 or later. With Homebrew: `brew install dart-sdk`.
 - Jaspr CLI: `dart pub global activate jaspr_cli`.
+- JDK 21, for the Kotlin port in `kmp/`.
 - Put the real SDK `bin` folder first in `PATH`. The Jaspr CLI does not accept the Homebrew `dart` link:
 
   ```bash
