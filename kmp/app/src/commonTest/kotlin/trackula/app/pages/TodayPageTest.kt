@@ -17,7 +17,6 @@ import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.rightClick
 import androidx.compose.ui.test.v2.runComposeUiTest
-import kotlinx.coroutines.runBlocking
 import trackula.app.CountingStore
 import trackula.app.TrackulaTheme
 import trackula.model.Day
@@ -59,8 +58,8 @@ class TodayPageTest {
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weight").fetchSemanticsNodes().isNotEmpty() }
     }
 
-    /** The value of [metricId] today in the store. */
-    private fun valueToday(metricId: String): Double? = runBlocking { store.load().log.valueAt(metricId, today) }
+    /** The value of [metricId] today in the last data that the page loaded. */
+    private fun valueToday(metricId: String): Double? = store.last?.log?.valueAt(metricId, today)
 
     @Test
     fun aYesNoTileIsUnsavedUntilSaveAndSaveShowsTheTable() = runComposeUiTest {
