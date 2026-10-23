@@ -28,6 +28,15 @@ class DemoStoreTest {
     }
 
     @Test
+    fun theSampleWaistIsOnceAWeekInStepsOfAHalfCentimeter() {
+        // 187.5 half centimeters rounds away from zero, as Dart does.
+        assertEquals(94.0, DemoStore.sampleWaist(70))
+        assertEquals(92.0, DemoStore.sampleWaist(7))
+        assertEquals(95.0, DemoStore.sampleWaist(112))
+        assertNull(DemoStore.sampleWaist(8))
+    }
+
+    @Test
     fun changeAllAddsOneRowForTodayAlsoForTwoValues() = runTest {
         val st = store()
         val metrics = st.load().metrics

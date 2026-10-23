@@ -48,7 +48,7 @@ class DemoStore(today: Day, private val delay: Duration = 400.milliseconds) : St
         }
     }
 
-    private companion object {
+    internal companion object {
         val sampleMetrics: List<List<Any>> = listOf(
             listOf("weight", "Weight", "number", "kg", 0.1, "Health", "monitor_weight", "<= 83"),
             listOf("waist", "Waist", "number", "cm", 0.5, "Health", "straighten", "<= 94"),
@@ -60,6 +60,13 @@ class DemoStore(today: Day, private val delay: Duration = 400.milliseconds) : St
             listOf("walk", "Walk", "count", "min", 10, "Activities", "directions_walk", 30),
             listOf("vitamins", "Vitamins", "yesno", "", "", "Nutrition", "pill", "yes"),
         )
+
+        /**
+         * The waist [daysAgo] days before today: once a week, from 92 cm to 95 cm, in steps of 0.5 cm. Null on the
+         * other days.
+         */
+        fun sampleWaist(daysAgo: Int): Double? =
+            if (daysAgo % 7 == 0) roundHalfAwayFromZero((95 - (120 - daysAgo) / 40.0) * 2) / 2 else null
 
         /** One row for each of the 120 days before [today]. Values are random, with a fixed seed: the same each time. */
         fun sampleLog(today: Day): MutableList<MutableList<Any?>> {
@@ -79,13 +86,7 @@ class DemoStore(today: Day, private val delay: Duration = 400.milliseconds) : St
                             roundToStep(weight, 0.1)
                         }
 
-                        m[0] == "waist" -> if (i % 7 ==
-                            0
-                        ) {
-                            roundHalfAwayFromZero((95 - (120 - i) / 40.0) * 2) / 2
-                        } else {
-                            ""
-                        }
+                        m[0] == "waist" -> sampleWaist(i) ?: ""
 
                         m[2] == "yesno" -> if (random.nextDouble() < 0.75) "yes" else "no"
 
