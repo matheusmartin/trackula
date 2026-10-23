@@ -17,6 +17,8 @@ class NumberInputTest {
     @Test
     fun stepDecimals() {
         assertEquals(listOf(1, 2, 0, 0, 0), listOf(0.1, 0.25, 5.0, 1.0, 250.0).map(::stepDecimals))
+        // At most 6 decimals. Dart read the text of the step, and gave 0 for 1e-7.
+        assertEquals(6, stepDecimals(1e-7))
     }
 
     @Test

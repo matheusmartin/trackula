@@ -17,6 +17,14 @@ class NumbersTest {
     }
 
     @Test
+    fun toFixedSpellsNaNAndInfinityAsJavaScript() {
+        assertEquals(
+            listOf("NaN", "Infinity", "-Infinity"),
+            listOf(Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY).map { toFixed(it, 2) },
+        )
+    }
+
+    @Test
     fun roundHalfAwayFromZero() {
         assertEquals(
             listOf(3.0, -3.0, 2.0, -2.0, 0.0),

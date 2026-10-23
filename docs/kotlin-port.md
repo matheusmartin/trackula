@@ -64,3 +64,5 @@
 - `Day.today()` is not in the model. The model has no clock, so the platform code gives the day.
 - Number text in a cell, for example `"8"` in a `Log` cell, must be a decimal number: `8`, `-8`, `8.5`, `.5` or
   `1e3`. Dart also accepted `0x10`, `NaN` and `Infinity`.
+- `stepDecimals` gives at most 6 decimals for any step. Dart read the text of the step, so it gave 0 for `1e-7`.
+- `Day.fromSerial` returns null for NaN and for days after 9999-12-31. Dart threw an error.

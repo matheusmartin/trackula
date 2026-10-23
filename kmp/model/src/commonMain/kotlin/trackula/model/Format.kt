@@ -20,7 +20,8 @@ fun shortDay(day: Day): String = "${shortMonth(day.month)} ${day.day}"
 /**
  * [value] without zeros at the end. Examples: 82.0 → "82", 2.5 → "2.5".
  *
- * This also removes float noise, for example 82.10000000000001 → "82.1" and 82.00000000000001 → "82".
+ * This also removes float noise, for example 82.10000000000001 → "82.1" and 82.00000000000001 → "82". For values of
+ * about 1e9 and more with decimals, the last decimals can be different from Dart, which gives the shortest text.
  */
 fun formatTrimmed(value: Double): String {
     val text = toFixed(value, 6).trimEnd('0').trimEnd('.')

@@ -3,7 +3,8 @@ package trackula.model
 /**
  * A calendar day without time or time zone. Stored as `YYYY-MM-DD`.
  *
- * The constructor does not check the values. Use [Day.of] for values out of range, and [tryParse] for text.
+ * The constructor does not check the values. A value out of range moves the day as in [Day.of], but [equals] and
+ * [toString] use the values as they are: so use [Day.of] for values out of range, and [tryParse] for text.
  */
 data class Day(val year: Int, val month: Int, val day: Int) : Comparable<Day> {
     /** The number of days since 1970-01-01. Negative before that day. */
@@ -27,10 +28,7 @@ data class Day(val year: Int, val month: Int, val day: Int) : Comparable<Day> {
          * The day of [year], [month] and [day]. Values out of range go into the next or previous months and years, as
          * in a Dart `DateTime`. Examples: (2026, 13, 1) → 2027-01-01, (2026, 3, 0) → 2026-02-28.
          */
-        fun of(year: Int, month: Int, day: Int): Day {
-            val months = month - 1
-            return fromEpochDay(epochDayOf(year + months.floorDiv(12), months.mod(12) + 1, 1) + day - 1)
-        }
+        fun of(year: Int, month: Int, day: Int): Day = fromEpochDay(epochDayOf(year, month, day))
 
         /** The day that is [epochDay] days after 1970-01-01. */
         fun fromEpochDay(epochDay: Int): Day {
@@ -48,10 +46,13 @@ data class Day(val year: Int, val month: Int, val day: Int) : Comparable<Day> {
 
         /**
          * The day of a Google Sheets date serial number. A fraction (the time of day) is ignored.
-         * Returns null for a serial number below 1. Example: 46297 → 2026-10-02.
+         * Returns null for a serial number below 1 or after 9999-12-31, and for NaN. Example: 46297 → 2026-10-02.
          */
-        fun fromSerial(serial: Double): Day? =
-            if (serial < 1) null else fromEpochDay(kotlin.math.floor(serial).toInt() + SHEETS_EPOCH_DAY)
+        fun fromSerial(serial: Double): Day? = if (serial >= 1 && serial < MAX_SERIAL + 1) {
+            fromEpochDay(kotlin.math.floor(serial).toInt() + SHEETS_EPOCH_DAY)
+        } else {
+            null
+        }
 
         private val pattern = Regex("""^(\d{4})-(\d{2})-(\d{2})$""")
 
@@ -67,14 +68,22 @@ data class Day(val year: Int, val month: Int, val day: Int) : Comparable<Day> {
         /** Day 0 of the Google Sheets date count, 1899-12-30, as days since 1970-01-01. */
         private const val SHEETS_EPOCH_DAY = -25569
 
-        /** The days_from_civil algorithm by Howard Hinnant. The year starts on March 1, so February is the last month. */
+        /** The serial number of 9999-12-31, the last day that Google Sheets shows. */
+        private const val MAX_SERIAL = 2958465
+
+        /**
+         * The days_from_civil algorithm by Howard Hinnant. The year starts on March 1, so February is the last month.
+         * Values out of range go into the next or previous months and years, as in [of]: the algorithm gets the first
+         * day of the month in range, and then the function adds [day] - 1 days.
+         */
         private fun epochDayOf(year: Int, month: Int, day: Int): Int {
-            val y = if (month <= 2) year - 1 else year
+            val m = (month - 1).mod(12) + 1
+            val y = year + (month - 1).floorDiv(12) - (if (m <= 2) 1 else 0)
             val era = (if (y >= 0) y else y - 399) / 400
             val yearOfEra = y - era * 400
-            val dayOfYear = (153 * (if (month > 2) month - 3 else month + 9) + 2) / 5 + day - 1
+            val dayOfYear = (153 * (if (m > 2) m - 3 else m + 9) + 2) / 5
             val dayOfEra = yearOfEra * 365 + yearOfEra / 4 - yearOfEra / 100 + dayOfYear
-            return era * 146097 + dayOfEra - 719468
+            return era * 146097 + dayOfEra - 719468 + day - 1
         }
     }
 }

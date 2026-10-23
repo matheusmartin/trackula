@@ -6,7 +6,11 @@ import kotlin.math.truncate
 
 /**
  * [value] as text with exactly [decimals] decimals, as `Number.prototype.toFixed` in JavaScript and `toStringAsFixed`
- * in Dart. A half rounds away from zero. Examples: (81.25, 1) → "81.3", (82.0, 1) → "82.0", (2.675, 2) → "2.67".
+ * in Dart. The function rounds the exact binary value, and a half rounds away from zero. Examples: (81.25, 1) → "81.3",
+ * (82.0, 1) → "82.0", (2.675, 2) → "2.67", because 2.675 is stored as 2.67499….
+ *
+ * NaN and the infinities give "NaN", "Infinity" and "-Infinity". For 1e21 and more, JavaScript gives the exponent
+ * form, for example "1e+21", and the JVM gives all digits. The app has no such values.
  */
 internal expect fun toFixed(value: Double, decimals: Int): String
 

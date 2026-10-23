@@ -29,6 +29,9 @@ class DayTest {
         // The fraction is the time of day.
         assertEquals(Day(2026, 10, 2), Day.fromSerial(46297.75))
         assertNull(Day.fromSerial(0.0))
+        assertNull(Day.fromSerial(Double.NaN))
+        assertNull(Day.fromSerial(1e10))
+        assertEquals(Day(9999, 12, 31), Day.fromSerial(2958465.5))
         for (d in listOf(Day(2024, 2, 29), Day(2026, 3, 29), Day(2026, 12, 31))) {
             assertEquals(d, Day.fromSerial(d.serial.toDouble()))
         }
@@ -47,6 +50,8 @@ class DayTest {
         assertEquals(Day(2026, 2, 28), Day.of(2026, 3, 0))
         assertEquals(Day(2025, 12, 1), Day.of(2026, 0, 1))
         assertEquals(Day(2024, 3, 1), Day.of(2024, 2, 30))
+        assertEquals(Day(2027, 3, 1), Day(2026, 15, 1).addDays(0))
+        assertEquals(Day(2025, 11, 30), Day.of(2026, -1, 30))
     }
 
     @Test

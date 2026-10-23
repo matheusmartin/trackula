@@ -11,8 +11,10 @@ enum class BarUnit { DAY, WEEK, MONTH, QUARTER }
 /**
  * The zoom steps, from the smallest span to the largest. A step has a fixed number of bars, so that a chart keeps its
  * shape while it moves. The shortest spans show days, short spans weeks, middle spans months, long spans quarters.
+ *
+ * @property bars The number of bars in view.
  */
-enum class ZoomStep(val label: String, val unit: BarUnit, /** The number of bars in view. */ val bars: Int) {
+enum class ZoomStep(val label: String, val unit: BarUnit, val bars: Int) {
     WEEK1("1 week", BarUnit.DAY, 7),
     WEEK2("2 weeks", BarUnit.DAY, 14),
     MONTH1("1 month", BarUnit.WEEK, 5),
