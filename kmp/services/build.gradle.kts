@@ -5,8 +5,8 @@ plugins {
 }
 
 /**
- * Writes BuildConfig.kt with the Google OAuth client ID and the Picker API key. They are build values, as the Dart
- * defines were. Each value comes from the environment variable with the same name, else from config.env in the
+ * Writes BuildConfig.kt with the Google OAuth client ID and the Picker API key. They are build values, not values in
+ * the code. Each value comes from the environment variable with the same name, else from config.env in the
  * repository root. A missing value is empty: then the app shows a message and does not start the sign-in.
  */
 val generateConfig by tasks.registering {

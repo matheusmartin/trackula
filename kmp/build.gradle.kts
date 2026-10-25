@@ -5,8 +5,8 @@ plugins {
     alias(libs.plugins.ktlint) apply false
 }
 
-// ktlint checks the format and the style of all Kotlin code, as `dart format` does for the Dart code. `check` runs
-// it. `./gradlew ktlintFormat` corrects most problems. The rules are in .editorconfig.
+// ktlint checks the format and the style of all Kotlin code. `check` runs it. `./gradlew ktlintFormat` corrects most
+// problems. The rules are in .editorconfig.
 allprojects {
     apply(plugin = rootProject.libs.plugins.ktlint.get().pluginId)
     configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {

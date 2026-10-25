@@ -1,5 +1,8 @@
 # Port to Kotlin Multiplatform
 
+The port is done. The Dart app is gone from the repository. Its last version is in commit `0902f54`. This file keeps
+the plan, the decisions and the differences from the Dart app.
+
 ## Goal
 
 - Port Trackula from Dart and Jaspr to Kotlin Multiplatform (KMP).
@@ -67,7 +70,7 @@
    1. Deploy the Kotlin app next to the Dart app, in the `kotlin/` folder of the site, with its own Content Security
       Policy. The Dart service worker does not handle `kotlin/`. Done.
    2. Test the Kotlin app on the site. Then remove the Dart code, make the Kotlin app the app at the root of the site
-      with the manifest, the icons and a service worker, and update `README.md`, `CLAUDE.md` and CI.
+      with the manifest, the icons and a service worker, and update `README.md`, `CLAUDE.md` and CI. Done.
 
 ## Decisions
 
@@ -79,6 +82,8 @@
 
 - A Wasm app needs `'wasm-unsafe-eval'` in `script-src` of the Content Security Policy in `deploy.yml`. Compose
   loads fallback fonts from `fonts.gstatic.com`, so `font-src` and `connect-src` allow it.
+- The service worker of the Kotlin app has the same URL (`sw.js`) as the Dart worker, so an installed Dart app gets
+  the Kotlin app at its next open with a network. The new worker deletes the cache of the Dart app.
 - Compose throws an error and shows nothing if the browser gives a language tag that is not valid. Example: headless
   Chromium with no `LANG` gives `en-US@posix`. Normal browsers give valid tags.
 - Wasm needs WasmGC. Safari before 18.2 does not have it. A Kotlin/JS target can be a fallback for old browsers.

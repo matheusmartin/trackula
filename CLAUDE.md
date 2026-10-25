@@ -5,42 +5,42 @@ adds the rules for the code.
 
 ## Standards
 
-- Read and follow [Effective Dart](https://dart.dev/effective-dart): Style, Documentation, Usage and Design.
-- Follow *Clean Code* by Robert C. Martin. If Clean Code and Effective Dart give different rules, follow Effective
-  Dart. Example: Effective Dart lets you write doc comments for private members.
-- This project differs from Effective Dart in these points:
-  - The maximum line length is 120, not 80. See `formatter` in `analysis_options.yaml`.
-  - Write all docs, comments and commit messages in ASD-STE100 Simplified Technical English, as in `README.md`.
-  - The doc comment of a boolean starts with "True if", "True while" or a similar phrase, not with "Whether".
+- Follow the [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html) and the Compose API
+  guidelines (`compose/docs/compose-api-guidelines.md` in the `androidx/androidx` repository).
+- Follow *Clean Code* by Robert C. Martin. If Clean Code and the Kotlin conventions give different rules, follow the
+  Kotlin conventions.
+- This project differs from the Kotlin conventions in these points:
+  - The maximum line length is 120. ktlint uses the `intellij_idea` style. See `kmp/.editorconfig`.
+  - Write all KDoc, comments and commit messages in ASD-STE100 Simplified Technical English, as in `README.md`.
+  - The KDoc of a boolean starts with "True if", "True while" or a similar phrase, not with "Whether".
     Example: "True if the window shows the newest bar."
-  - A doc comment can have more than one short sentence before its first blank `///` line, as STE text does.
-- `dart analyze` must show no issues, and `dart test` must pass.
+  - A KDoc can have more than one short sentence before its first blank line, as STE text does.
+- `cd kmp && ./gradlew build` must pass. The compiler treats warnings as errors.
+- Text for the user never uses `Double.toString()`: it gives "3.0" and "1.0E-7". Use the functions in `Format.kt`.
+  Example: `formatNumber(3.0)` gives "3".
 
-## Imports between folders
+## Dependencies between modules
 
-- `lib/model/` can import only `dart:*`, `package:meta` and other `lib/model/` files. It is pure Dart: you can test
-  it with `dart test`. Put logic here when you can.
-- `lib/sheets/` can import `lib/model/` and the Google Sheets packages.
-- `lib/services/` can import `lib/model/`, `lib/sheets/` and `lib/config.dart`.
-- `lib/components/` can import `lib/model/` and `lib/services/`.
-- `lib/pages/` can import all the folders above, and other pages.
-- `lib/constants/` can import only `package:jaspr`. See `@css` in `README.md`.
-- If you add a folder in `lib/`, add it to this list and to "Project structure" in `README.md`.
+- `model` uses no other module and no library. It is pure Kotlin: you can test it on the JVM and on Wasm. Put logic
+  here when you can.
+- `sheets` can use `model`, Ktor and `kotlinx.serialization`.
+- `services` can use `model` and `sheets`. Browser code goes in its `wasmJsMain`.
+- `app` can use all the modules above. Browser code goes in its `wasmJsMain`: `commonMain` gets the browser parts
+  through `Platform`, so the UI tests can run on the JVM.
+- If you add a module, add it to this list and to "Project structure" in `README.md`.
+- All library versions are in `kmp/gradle/libs.versions.toml`.
 
 ## Tests
 
-- The tests of `lib/<folder>/<name>.dart` are in `test/<name>_test.dart`. Example: `test/zoom_test.dart` tests
-  `lib/model/zoom.dart`.
+- The tests of `<Name>.kt` are in `<Name>Test.kt`, in `src/commonTest/` of the same module and package. Example:
+  `kmp/model/src/commonTest/kotlin/trackula/model/ZoomTest.kt` tests `Zoom.kt`.
+- The UI tests use `runComposeUiTest`. Use `waitUntil(timeoutMillis = …)` with the named argument.
 - When you change code that has tests, change or add tests in the same commit.
 
 ## Docs
 
 - If you change the sheet format (tabs, columns, values), update `docs/data-model.md` in the same commit.
 - If you change a command, a requirement or the configuration, update `README.md` in the same commit.
-
-## Dependencies
-
-- The Jaspr version in `pubspec.yaml` and the `jaspr_cli` version in `.github/workflows/deploy.yml` must be the same.
 
 ## Commits
 
