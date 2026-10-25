@@ -23,10 +23,11 @@ adds the rules for the code.
 
 - `model` uses no other module and no library. It is pure Kotlin: you can test it on the JVM and on Wasm. Put logic
   here when you can.
-- `sheets` can use `model`, Ktor and `kotlinx.serialization`.
-- `services` can use `model` and `sheets`. Browser code goes in its `wasmJsMain`.
-- `app` can use all the modules above. Browser code goes in its `wasmJsMain`: `commonMain` gets the browser parts
-  through `Platform`, so the UI tests can run on the JVM.
+- `sheets` can use `model`, Ktor, coroutines and `kotlinx.serialization`.
+- `services` can use `model` and `sheets`. Browser code goes in its `wasmJsMain`, with the Ktor JS client and
+  `kotlinx-browser`.
+- `app` can use all the modules above and Compose. Browser code goes in its `wasmJsMain`: `commonMain` gets the
+  browser parts through `Platform`, so the UI tests can run on the JVM.
 - If you add a module, add it to this list and to "Project structure" in `README.md`.
 - All library versions are in `kmp/gradle/libs.versions.toml`.
 

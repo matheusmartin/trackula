@@ -17,8 +17,12 @@ const CACHE = `trackula-${BUILD}`;
 // first offline open works. The names of the .wasm files change with each build.
 const APP_FILES = ['./', /* app-files */];
 
+// The worker asks the server for each file and does not use the HTTP cache of the browser. GitHub Pages lets the
+// browser keep a file for 10 minutes, and trackula.js has the same name in each build. Without this, the worker can
+// keep an old trackula.js that asks for .wasm files of an old build.
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(APP_FILES)).then(() => self.skipWaiting()));
+  const requests = APP_FILES.map((file) => new Request(file, { cache: 'no-cache' }));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(requests)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
@@ -37,10 +41,12 @@ self.addEventListener('fetch', (event) => {
 // The response of the network. It also goes to the cache. Without a network, the copy in the cache.
 async function networkFirst(request) {
   const cache = await caches.open(CACHE);
+  let response;
   try {
-    const response = await fetch(request);
-    if (response.ok) await cache.put(request, response.clone());
-    return response;
+    // A navigation request cannot get other options, so the worker asks for its URL.
+    response = request.mode === 'navigate'
+      ? await fetch(request.url, { cache: 'no-cache' })
+      : await fetch(request, { cache: 'no-cache' });
   } catch (error) {
     // A page URL has a query, for example `?demo`. All pages are the same file: `./`.
     const copy = request.mode === 'navigate'
@@ -49,4 +55,7 @@ async function networkFirst(request) {
     if (copy) return copy;
     throw error;
   }
+  // If the cache cannot keep the file, for example because the storage is full, the page still gets the response.
+  if (response.ok) await cache.put(request, response.clone()).catch(() => {});
+  return response;
 }

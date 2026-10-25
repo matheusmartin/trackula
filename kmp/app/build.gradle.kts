@@ -62,8 +62,9 @@ compose.resources {
 
 // Writes the service worker web/sw.js to the output, with the build ID and the list of the app files. The names of
 // the .wasm files change with each build, so the list must come from the output.
-val serviceWorker = layout.projectDirectory.file("web/sw.js")
 tasks.named("wasmJsBrowserDistribution") {
+    // A value in the task, not in the script: the configuration cache cannot keep references to the script.
+    val serviceWorker = layout.projectDirectory.file("web/sw.js")
     inputs.file(serviceWorker)
     doLast {
         val dist = outputs.files.singleFile
