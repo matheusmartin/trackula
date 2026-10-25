@@ -127,7 +127,7 @@ Rules:
 
 ### Layer 1: app writes
 
-- Dart types allow only valid writes. Example: a `YesNoMetric` can only write `yes` or `no`.
+- Kotlin types allow only valid writes. Example: a `YesNoMetric` can only write `yes` or `no`.
 - The app reads the `Log` tab again before each write. This keeps row numbers correct after manual edits.
 
 ### Layer 2: sheet data validation

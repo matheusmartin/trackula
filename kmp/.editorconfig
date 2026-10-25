@@ -1,0 +1,10 @@
+# The style rules of ktlint. See build.gradle.kts.
+root = true
+
+[*.{kt,kts}]
+indent_size = 4
+max_line_length = 120
+ktlint_code_style = intellij_idea
+# The test names are sentences in camel case. Composable functions are nouns in UpperCamelCase, as in the Compose
+# conventions.
+ktlint_function_naming_ignore_when_annotated_with = Test, Composable

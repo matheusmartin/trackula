@@ -23,21 +23,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dart-lang/setup-dart@v1
+      - uses: actions/setup-java@v4
         with:
-          sdk: 3.13.4
+          distribution: temurin
+          java-version: 21
 
-      - name: Install dependencies
-        run: dart pub get
+      - uses: gradle/actions/setup-gradle@v4
 
-      - name: Test
-        run: dart test
-
-      - name: Install Jaspr CLI
-        run: dart pub global activate jaspr_cli 0.23.5
-
-      # Values for lib/config.dart. Set them in Settings → Secrets and variables → Actions → Secrets.
-      # They are public in the built app. Secrets only keep them out of the repository and the logs.
+      # Values for the Config object: see generateConfig in kmp/services/build.gradle.kts. Set them in Settings →
+      # Secrets and variables → Actions → Secrets. They are public in the built app. Secrets only keep them out of the
+      # repository and the logs.
       - name: Build
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
@@ -47,23 +42,25 @@ jobs:
             echo "::error::Set the GOOGLE_CLIENT_ID and GOOGLE_API_KEY repository secrets."
             exit 1
           fi
-          jaspr build --dart-define=GOOGLE_CLIENT_ID="$GOOGLE_CLIENT_ID" --dart-define=GOOGLE_API_KEY="$GOOGLE_API_KEY"
+          cd kmp && ./gradlew build :app:wasmJsBrowserDistribution --console=plain
 
       # The page can load code, styles and data only from these origins. The page keeps the Google access token in
       # memory: this limits where other code can come from and where it can send data.
-      # - cdn.jsdelivr.net: BeerCSS. accounts.google.com/gsi: Google sign-in. apis.google.com and docs.google.com: the
-      #   Google Picker. sheets.googleapis.com: the Sheets API.
-      # - 'unsafe-inline' styles: the app sets style attributes, for example the ruler position.
+      # - accounts.google.com/gsi: Google sign-in. apis.google.com and docs.google.com: the Google Picker.
+      #   sheets.googleapis.com: the Sheets API. fonts.gstatic.com: the fallback fonts (Noto) of Compose, for
+      #   characters that its own fonts do not have.
+      # - 'wasm-unsafe-eval': the browser starts the WebAssembly code of the app.
+      # - 'unsafe-inline' styles: the style element in index.html, and the styles of Google sign-in and the Picker.
       # If you add a script, a font or an API from another origin, add the origin here.
       - name: Add the Content Security Policy
         env:
           CSP: >-
             default-src 'self';
-            script-src 'self' https://cdn.jsdelivr.net https://accounts.google.com/gsi/client https://apis.google.com;
-            style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com/gsi/style;
-            font-src 'self' https://cdn.jsdelivr.net;
+            script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client https://apis.google.com;
+            style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style;
+            font-src 'self' https://fonts.gstatic.com;
             img-src 'self' data: https:;
-            connect-src 'self' https://cdn.jsdelivr.net https://sheets.googleapis.com https://accounts.google.com/gsi/
+            connect-src 'self' https://fonts.gstatic.com https://sheets.googleapis.com https://accounts.google.com/gsi/
             https://apis.google.com;
             frame-src https://accounts.google.com/gsi/ https://docs.google.com;
             worker-src 'self';
@@ -74,7 +71,7 @@ jobs:
         run: |
           python3 - <<'EOF'
           import os
-          path = 'build/jaspr/index.html'
+          path = 'kmp/app/build/dist/wasmJs/productionExecutable/index.html'
           marker = '<!-- content-security-policy -->'
           html = open(path).read()
           if marker not in html:
@@ -85,7 +82,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: build/jaspr
+          path: kmp/app/build/dist/wasmJs/productionExecutable
 
   deploy:
     needs: build

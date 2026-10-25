@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <!-- The deploy (.github/workflows/deploy.yml) replaces the next line with the Content Security Policy. Only the
+             deployed app has it. -->
+        <!-- content-security-policy -->
+
+        <title>Trackula</title>
+
+        <!-- Fang T logo. favicon.ico is the same logo, for browsers without SVG icons. -->
+        <link rel="icon" type="image/svg+xml" href="logo.svg">
+
+        <!-- Install the app: the manifest, the iOS home screen icon and the color of the browser bar (the app bar
+             color of each theme). The service worker lets the app open without a network.
+             Icons: design/logo/make.py. -->
+        <link rel="manifest" href="manifest.webmanifest">
+        <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+        <meta name="theme-color" content="#b8321a" media="(prefers-color-scheme: light)">
+        <meta name="theme-color" content="#ff8c66" media="(prefers-color-scheme: dark)">
+        <script defer src="register-sw.js"></script>
+
+        <style>
+            /* Compose draws the whole app on a canvas in the body. */
+            html, body { margin: 0; height: 100%; overflow: hidden; background: #f8f9fb; }
+            @media (prefers-color-scheme: dark) { body { background: #141a22; } }
+        </style>
+        <script type="application/javascript" src="trackula.js"></script>
+    </head>
+    <body></body>
+</html>
