@@ -86,7 +86,8 @@ the plan, the decisions and the differences from the Dart app.
   the Kotlin app at its next open with a network. The new worker deletes the cache of the Dart app.
 - Compose throws an error and shows nothing if the browser gives a language tag that is not valid. Example: headless
   Chromium with no `LANG` gives `en-US@posix`. Normal browsers give valid tags.
-- Wasm needs WasmGC. Safari before 18.2 does not have it. A Kotlin/JS target can be a fallback for old browsers.
+- Wasm needs WasmGC. Safari before 18.2 does not have it, so the app does not start there. A Kotlin/JS target could
+  be a fallback for old browsers. Decision: no fallback. It makes the build larger and slower.
 - `kmp/kotlin-js-store/` has the npm lock file. When the npm dependencies change, run
   `./gradlew kotlinWasmUpgradePackageLock` and commit the lock file in the same commit.
 
