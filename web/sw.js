@@ -34,7 +34,9 @@ self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim(
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
-  const isKotlinApp = url.href.startsWith(new URL('kotlin/', self.registration.scope).href);
+  // Also `kotlin` without the slash: GitHub Pages redirects it to `kotlin/`.
+  const kotlin = new URL('kotlin', self.registration.scope).href;
+  const isKotlinApp = url.href === kotlin || url.href.startsWith(`${kotlin}/`);
   const isAppFile = (url.origin === self.location.origin && !isKotlinApp) || url.href.startsWith(BEERCSS);
   if (request.method !== 'GET' || !isAppFile) return;
   event.respondWith(networkFirst(request));
