@@ -63,8 +63,11 @@
    2. Today page: tiles, the 5-day table, the 31-day calendars, the number editor and the count input. Done.
    3. The trend chart and the score chart of the 5-day and 31-day views, on a Compose `Canvas`. Done.
    4. Detail page with its charts (`charts.dart`, `metric_charts.dart`), month calendar and the score view. Done.
-6. **Build and deploy.** `web/` files, service worker, Content Security Policy, `deploy.yml`, CI. Then remove the
-   Dart code and update `README.md` and `CLAUDE.md`.
+6. **Build and deploy.**
+   1. Deploy the Kotlin app next to the Dart app, in the `kotlin/` folder of the site, with its own Content Security
+      Policy. The Dart service worker does not handle `kotlin/`. Done.
+   2. Test the Kotlin app on the site. Then remove the Dart code, make the Kotlin app the app at the root of the site
+      with the manifest, the icons and a service worker, and update `README.md`, `CLAUDE.md` and CI.
 
 ## Decisions
 
@@ -74,7 +77,10 @@
 
 ## Risks
 
-- A Wasm app needs `'wasm-unsafe-eval'` in `script-src` of the Content Security Policy in `deploy.yml`.
+- A Wasm app needs `'wasm-unsafe-eval'` in `script-src` of the Content Security Policy in `deploy.yml`. Compose
+  loads fallback fonts from `fonts.gstatic.com`, so `font-src` and `connect-src` allow it.
+- Compose throws an error and shows nothing if the browser gives a language tag that is not valid. Example: headless
+  Chromium with no `LANG` gives `en-US@posix`. Normal browsers give valid tags.
 - Wasm needs WasmGC. Safari before 18.2 does not have it. A Kotlin/JS target can be a fallback for old browsers.
 - `kmp/kotlin-js-store/` has the npm lock file. When the npm dependencies change, run
   `./gradlew kotlinWasmUpgradePackageLock` and commit the lock file in the same commit.

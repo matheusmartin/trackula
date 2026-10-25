@@ -19,6 +19,10 @@
   code and data only from BeerCSS, Google sign-in, the Google Picker and the Sheets API. `jaspr serve` and a local
   `jaspr build` do not have it: the development server runs inline scripts, and the policy blocks them. If you add a
   script, a font or an API from another origin, add the origin to the policy in `deploy.yml`.
+- The deploy also builds the Kotlin port and puts it in the `kotlin/` folder of the site, next to the Dart app. Example:
+  `https://<user>.github.io/trackula/kotlin/?demo`. Its own policy (`KOTLIN_CSP` in `deploy.yml`) also allows
+  `'wasm-unsafe-eval'` and the fallback fonts of Compose from `fonts.gstatic.com`. The Dart service worker does not
+  handle the files in `kotlin/`. Both apps use the same local storage, so they open the same spreadsheet.
 - Data model: [docs/data-model.md](docs/data-model.md).
 
 ## Install the app
@@ -68,6 +72,8 @@
   `dart test`. `.github/workflows/ci.yml` runs these checks on each pull request and on each push to `main`. It also
   checks that the Jaspr version in `pubspec.yaml` and the `jaspr_cli` version in `deploy.yml` are the same.
 - Run the Kotlin app: `cd kmp && ./gradlew :app:wasmJsBrowserDevelopmentRun`. Add `?demo` to the URL for demo mode.
+- Build the Kotlin app for production: `cd kmp && ./gradlew :app:wasmJsBrowserDistribution`. The output goes to
+  `kmp/app/build/dist/wasmJs/productionExecutable/`.
 - Check the Kotlin port: `cd kmp && ./gradlew build`. It needs JDK 21. It compiles and packs each module, runs the
   tests on the JVM and on Wasm, and runs ktlint. `./gradlew ktlintFormat` corrects the format. CI runs the check too.
 

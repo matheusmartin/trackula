@@ -4,6 +4,7 @@
 // network, the cache gives that copy. So a new deploy shows at the next open, and an old copy shows only offline.
 // Only the files of the app and of BeerCSS go through the cache. Google sign-in, the Picker and the Sheets API go
 // to the network directly: offline, the app shows their errors.
+// The Kotlin app in kotlin/ is a different app: its requests also go to the network directly.
 
 const CACHE = 'trackula';
 
@@ -33,7 +34,8 @@ self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim(
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
-  const isAppFile = url.origin === self.location.origin || url.href.startsWith(BEERCSS);
+  const isKotlinApp = url.href.startsWith(new URL('kotlin/', self.registration.scope).href);
+  const isAppFile = (url.origin === self.location.origin && !isKotlinApp) || url.href.startsWith(BEERCSS);
   if (request.method !== 'GET' || !isAppFile) return;
   event.respondWith(networkFirst(request));
 });
