@@ -1,20 +1,15 @@
 plugins {
-    alias(libs.plugins.kotlin.multiplatform) apply false
-    alias(libs.plugins.compose) apply false
-    alias(libs.plugins.compose.compiler) apply false
-    alias(libs.plugins.ktlint) apply false
+    // The check and build tasks of the root project.
+    base
+    // All convention plugins are in one JAR. The root project loads it, with the Kotlin Gradle plugin, one time for
+    // all modules. Do not remove this line: if each module loads the Kotlin Gradle plugin, the build fails.
+    id("trackula.ktlint")
 }
 
-// ktlint checks the format and the style of all Kotlin code. `check` runs it. `./gradlew ktlintFormat` corrects most
-// problems. The rules are in .editorconfig.
-allprojects {
-    apply(plugin = rootProject.libs.plugins.ktlint.get().pluginId)
-    configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
-        version.set(rootProject.libs.versions.ktlint.get())
-    }
-    // Generated code, for example the Compose resource accessors, has its own format.
-    tasks.withType<org.jlleitschuh.gradle.ktlint.tasks.BaseKtLintCheckTask>().configureEach {
-        val buildFolder = layout.buildDirectory.get().asFile
-        exclude { it.file.startsWith(buildFolder) }
-    }
+// build-logic is a separate build. `check` and `ktlintFormat` also do its checks.
+tasks.named("check") {
+    dependsOn(gradle.includedBuild("build-logic").task(":check"))
+}
+tasks.named("ktlintFormat") {
+    dependsOn(gradle.includedBuild("build-logic").task(":ktlintFormat"))
 }
