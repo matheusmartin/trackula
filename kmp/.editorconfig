@@ -1,4 +1,4 @@
-# The style rules of ktlint. See build.gradle.kts.
+# The style rules of ktlint. See build-logic/src/main/kotlin/trackula.ktlint.gradle.kts.
 root = true
 
 [*.{kt,kts}]

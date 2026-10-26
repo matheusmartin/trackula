@@ -45,7 +45,8 @@
 
 ## Requirements
 
-- JDK 21. The Gradle wrapper (`kmp/gradlew`) gets Gradle, Kotlin and Node.js.
+- JDK 17 or later, to start Gradle. The build uses JDK 21: Gradle finds it on the computer or downloads it. The
+  Gradle wrapper (`kmp/gradlew`) gets Gradle, Kotlin and Node.js.
 
 ## Configuration
 
@@ -89,5 +90,9 @@ all targets), `src/commonTest/` (tests), and can have `src/wasmJsMain/` (browser
 - `app/`: the UI in Compose. `pages/`, `components/`, the theme (`Theme.kt`) and `App.kt`. `Platform` holds the
   browser parts, so the UI tests on the JVM use a fake. `Main.kt` in `wasmJsMain` starts the app in the browser.
   `wasmJsMain/resources/`: the page (`index.html`), the icons and the manifest. `web/sw.js`: the service worker.
+- `build-logic/`: the convention plugins, in a separate Gradle build. `trackula.kotlin-multiplatform` has the
+  settings of all modules: JDK 21, the JVM target, warnings as errors, `kotlin.test` and ktlint. Each module adds its
+  Wasm target. `trackula.ktlint` has the ktlint settings.
 - `kotlin-js-store/`: the npm lock file.
 - `gradle/libs.versions.toml`: the versions of all dependencies.
+- `gradle.properties`: the Gradle settings. The build cache and the configuration cache are on.

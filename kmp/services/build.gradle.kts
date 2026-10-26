@@ -1,7 +1,7 @@
 // Browser code: Google sign-in, the Google Picker, browser storage and input. The input logic and the configuration
 // are common code with tests. The code that calls browser APIs is only in wasmJsMain.
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
+    id("trackula.kotlin-multiplatform")
 }
 
 /**
@@ -9,15 +9,19 @@ plugins {
  * the code. Each value comes from the environment variable with the same name, else from config.env in the
  * repository root. A missing value is empty: then the app shows a message and does not start the sign-in.
  */
-val generateConfig by tasks.registering {
-    val configFile = rootProject.layout.projectDirectory.file("../config.env")
-    val names = listOf("GOOGLE_CLIENT_ID", "GOOGLE_API_KEY")
-    val values = names.associateWith { providers.environmentVariable(it).orNull }
-    inputs.property("values", values.mapValues { it.value.orEmpty() })
-    inputs.files(configFile).optional()
+val generateConfig = tasks.register("generateConfig") {
+    group = "build"
+    description = "Writes BuildConfig.kt with the Google OAuth client ID and the Picker API key."
+    val configFile = layout.settingsDirectory.file("../config.env")
+    // The task reads the environment variables when it runs. A changed value runs the task again, and the
+    // configuration cache stays valid.
+    val values = listOf("GOOGLE_CLIENT_ID", "GOOGLE_API_KEY").associateWith {
+        providers.environmentVariable(it).orElse("")
+    }
+    values.forEach { (name, value) -> inputs.property(name, value) }
+    inputs.files(configFile).optional().withPathSensitivity(PathSensitivity.NONE).withPropertyName("configFile")
     val folder = layout.buildDirectory.dir("generated/config")
-    val output = folder.map { it.file("trackula/services/BuildConfig.kt") }
-    outputs.dir(folder)
+    outputs.dir(folder).withPropertyName("folder")
     doLast {
         val file = configFile.asFile
         val fromFile = if (file.exists()) {
@@ -33,12 +37,12 @@ val generateConfig by tasks.registering {
         }
         fun value(name: String): String {
             // An empty environment variable counts as not set.
-            val text = values[name]?.takeIf { it.isNotEmpty() } ?: fromFile[name].orEmpty()
+            val text = values.getValue(name).get().ifEmpty { fromFile[name].orEmpty() }
             val valid = text.all { it.isLetterOrDigit() || it in "-_.:" }
             require(valid) { "$name has characters that are not valid. Use only letters, digits and - _ . :" }
             return text
         }
-        val outputFile = output.get().asFile
+        val outputFile = folder.get().file("trackula/services/BuildConfig.kt").asFile
         outputFile.parentFile.mkdirs()
         outputFile.writeText(
             """
@@ -56,17 +60,10 @@ val generateConfig by tasks.registering {
 }
 
 kotlin {
-    jvmToolchain(21)
-
-    // The JVM target runs the tests of the common code fast. The app uses the Wasm target.
-    jvm()
+    // The app uses the Wasm target.
     @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     wasmJs {
         nodejs()
-    }
-
-    compilerOptions {
-        allWarningsAsErrors.set(true)
     }
 
     sourceSets {
@@ -78,8 +75,7 @@ kotlin {
             }
         }
         commonTest.dependencies {
-            implementation(kotlin("test"))
-            implementation(libs.coroutines.test)
+            implementation(libs.kotlinx.coroutines.test)
         }
         wasmJsMain.dependencies {
             implementation(libs.ktor.client.js)

@@ -1,21 +1,17 @@
 // The UI in Compose Multiplatform. The app runs in the browser as Wasm. The JVM target runs the UI tests on the
 // desktop version of Compose.
-import org.jetbrains.compose.ExperimentalComposeLibrary
 import java.security.MessageDigest
 
 plugins {
-    alias(libs.plugins.kotlin.multiplatform)
+    id("trackula.kotlin-multiplatform")
     alias(libs.plugins.compose)
     alias(libs.plugins.compose.compiler)
 }
 
 kotlin {
-    jvmToolchain(21)
-
-    jvm()
     @OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
     wasmJs {
-        outputModuleName.set("trackula")
+        outputModuleName = "trackula"
         browser {
             commonWebpackConfig {
                 outputFileName = "trackula.js"
@@ -26,13 +22,9 @@ kotlin {
         binaries.executable()
     }
 
-    compilerOptions {
-        allWarningsAsErrors.set(true)
-    }
-
     sourceSets {
         commonMain.dependencies {
-            implementation(project(":sheets"))
+            // Also gives the sheets and model modules.
             implementation(project(":services"))
             implementation(libs.compose.runtime)
             implementation(libs.compose.foundation)
@@ -41,9 +33,7 @@ kotlin {
             implementation(libs.compose.resources)
         }
         commonTest.dependencies {
-            implementation(kotlin("test"))
-            implementation(libs.coroutines.test)
-            @OptIn(ExperimentalComposeLibrary::class)
+            implementation(libs.kotlinx.coroutines.test)
             implementation(libs.compose.ui.test)
         }
         jvmTest.dependencies {
@@ -65,7 +55,7 @@ compose.resources {
 tasks.named("wasmJsBrowserDistribution") {
     // A value in the task, not in the script: the configuration cache cannot keep references to the script.
     val serviceWorker = layout.projectDirectory.file("web/sw.js")
-    inputs.file(serviceWorker)
+    inputs.file(serviceWorker).withPathSensitivity(PathSensitivity.NONE).withPropertyName("serviceWorker")
     doLast {
         val dist = outputs.files.singleFile
         val files = dist.walk()

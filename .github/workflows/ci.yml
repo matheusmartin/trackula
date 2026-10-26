@@ -21,14 +21,17 @@ jobs:
       run:
         working-directory: kmp
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
 
-      - uses: gradle/actions/setup-gradle@v4
+      # The basic cache provider is open source (MIT). The default provider of v6 has its own license terms.
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
 
       # Compiles and packs each module with warnings as errors, runs ktlint, and runs the tests on the JVM and on Wasm
       # (Node.js).

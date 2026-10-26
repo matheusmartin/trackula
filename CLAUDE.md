@@ -31,6 +31,14 @@ adds the rules for the code.
 - If you add a module, add it to this list and to "Project structure" in `README.md`.
 - All library versions are in `kmp/gradle/libs.versions.toml`.
 
+## Build
+
+- Put the build settings that more than one module uses in a convention plugin in `kmp/build-logic/`. Do not use
+  `allprojects {}` or `subprojects {}`.
+- Declare repositories only in `settings.gradle.kts`.
+- Use the lazy Gradle APIs: `tasks.register`, providers, and `get()` only in a task action. The configuration cache
+  is on, so a task action must not use `project`.
+
 ## Tests
 
 - The tests of `<Name>.kt` are in `<Name>Test.kt`, in `src/commonTest/` of the same module and package. Example:
