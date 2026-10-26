@@ -45,7 +45,8 @@
 
 ## Requirements
 
-- JDK 21. The Gradle wrapper (`kmp/gradlew`) gets Gradle, Kotlin and Node.js.
+- JDK 17 or later, to start Gradle. The build uses JDK 21: Gradle finds it on the computer or downloads it. The
+  Gradle wrapper (`kmp/gradlew`) gets Gradle, Kotlin and Node.js.
 
 ## Configuration
 
