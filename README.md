@@ -95,3 +95,4 @@ all targets), `src/commonTest/` (tests), and can have `src/wasmJsMain/` (browser
   Wasm target. `trackula.ktlint` has the ktlint settings.
 - `kotlin-js-store/`: the npm lock file.
 - `gradle/libs.versions.toml`: the versions of all dependencies.
+- `gradle.properties`: the Gradle settings. The build cache and the configuration cache are on.
