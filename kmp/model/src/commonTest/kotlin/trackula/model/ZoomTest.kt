@@ -65,9 +65,22 @@ class ZoomTest {
     }
 
     @Test
-    fun defaultStepIndexIs3MonthsOrTheLastStepIfThereAreFewer() {
-        assertEquals(ZoomStep.MONTH3.ordinal, defaultStepIndex(zoomSteps(mon.addDays(-200), mon)))
-        assertEquals(1, defaultStepIndex(zoomSteps(mon.addDays(-10), mon)))
+    fun threeMonthsStepIndexIs3MonthsOrTheLastStepIfThereAreFewer() {
+        assertEquals(ZoomStep.MONTH3.ordinal, threeMonthsStepIndex(zoomSteps(mon.addDays(-200), mon)))
+        assertEquals(1, threeMonthsStepIndex(zoomSteps(mon.addDays(-10), mon)))
+    }
+
+    @Test
+    fun defaultStepIndexIsAllDataForANumberAnd3MonthsForTheOtherKinds() {
+        // 200 days: the last step, 1 year, shows all data.
+        val steps = zoomSteps(mon.addDays(-200), mon)
+        assertEquals(ZoomStep.YEAR1, steps.last())
+        val number = NumberMetric("weight", "Weight", "monitor_weight")
+        assertEquals(steps.lastIndex, defaultStepIndex(number, steps))
+        val count = NumberMetric("water", "Water", "water_drop", isCount = true)
+        assertEquals(ZoomStep.MONTH3.ordinal, defaultStepIndex(count, steps))
+        val yesNo = YesNoMetric("meditate", "Meditate", "self_improvement")
+        assertEquals(ZoomStep.MONTH3.ordinal, defaultStepIndex(yesNo, steps))
     }
 
     @Test

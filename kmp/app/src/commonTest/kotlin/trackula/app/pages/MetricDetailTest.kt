@@ -108,8 +108,8 @@ class MetricDetailTest {
     @Test
     fun theZoomButtonsChangeTheWindowAndTheLabelGoesToAllAndBack() = runComposeUiTest {
         showPage()
-        openDetail("Weight")
-        // The demo data has 120 days: the window opens at 3 months, and All is 6 months.
+        openDetail("Water")
+        // The demo data has 120 days: the window of a count opens at 3 months, and All is 6 months.
         onNodeWithText("3 months").assertExists()
         onNodeWithContentDescription("Show all").performClick()
         waitForIdle()
@@ -124,13 +124,28 @@ class MetricDetailTest {
     }
 
     @Test
-    fun theArrowsMoveTheWindowByItsSpanAndTheCalendarFollowsIt() = runComposeUiTest {
+    fun theWindowOfANumberOpensAtAllAndTheLabelGoesTo3MonthsAndBack() = runComposeUiTest {
         showPage()
         openDetail("Weight")
+        // All: the 120 days of the demo data, from the first value to today.
+        onNodeWithText("All").assertExists()
+        onNodeWithContentDescription("Zoom out").assertIsNotEnabled()
+        onNodeWithContentDescription("Later").assertIsNotEnabled()
+        onNodeWithContentDescription("Earlier").assertIsNotEnabled()
+        onNodeWithContentDescription("Back to 3 months").performClick()
+        waitForIdle()
+        onNodeWithText("3 months").assertExists()
+        onNodeWithContentDescription("Show all").performClick()
+        waitForIdle()
+        onNodeWithText("All").assertExists()
         onNodeWithContentDescription("Zoom in").performClick()
         waitForIdle()
-        // 1 month: 5 weeks from Monday 2026-08-31 to today, Saturday 2026-10-03.
-        onNodeWithText(formatDateRange(Day(2026, 8, 31), today)).assertExists()
+        onNodeWithText("3 months").assertExists()
+    }
+
+    @Test
+    fun theArrowsMoveTheWindowByItsSpanAndTheCalendarFollowsIt() = runComposeUiTest {
+        weightAtOneMonth()
         onNodeWithContentDescription("Later").assertIsNotEnabled()
         onNodeWithText(monthTitle(monthOf(today)), substring = true).assertExists()
 
@@ -171,12 +186,19 @@ class MetricDetailTest {
         onNodeWithContentDescription("Back").assertDoesNotExist()
     }
 
-    /** Zooms the detail screen of Weight to 1 month: 5 weeks, from Monday 2026-08-31 to today. */
+    /**
+     * Zooms the detail screen of Weight from All to 1 month: 5 weeks, from Monday 2026-08-31 to today, Saturday
+     * 2026-10-03.
+     */
     private fun ComposeUiTest.weightAtOneMonth() {
         showPage()
         openDetail("Weight")
-        onNodeWithContentDescription("Zoom in").performClick()
-        waitForIdle()
+        // All, then 3 months, then 1 month.
+        repeat(2) {
+            onNodeWithContentDescription("Zoom in").performClick()
+            waitForIdle()
+        }
+        onNodeWithText("1 month").assertExists()
         onNodeWithText(formatDateRange(Day(2026, 8, 31), today)).assertExists()
     }
 
