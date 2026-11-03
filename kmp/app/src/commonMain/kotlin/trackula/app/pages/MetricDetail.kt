@@ -56,6 +56,7 @@ import trackula.model.formatDateRange
 import trackula.model.isScore
 import trackula.model.monthOf
 import trackula.model.roundHalfAwayFromZero
+import trackula.model.threeMonthsStepIndex
 import trackula.model.yesNoStates
 import trackula.model.zoomBars
 import trackula.model.zoomSteps
@@ -70,9 +71,11 @@ private const val WHEEL_STEP = 40f
  * All data of one metric: key numbers, charts and a day heatmap for one time window, and a month calendar to edit
  * days.
  *
- * - Time window: the zoom buttons set its span and the bar size (see [ZoomStep]). A tap on the zoom label goes to All,
- *   and a second tap goes back. The arrows move the window by its full span. A tap or a drag on the overview moves it
- *   there. A side drag or a side wheel on the charts moves it by bars. All numbers and charts show the same window.
+ * - Time window: the zoom buttons set its span and the bar size (see [ZoomStep]). It opens at All for a metric of kind
+ *   `number`, and at 3 months for the other kinds (see [defaultStepIndex]). A tap on the zoom label goes to All, and a
+ *   second tap goes back. At All without an earlier step, the tap goes to 3 months. The arrows move the window by its
+ *   full span. A tap or a drag on the overview moves it there. A side drag or a side wheel on the charts moves it by
+ *   bars. All numbers and charts show the same window.
  * - Day heatmap: the days of the window. A tap on a day shows its month in the calendar.
  * - Edit days: any month, with the same day cells and inputs as the Today page. It shows the month of the window end
  *   until the arrows, a swipe or a heatmap tap change it. Wide screens also show the month before.
@@ -131,7 +134,7 @@ private fun DetailContent(
     }
     val first = earliestDay(values.keys) ?: today
     val steps = zoomSteps(first, today)
-    val index = min(stepIndex ?: defaultStepIndex(steps), steps.lastIndex)
+    val index = min(stepIndex ?: defaultStepIndex(metric, steps), steps.lastIndex)
     val window = ZoomWindow(steps[index], first, today, end)
     // The latest window: Compose can keep a function reference of an earlier composition, with its values.
     val currentWindow by rememberUpdatedState(window)
@@ -207,7 +210,8 @@ private fun WindowBar(
     // The last step shows all data. See zoomSteps.
     val last = steps.lastIndex
     val atAll = index == last
-    val back = min(beforeAll ?: defaultStepIndex(steps), last)
+    // The window can open at All (see defaultStepIndex): then the tap goes to 3 months.
+    val back = min(beforeAll ?: threeMonthsStepIndex(steps), last)
     val count = window.starts.size
     val box = window.boxOn(BarUnit.WEEK)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
