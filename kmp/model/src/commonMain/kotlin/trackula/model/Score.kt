@@ -12,8 +12,16 @@ const val SCORE_HEADER = "Score"
  */
 val scoreMetric = NumberMetric(id = SCORE_HEADER, name = "Score", icon = "", unit = "points", isCount = true)
 
-/** True if [metric] is [scoreMetric]. */
-fun isScore(metric: Metric): Boolean = metric.id == SCORE_HEADER
+/**
+ * The score of the metrics of one [group], for the group filter. [label] is the group name that the app shows. Its id
+ * starts with [SCORE_HEADER] and a colon, so it cannot be a metric id. Example: the group "habits" with the label
+ * "Habits" gives the id "Score:habits" and the name "Score · Habits".
+ */
+fun groupScoreMetric(group: String, label: String): NumberMetric =
+    scoreMetric.copy(id = "$SCORE_HEADER:$group", name = "${scoreMetric.name} · $label")
+
+/** True if [metric] is [scoreMetric] or a [groupScoreMetric]. */
+fun isScore(metric: Metric): Boolean = metric.id == SCORE_HEADER || metric.id.startsWith("$SCORE_HEADER:")
 
 /**
  * The points of [metric] for a day with [value]. [previous] is the value of the previous log of [metric]: the latest

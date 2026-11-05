@@ -11,6 +11,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import trackula.app.TrackulaTheme
 import trackula.model.Day
 import trackula.model.daysBetween
+import trackula.model.scoreMetric
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -47,7 +48,7 @@ class ChartsTest {
     @Test
     fun theScoreChartOpensTheScoreViewAndSaysWhenThereIsNoScore() = runComposeUiTest {
         var opens = 0
-        setContent { TrackulaTheme(dark = false) { ScoreChart(days, emptyMap()) { opens++ } } }
+        setContent { TrackulaTheme(dark = false) { ScoreChart(scoreMetric, days, emptyMap()) { opens++ } } }
         onNodeWithText("No score in these days.").assertExists()
         onNodeWithContentDescription("Show the score only").performClick()
         assertEquals(1, opens)
@@ -55,7 +56,9 @@ class ChartsTest {
 
     @Test
     fun theScoreChartGoesFromZeroInPoints() = runComposeUiTest {
-        setContent { TrackulaTheme(dark = false) { ScoreChart(days, mapOf(days[0] to 3.0, days[4] to 5.0)) {} } }
+        setContent {
+            TrackulaTheme(dark = false) { ScoreChart(scoreMetric, days, mapOf(days[0] to 3.0, days[4] to 5.0)) {} }
+        }
         onNodeWithContentDescription("Values from 0 to 5 points, Sep 29 to Oct 3").assertExists()
     }
 }

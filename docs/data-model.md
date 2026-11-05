@@ -113,6 +113,10 @@ Rules:
 - In the app, a green line chart of the score is at the top of the "5 days" and "31 days" views. A tap on "Score"
   opens the "Score" view of the bottom navigation bar: the numbers and charts of the score only, in green. The Today
   tiles do not show the score.
+- The group filter of the app (the `group` column) also applies to the score. With a group selected, the chart and
+  the "Score" view show the group score: the sum of the points of the metrics of that group only. The title shows the
+  group, for example "Score · Habits". The sum of the group scores is the score of the day. The `Score` column always
+  has the score of all metrics.
 
 ## Consistency
 

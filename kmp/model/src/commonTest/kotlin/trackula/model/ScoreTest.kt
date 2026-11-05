@@ -113,6 +113,21 @@ class ScoreTest {
     }
 
     @Test
+    fun dayScoresOfTheMetricsOfEachGroupAddUpToTheScoreOfAllMetrics() {
+        val metrics = listOf(
+            weight.copy(group = "body"),
+            water.copy(group = "habits"),
+            meditate.copy(group = "habits"),
+            smoke.copy(group = "habits"),
+        )
+        val body = dayScores(metricsOf(metrics, "body"), dayLog)
+        val habits = dayScores(metricsOf(metrics, "habits"), dayLog)
+        assertEquals(mapOf(d29 to 1.0, d30 to 0.0), body)
+        assertEquals(mapOf(d29 to 5.0, d30 to 0.0), habits)
+        assertEquals(dayScores(metrics, dayLog), body.mapValues { (d, v) -> v + habits.getValue(d) })
+    }
+
+    @Test
     fun dayScoresGivesNoScoreToADayWithoutAValue() {
         assertFalse(Day(2026, 9, 28) in dayScores(dayMetrics, dayLog))
     }
@@ -240,6 +255,14 @@ class ScoreTest {
         assertEquals(emptyList(), p.items)
         assertTrue(isScore(scoreMetric))
         assertFalse(isScore(water))
+    }
+
+    @Test
+    fun groupScoreMetricIsAScoreWithTheGroupInItsIdAndName() {
+        val habits = groupScoreMetric("habits", "Habits")
+        assertEquals("Score:habits" to "Score · Habits", habits.id to habits.name)
+        assertTrue(isScore(habits))
+        assertEquals(scoreMetric.unit to scoreMetric.isCount, habits.unit to habits.isCount)
     }
 
     @Test
