@@ -22,9 +22,9 @@ import trackula.model.formatNumber
 import trackula.model.formatPercent
 import trackula.model.formatSigned
 import trackula.model.groupWeekdayParts
+import trackula.model.halves
 import trackula.model.isScore
 import trackula.model.numberStats
-import trackula.model.previousPeriod
 import trackula.model.roundHalfAwayFromZero
 import trackula.model.shortDay
 import trackula.model.streakLengths
@@ -248,7 +248,7 @@ private fun CountCharts(metric: NumberMetric, window: ZoomWindow, values: Map<Da
  * The numbers and charts of the score, all with bars. The score of a day does not add up over time, so they show
  * averages per day and per weekday, not totals.
  *
- * - [values]: the score of all days, also before the window: the change compares with the period just before it.
+ * - [values]: the score of each day. The changes compare the first half of the window with the second half.
  * - [groupScores]: the score of each group. With 2 or more groups, the weekday bars show the part of each group.
  */
 @Composable
@@ -259,14 +259,16 @@ private fun ScoreCharts(
     groupScores: Map<String, Map<Day, Double>>,
 ) {
     val stats = countStats(values, window.days)
-    val before = countStats(values, previousPeriod(window.days))
+    val (firstHalf, secondHalf) = halves(window.days)
+    val before = countStats(values, firstHalf)
+    val after = countStats(values, secondHalf)
     val best = stats.best
     val weekday = bestWeekday(stats.weekdayAverages)
-    val average = stats.average
+    val average = after.average
     val previous = before.average
     KeyNumbers(
         listOf(
-            "per day" to (average?.let { withUnit(it, metric) } ?: "–"),
+            "per day" to (stats.average?.let { withUnit(it, metric) } ?: "–"),
             "per day, change" to
                 (if (average != null && previous != null) formatSigned(average - previous, metric.unit) else "–"),
             "best day" to (best?.let { "${formatNumber(it.value)} · ${shortDay(it.day)}" } ?: "–"),
@@ -290,8 +292,8 @@ private fun ScoreCharts(
             ChartItem(wide = true) {
                 BarChart(
                     title = "Weekday change",
-                    description = "The change of each weekday average from the ${window.days.size} days before.",
-                    bars = weekdayChanges(stats.weekdayAverages, before.weekdayAverages)
+                    description = "The change of each weekday average from the first half to the second half.",
+                    bars = weekdayChanges(after.weekdayAverages, before.weekdayAverages)
                         .mapIndexed { i, change -> Bar(weekdayNames[i], change) },
                     modifier = it,
                     format = { v -> if (v > 0) "+${formatNumber(v)}" else formatNumber(v) },

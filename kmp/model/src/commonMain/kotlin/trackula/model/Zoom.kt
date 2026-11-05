@@ -85,11 +85,11 @@ fun threeMonthsStepIndex(steps: List<ZoomStep>): Int =
     steps.indexOf(ZoomStep.MONTH3).takeIf { it >= 0 } ?: steps.lastIndex
 
 /**
- * The index in [steps] of the step that the detail screen of [metric] opens with. Kind `number`: the last step, that
- * shows all data. Other kinds: [threeMonthsStepIndex].
+ * The index in [steps] of the step that the detail screen of [metric] opens with. Kind `number` and the score: the
+ * last step, that shows all data. Other kinds: [threeMonthsStepIndex].
  */
 fun defaultStepIndex(metric: Metric, steps: List<ZoomStep>): Int =
-    if (metric is NumberMetric && !metric.isCount) steps.lastIndex else threeMonthsStepIndex(steps)
+    if (isScore(metric) || (metric is NumberMetric && !metric.isCount)) steps.lastIndex else threeMonthsStepIndex(steps)
 
 /** True if [step] shows all bars from [first] to [today]. */
 private fun showsAll(step: ZoomStep, first: Day, today: Day): Boolean =

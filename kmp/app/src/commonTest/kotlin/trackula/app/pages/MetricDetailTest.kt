@@ -179,6 +179,16 @@ class MetricDetailTest {
     }
 
     @Test
+    fun theScoreViewOpensAtAllData() = runComposeUiTest {
+        showPage(MainView.SCORE)
+        waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Average per day").fetchSemanticsNodes().isNotEmpty() }
+        // At All, the zoom label goes back to 3 months. The text "All" is also the chip of all groups.
+        onNodeWithContentDescription("Back to 3 months").assertExists()
+        onNodeWithContentDescription("Zoom out").assertIsNotEnabled()
+        onNodeWithContentDescription("Earlier").assertIsNotEnabled()
+    }
+
+    @Test
     fun theScoreViewHasAveragesPerDayAndPerWeekdayAndNoCalendar() = runComposeUiTest {
         showPage(MainView.SCORE)
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Average per day").fetchSemanticsNodes().isNotEmpty() }
@@ -198,6 +208,9 @@ class MetricDetailTest {
         showPage(MainView.SCORE)
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weekday change").fetchSemanticsNodes().isNotEmpty() }
         onNodeWithText("per day, change").assertExists()
+        // At All, no day comes before the window. The change compares the halves of the window, so it has values.
+        onNodeWithContentDescription("Back to 3 months").assertExists()
+        onNodeWithText("No values in this period.").assertDoesNotExist()
         onNodeWithText("Score by day").assertExists()
         onNodeWithText("One row for each weekday. A darker day has a higher score.").assertExists()
     }

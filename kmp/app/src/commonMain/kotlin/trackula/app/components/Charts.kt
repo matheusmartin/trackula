@@ -297,7 +297,10 @@ private fun BarRows(bars: List<Bar>, label: String, max: Double?, format: (Doubl
     }
 }
 
-/** Bars from 0 to the highest value. [max] fixes the top of the scale, for example 100 for percentages. */
+/**
+ * Bars from 0 to the highest value. [max] fixes the top of the scale, for example 100 for percentages. If no bar has
+ * a value, the card says so.
+ */
 @Composable
 fun BarChart(
     title: String,
@@ -308,6 +311,7 @@ fun BarChart(
     format: (Double) -> String = { formatNumber(it) },
 ) {
     ChartCard(title, description, modifier) {
+        if (bars.all { it.value == null }) return@ChartCard NoValues()
         Scroller(bars.size) {
             Column {
                 BarRows(bars, title, max, format, showValues = true)

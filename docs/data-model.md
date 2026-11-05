@@ -117,8 +117,10 @@ Rules:
   Today tiles do not show the score.
   - The weekday averages of all metrics stack the part of each group, in one color for each group. The parts of a
     weekday add up to its average: a day without points of a group adds 0 to that group.
-  - "Weekday change" and "per day, change" compare the period with the same number of days just before it. Example:
-    the 7 days from Oct 8 to Oct 14 compare with the 7 days from Oct 1 to Oct 7.
+  - "Weekday change" and "per day, change" compare the first half of the period with the second half. Example: in
+    the 14 days from Oct 1 to Oct 14, the days from Oct 8 to Oct 14 compare with the days from Oct 1 to Oct 7. With
+    an odd number of days, the second half has one day more. The change does not use the days before the period: at
+    "All", there are none.
   - "Score by day": one cell for each day, one row for each weekday. A darker cell has a higher score. The day with
     the highest score of the period has the full color.
 - The group filter of the app (the `group` column) also applies to the score. With a group selected, the chart and

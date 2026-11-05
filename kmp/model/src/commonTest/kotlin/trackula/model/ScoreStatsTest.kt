@@ -10,10 +10,11 @@ class ScoreStatsTest {
     private fun range(from: Int, n: Int) = (from until from + n).map(::day)
 
     @Test
-    fun previousPeriodIsTheSameNumberOfDaysJustBefore() {
-        assertEquals(range(-7, 7), previousPeriod(range(0, 7)))
-        assertEquals(listOf(day(-1)), previousPeriod(listOf(day(0))))
-        assertEquals(emptyList(), previousPeriod(emptyList()))
+    fun halvesSplitTheDaysAndTheSecondHalfHasTheExtraDay() {
+        assertEquals(range(0, 7) to range(7, 7), halves(range(0, 14)))
+        assertEquals(range(0, 3) to range(3, 4), halves(range(0, 7)))
+        assertEquals(emptyList<Day>() to listOf(day(0)), halves(listOf(day(0))))
+        assertEquals(emptyList<Day>() to emptyList(), halves(emptyList()))
     }
 
     @Test

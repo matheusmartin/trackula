@@ -73,10 +73,10 @@ private const val WHEEL_STEP = 40f
  * days.
  *
  * - Time window: the zoom buttons set its span and the bar size (see [ZoomStep]). It opens at All for a metric of kind
- *   `number`, and at 3 months for the other kinds (see [defaultStepIndex]). A tap on the zoom label goes to All, and a
- *   second tap goes back. At All without an earlier step, the tap goes to 3 months. The arrows move the window by its
- *   full span. A tap or a drag on the overview moves it there. A side drag or a side wheel on the charts moves it by
- *   bars. All numbers and charts show the same window.
+ *   `number` and for the score, and at 3 months for the other kinds (see [defaultStepIndex]). A tap on the zoom label
+ *   goes to All, and a second tap goes back. At All without an earlier step, the tap goes to 3 months. The arrows move
+ *   the window by its full span. A tap or a drag on the overview moves it there. A side drag or a side wheel on the
+ *   charts moves it by bars. All numbers and charts show the same window.
  * - Day heatmap: the days of the window. A tap on a day shows its month in the calendar.
  * - Edit days: any month, with the same day cells and inputs as the Today page. It shows the month of the window end
  *   until the arrows, a swipe or a heatmap tap change it. Wide screens also show the month before.
