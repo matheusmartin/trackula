@@ -72,6 +72,14 @@ class ChartsTest {
     }
 
     @Test
+    fun aBarChartWithoutValuesSaysSo() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) { BarChart("Change", "Changes.", listOf(Bar("A", null), Bar("B", null))) }
+        }
+        onNodeWithText("No values in this period.").assertExists()
+    }
+
+    @Test
     fun aBarChartShowsNegativeValuesWithAMinusSign() = runComposeUiTest {
         setContent {
             TrackulaTheme(dark = false) { BarChart("Change", "Changes.", listOf(Bar("A", 1.5), Bar("B", -2.0))) }

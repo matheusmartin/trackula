@@ -3,13 +3,12 @@ package trackula.model
 import kotlin.math.max
 
 /**
- * The days just before [days], with the same number of days. Empty if [days] is empty. Example: the 7 days from
- * 2026-10-08 to 2026-10-14 give the 7 days from 2026-10-01 to 2026-10-07.
+ * The first half and the second half of [days]. With an odd number of days, the second half has one day more.
+ * Example: the 14 days from 2026-10-01 to 2026-10-14 give 2026-10-01 to 2026-10-07 and 2026-10-08 to 2026-10-14.
+ *
+ * The score view compares the 2 halves, not the period with the days before it: at All, no day comes before.
  */
-fun previousPeriod(days: List<Day>): List<Day> {
-    val first = days.firstOrNull() ?: return emptyList()
-    return daysBetween(first.addDays(-days.size), first.addDays(-1))
-}
+fun halves(days: List<Day>): Pair<List<Day>, List<Day>> = days.take(days.size / 2) to days.drop(days.size / 2)
 
 /**
  * For each weekday, Monday first, the change from the average in [before] to the average in [now]. Null if one of
