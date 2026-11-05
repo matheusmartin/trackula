@@ -71,7 +71,7 @@ class ZoomTest {
     }
 
     @Test
-    fun defaultStepIndexIsAllDataForANumberAnd3MonthsForTheOtherKinds() {
+    fun defaultStepIndexIsAllDataForANumberAndTheScoreAnd3MonthsForTheOtherKinds() {
         // 200 days: the last step, 1 year, shows all data.
         val steps = zoomSteps(mon.addDays(-200), mon)
         assertEquals(ZoomStep.YEAR1, steps.last())
@@ -81,6 +81,8 @@ class ZoomTest {
         assertEquals(ZoomStep.MONTH3.ordinal, defaultStepIndex(count, steps))
         val yesNo = YesNoMetric("meditate", "Meditate", "self_improvement")
         assertEquals(ZoomStep.MONTH3.ordinal, defaultStepIndex(yesNo, steps))
+        assertEquals(steps.lastIndex, defaultStepIndex(scoreMetric, steps))
+        assertEquals(steps.lastIndex, defaultStepIndex(groupScoreMetric("habits", "Habits"), steps))
     }
 
     @Test
