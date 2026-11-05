@@ -76,8 +76,8 @@ private const val WHEEL_STEP = 40f
  * - Day heatmap: the days of the window. A tap on a day shows its month in the calendar.
  * - Edit days: any month, with the same day cells and inputs as the Today page. It shows the month of the window end
  *   until the arrows, a swipe or a heatmap tap change it. Wide screens also show the month before.
- * - Score (`scoreMetric`): the numbers and charts of a count, from [scores], in green. It has no Edit days section:
- *   the app calculates the scores.
+ * - Score (`scoreMetric` or a `groupScoreMetric`): averages per day and per weekday, from [scores], all with bars,
+ *   in green. It has no Edit days section: the app calculates the scores.
  *
  * [onBack] closes the screen. Null: the screen has no back button, for example the Score view.
  */

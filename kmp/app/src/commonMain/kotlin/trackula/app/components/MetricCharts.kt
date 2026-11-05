@@ -15,10 +15,12 @@ import trackula.model.NumberStats
 import trackula.model.YesNoMetric
 import trackula.model.YesNoStats
 import trackula.model.ZoomWindow
+import trackula.model.bestWeekday
 import trackula.model.countStats
 import trackula.model.formatNumber
 import trackula.model.formatPercent
 import trackula.model.formatSigned
+import trackula.model.isScore
 import trackula.model.numberStats
 import trackula.model.roundHalfAwayFromZero
 import trackula.model.shortDay
@@ -30,7 +32,8 @@ import trackula.model.yesNoStats
 import trackula.model.zoomBars
 
 /**
- * The key numbers and the charts of one metric in the time [window] of the detail screen.
+ * The key numbers and the charts of one metric in the time [window] of the detail screen. The score has its own
+ * numbers and charts: see [ScoreCharts].
  *
  * - [values]: the value of each day with a value. For yes/no metrics: 1 for yes and 0 for no, as the rate bars expect.
  * - [states]: the yes/no states of a yes/no metric: true for `yes`, false for `no`. Empty for other metrics.
@@ -40,6 +43,13 @@ fun MetricCharts(metric: Metric, window: ZoomWindow, values: Map<Day, Double>, s
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         when {
             metric is YesNoMetric -> YesNoCharts(window, values, yesNoStats(states, window.days, window.to))
+
+            metric is NumberMetric && isScore(metric) -> ScoreCharts(
+                metric,
+                window,
+                values,
+                countStats(values, window.days),
+            )
 
             metric is NumberMetric && metric.isCount -> CountCharts(
                 metric,
@@ -219,6 +229,54 @@ private fun CountCharts(metric: NumberMetric, window: ZoomWindow, values: Map<Da
                 BarChart(
                     title = "Distribution (days)",
                     description = "The number of days with each value.",
+                    bars = stats.distribution.map { Bar("${it.value}", it.days.toDouble()) },
+                    modifier = it,
+                )
+            },
+        ),
+    )
+}
+
+/**
+ * The numbers and charts of the score, all with bars. The score of a day does not add up over time, so they show
+ * averages per day and per weekday, not totals.
+ */
+@Composable
+private fun ScoreCharts(metric: NumberMetric, window: ZoomWindow, values: Map<Day, Double>, stats: CountStats) {
+    val best = stats.best
+    val weekday = bestWeekday(stats.weekdayAverages)
+    KeyNumbers(
+        listOf(
+            "per day" to (stats.average?.let { withUnit(it, metric) } ?: "–"),
+            "best day" to (best?.let { "${formatNumber(it.value)} · ${shortDay(it.day)}" } ?: "–"),
+            "best weekday" to (
+                weekday?.let { "${weekdayNames[it - 1]} · ${formatNumber(stats.weekdayAverages[it - 1]!!)}" } ?: "–"
+                ),
+            "days with a score" to "${stats.logged}",
+        ),
+    )
+    ChartGrid(
+        listOf(
+            timeBarItem(
+                "Average per day",
+                "The average score of the days with a score in each ${window.unitName()}.",
+                window,
+                values,
+                Aggregate.AVERAGE,
+                fixedScale = true,
+            ),
+            ChartItem(wide = true) {
+                BarChart(
+                    title = "Weekday averages",
+                    description = "The average score on each weekday, from the days with a score.",
+                    bars = stats.weekdayAverages.mapIndexed { i, average -> Bar(weekdayNames[i], average) },
+                    modifier = it,
+                )
+            },
+            ChartItem(wide = true) {
+                BarChart(
+                    title = "Distribution (days)",
+                    description = "The number of days with each score.",
                     bars = stats.distribution.map { Bar("${it.value}", it.days.toDouble()) },
                     modifier = it,
                 )
