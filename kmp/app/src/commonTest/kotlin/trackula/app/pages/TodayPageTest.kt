@@ -287,7 +287,8 @@ class TodayPageTest {
         showPage(MainView.SHORT)
         view = MainView.SCORE
         waitForIdle()
-        onNodeWithText("Hygiene").performClick()
+        // The first "Hygiene" is the chip. The legend of the weekday averages has the group name too.
+        onAllNodesWithText("Hygiene")[0].performClick()
         waitForIdle()
         onNodeWithText("Score · Hygiene").assertExists()
         assertEquals("Hygiene", prefs["group"])

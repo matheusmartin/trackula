@@ -210,19 +210,21 @@ fun TodayPage(
     }
 
     @Composable
-    fun detail(metric: Metric, onBack: (() -> Unit)?) = key(metric.id) {
-        MetricDetail(
-            metric = metric,
-            log = snapshot!!.log,
-            today = today,
-            busy = busy,
-            onWrite = ::write,
-            pending = pending,
-            onCount = ::count,
-            scores = scores,
-            onBack = onBack,
-        )
-    }
+    fun detail(metric: Metric, onBack: (() -> Unit)?, groupScores: Map<String, Map<Day, Double>> = emptyMap()) =
+        key(metric.id) {
+            MetricDetail(
+                metric = metric,
+                log = snapshot!!.log,
+                today = today,
+                busy = busy,
+                onWrite = ::write,
+                pending = pending,
+                onCount = ::count,
+                scores = scores,
+                onBack = onBack,
+                groupScores = groupScores,
+            )
+        }
 
     // The detail screen of one metric. If the metric is gone from the sheet, the table shows again, with the bottom
     // navigation bar.
@@ -263,7 +265,16 @@ fun TodayPage(
                     pending = pending,
                 )
 
-                MainView.SCORE -> detail(score, onBack = null)
+                // The score of all metrics: the weekday bars show the part of each group.
+                MainView.SCORE -> detail(
+                    score,
+                    onBack = null,
+                    groupScores = if (selectedGroup != null || groups.size < 2) {
+                        emptyMap()
+                    } else {
+                        groups.associateWith { dayScores(metricsOf(metrics, it), snapshot.log, pending) }
+                    },
+                )
 
                 MainView.SHORT, MainView.MONTH -> {
                     val days = view.daysUntil(today)

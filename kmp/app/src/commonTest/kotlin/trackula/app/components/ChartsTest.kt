@@ -1,5 +1,6 @@
 package trackula.app.components
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -37,6 +38,65 @@ class ChartsTest {
             TrackulaTheme(dark = false) { TrendChart(days, mapOf(days[1] to 0.0), showsBars = true) }
         }
         onNodeWithContentDescription("Values from 0 to 0, Sep 29 to Oct 3").assertExists()
+    }
+
+    @Test
+    fun aStackedBarChartShowsTheSumOfEachBarAndALegend() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) {
+                StackedBarChart(
+                    title = "Stack",
+                    description = "Parts.",
+                    labels = listOf("A", "B", "C"),
+                    parts = listOf(
+                        StackPart("Habits", Color.Green, listOf(3.0, null, null)),
+                        StackPart("Body", Color.Blue, listOf(1.5, 2.0, null)),
+                    ),
+                )
+            }
+        }
+        onNodeWithText("4.5").assertExists()
+        onNodeWithText("2").assertExists()
+        onNodeWithText("Habits").assertExists()
+        onNodeWithText("Body").assertExists()
+    }
+
+    @Test
+    fun aStackedBarChartWithoutValuesSaysSo() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) {
+                StackedBarChart("Stack", "Parts.", listOf("A"), listOf(StackPart("Habits", Color.Green, listOf(null))))
+            }
+        }
+        onNodeWithText("No values in this period.").assertExists()
+    }
+
+    @Test
+    fun aBarChartShowsNegativeValuesWithAMinusSign() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) { BarChart("Change", "Changes.", listOf(Bar("A", 1.5), Bar("B", -2.0))) }
+        }
+        onNodeWithText("1.5").assertExists()
+        onNodeWithText("−2").assertExists()
+    }
+
+    @Test
+    fun aHeatmapWithLevelsHasWeekdayLabels() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) {
+                DayHeatmap("Score by day", days.first(), days.last(), { true }, days.last(), level = { 0.5 })
+            }
+        }
+        onNodeWithText("Mo").assertExists()
+        onNodeWithText("Su").assertExists()
+    }
+
+    @Test
+    fun aHeatmapWithoutLevelsHasNoWeekdayLabels() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) { DayHeatmap("Days", days.first(), days.last(), { true }, days.last()) }
+        }
+        onNodeWithText("Mo").assertDoesNotExist()
     }
 
     @Test
