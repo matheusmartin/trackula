@@ -91,6 +91,13 @@ class StatsTest {
     }
 
     @Test
+    fun bestWeekdayIsTheFirstWeekdayWithTheHighestAverage() {
+        assertEquals(2, bestWeekday(listOf(2.5, 5.0, null, 5.0, null, null, null)))
+        assertEquals(7, bestWeekday(listOf(null, null, null, null, null, 0.0, 1.0)))
+        assertEquals(null, bestWeekday(List(7) { null }))
+    }
+
+    @Test
     fun countStatsWithNoValues() {
         val s = countStats(emptyMap(), range(3))
         assertEquals(Triple(0.0, null, null), Triple(s.total, s.average, s.best))

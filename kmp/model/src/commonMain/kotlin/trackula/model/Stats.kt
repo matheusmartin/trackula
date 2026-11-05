@@ -282,3 +282,12 @@ val streakRanges = listOf(
 fun streakLengths(streaks: List<Int>): List<Int> = streakRanges.map { (from, to) ->
     streaks.count { it >= from && (to == null || it <= to) }
 }
+
+/**
+ * The weekday with the highest of [averages], Monday first: 1 is Monday, 7 is Sunday. Null if no weekday has a value.
+ * If 2 weekdays have the same average, the first one. Example: [CountStats.weekdayAverages] of the score.
+ */
+fun bestWeekday(averages: List<Double?>): Int? {
+    val high = averages.filterNotNull().maxOrNull() ?: return null
+    return averages.indexOf(high) + 1
+}

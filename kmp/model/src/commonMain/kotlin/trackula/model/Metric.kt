@@ -54,3 +54,16 @@ data class NumberGoal(val value: Double, val isMaximum: Boolean = false) {
     /** How far [dayValue] is from the goal: 0 if it reaches the goal. Example: goal at most 80, 82.5 → 2.5. */
     fun distanceTo(dayValue: Double): Double = if (isReachedBy(dayValue)) 0.0 else kotlin.math.abs(dayValue - value)
 }
+
+/** The group of the metrics without a group. */
+const val OTHER_GROUP = "other"
+
+/** The group of [metric], for the group filter. A metric without a group is in [OTHER_GROUP]. */
+fun groupOf(metric: Metric): String = metric.group ?: OTHER_GROUP
+
+/**
+ * The metrics of [metrics] in [group], in the same order. Null [group]: all metrics. Example: the group "habits" gives
+ * the metrics that the group filter shows, and that give the points of the group score.
+ */
+fun metricsOf(metrics: List<Metric>, group: String?): List<Metric> =
+    if (group == null) metrics else metrics.filter { groupOf(it) == group }

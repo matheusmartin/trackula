@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import trackula.app.LocalExtraColors
 import trackula.model.Aggregate
@@ -15,31 +16,47 @@ import trackula.model.NumberStats
 import trackula.model.YesNoMetric
 import trackula.model.YesNoStats
 import trackula.model.ZoomWindow
+import trackula.model.bestWeekday
 import trackula.model.countStats
 import trackula.model.formatNumber
 import trackula.model.formatPercent
 import trackula.model.formatSigned
+import trackula.model.groupWeekdayParts
+import trackula.model.isScore
 import trackula.model.numberStats
+import trackula.model.previousPeriod
 import trackula.model.roundHalfAwayFromZero
 import trackula.model.shortDay
 import trackula.model.streakLengths
 import trackula.model.streakRanges
+import trackula.model.weekdayChanges
 import trackula.model.weekdayNames
 import trackula.model.withUnit
 import trackula.model.yesNoStats
 import trackula.model.zoomBars
 
 /**
- * The key numbers and the charts of one metric in the time [window] of the detail screen.
+ * The key numbers and the charts of one metric in the time [window] of the detail screen. The score has its own
+ * numbers and charts: see [ScoreCharts].
  *
  * - [values]: the value of each day with a value. For yes/no metrics: 1 for yes and 0 for no, as the rate bars expect.
  * - [states]: the yes/no states of a yes/no metric: true for `yes`, false for `no`. Empty for other metrics.
+ * - [groupScores]: for the score of all metrics, the score of each group, in the order of the groups. Empty for other
+ *   metrics, and if there is only one group.
  */
 @Composable
-fun MetricCharts(metric: Metric, window: ZoomWindow, values: Map<Day, Double>, states: Map<Day, Boolean>) {
+fun MetricCharts(
+    metric: Metric,
+    window: ZoomWindow,
+    values: Map<Day, Double>,
+    states: Map<Day, Boolean>,
+    groupScores: Map<String, Map<Day, Double>> = emptyMap(),
+) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         when {
             metric is YesNoMetric -> YesNoCharts(window, values, yesNoStats(states, window.days, window.to))
+
+            metric is NumberMetric && isScore(metric) -> ScoreCharts(metric, window, values, groupScores)
 
             metric is NumberMetric && metric.isCount -> CountCharts(
                 metric,
@@ -224,6 +241,106 @@ private fun CountCharts(metric: NumberMetric, window: ZoomWindow, values: Map<Da
                 )
             },
         ),
+    )
+}
+
+/**
+ * The numbers and charts of the score, all with bars. The score of a day does not add up over time, so they show
+ * averages per day and per weekday, not totals.
+ *
+ * - [values]: the score of all days, also before the window: the change compares with the period just before it.
+ * - [groupScores]: the score of each group. With 2 or more groups, the weekday bars show the part of each group.
+ */
+@Composable
+private fun ScoreCharts(
+    metric: NumberMetric,
+    window: ZoomWindow,
+    values: Map<Day, Double>,
+    groupScores: Map<String, Map<Day, Double>>,
+) {
+    val stats = countStats(values, window.days)
+    val before = countStats(values, previousPeriod(window.days))
+    val best = stats.best
+    val weekday = bestWeekday(stats.weekdayAverages)
+    val average = stats.average
+    val previous = before.average
+    KeyNumbers(
+        listOf(
+            "per day" to (average?.let { withUnit(it, metric) } ?: "–"),
+            "per day, change" to
+                (if (average != null && previous != null) formatSigned(average - previous, metric.unit) else "–"),
+            "best day" to (best?.let { "${formatNumber(it.value)} · ${shortDay(it.day)}" } ?: "–"),
+            "best weekday" to (
+                weekday?.let { "${weekdayNames[it - 1]} · ${formatNumber(stats.weekdayAverages[it - 1]!!)}" } ?: "–"
+                ),
+            "days with a score" to "${stats.logged}",
+        ),
+    )
+    ChartGrid(
+        listOf(
+            timeBarItem(
+                "Average per day",
+                "The average score of the days with a score in each ${window.unitName()}.",
+                window,
+                values,
+                Aggregate.AVERAGE,
+                fixedScale = true,
+            ),
+            ChartItem(wide = true) { WeekdayAverages(values, window, stats, groupScores, it) },
+            ChartItem(wide = true) {
+                BarChart(
+                    title = "Weekday change",
+                    description = "The change of each weekday average from the ${window.days.size} days before.",
+                    bars = weekdayChanges(stats.weekdayAverages, before.weekdayAverages)
+                        .mapIndexed { i, change -> Bar(weekdayNames[i], change) },
+                    modifier = it,
+                    format = { v -> if (v > 0) "+${formatNumber(v)}" else formatNumber(v) },
+                )
+            },
+            ChartItem(wide = true) {
+                BarChart(
+                    title = "Distribution (days)",
+                    description = "The number of days with each score.",
+                    bars = stats.distribution.map { Bar("${it.value}", it.days.toDouble()) },
+                    modifier = it,
+                )
+            },
+        ),
+    )
+}
+
+/**
+ * The average score on each weekday. With 2 or more [groupScores], each bar stacks the parts of the groups, with a
+ * legend. See `groupWeekdayParts`.
+ */
+@Composable
+private fun WeekdayAverages(
+    values: Map<Day, Double>,
+    window: ZoomWindow,
+    stats: CountStats,
+    groupScores: Map<String, Map<Day, Double>>,
+    modifier: Modifier,
+) {
+    val title = "Weekday averages"
+    if (groupScores.size < 2) {
+        BarChart(
+            title = title,
+            description = "The average score on each weekday, from the days with a score.",
+            bars = stats.weekdayAverages.mapIndexed { i, average -> Bar(weekdayNames[i], average) },
+            modifier = modifier,
+        )
+        return
+    }
+    val colors = LocalExtraColors.current.groups
+    val parts = groupWeekdayParts(values, groupScores, window.days)
+    StackedBarChart(
+        title = title,
+        description = "The average score on each weekday, from the days with a score. Each color is a group.",
+        labels = weekdayNames,
+        parts = parts.entries.mapIndexed { i, (group, averages) ->
+            StackPart(groupLabel(group), colors[i % colors.size], averages)
+        },
+        modifier = modifier,
     )
 }
 

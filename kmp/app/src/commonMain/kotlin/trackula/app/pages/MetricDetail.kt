@@ -56,6 +56,7 @@ import trackula.model.formatDateRange
 import trackula.model.isScore
 import trackula.model.monthOf
 import trackula.model.roundHalfAwayFromZero
+import trackula.model.scoreLevels
 import trackula.model.threeMonthsStepIndex
 import trackula.model.yesNoStates
 import trackula.model.zoomBars
@@ -79,8 +80,9 @@ private const val WHEEL_STEP = 40f
  * - Day heatmap: the days of the window. A tap on a day shows its month in the calendar.
  * - Edit days: any month, with the same day cells and inputs as the Today page. It shows the month of the window end
  *   until the arrows, a swipe or a heatmap tap change it. Wide screens also show the month before.
- * - Score (`scoreMetric`): the numbers and charts of a count, from [scores], in green. It has no Edit days section:
- *   the app calculates the scores.
+ * - Score (`scoreMetric` or a `groupScoreMetric`): averages per day and per weekday, from [scores], all with bars,
+ *   in green. [groupScores]: the score of each group, for the weekday bars of `scoreMetric`. The heatmap shows the
+ *   score of each day. It has no Edit days section: the app calculates the scores.
  *
  * [onBack] closes the screen. Null: the screen has no back button, for example the Score view.
  */
@@ -95,11 +97,12 @@ fun MetricDetail(
     onCount: (NumberMetric, Day, CountStep) -> Unit,
     scores: Map<Day, Double>,
     onBack: (() -> Unit)? = null,
+    groupScores: Map<String, Map<Day, Double>> = emptyMap(),
 ) {
     if (isScore(metric)) {
-        ScoreTheme { DetailContent(metric, log, today, busy, onWrite, pending, onCount, scores, onBack) }
+        ScoreTheme { DetailContent(metric, log, today, busy, onWrite, pending, onCount, scores, groupScores, onBack) }
     } else {
-        DetailContent(metric, log, today, busy, onWrite, pending, onCount, scores, onBack)
+        DetailContent(metric, log, today, busy, onWrite, pending, onCount, scores, groupScores, onBack)
     }
 }
 
@@ -113,6 +116,7 @@ private fun DetailContent(
     pending: Map<MetricDay, List<CountStep>>,
     onCount: (NumberMetric, Day, CountStep) -> Unit,
     scores: Map<Day, Double>,
+    groupScores: Map<String, Map<Day, Double>>,
     onBack: (() -> Unit)?,
 ) {
     // The index in zoomSteps. Null: defaultStepIndex.
@@ -163,14 +167,20 @@ private fun DetailContent(
             }
             WindowBar(metric, window, steps, index, beforeAll, values, ::zoom, ::moveTo)
             ChartsArea(window, ::moveTo) {
-                MetricCharts(metric, window, values, states)
+                MetricCharts(metric, window, values, states, groupScores)
+                val levels = if (isScore(metric)) scoreLevels(values, window.days) else null
                 DayHeatmap(
-                    title = if (metric is YesNoMetric) "Yes days" else "Days with a value",
+                    title = when {
+                        metric is YesNoMetric -> "Yes days"
+                        levels != null -> "Score by day"
+                        else -> "Days with a value"
+                    },
                     from = window.from,
                     to = window.to,
                     today = today,
                     filled = { d -> if (metric is YesNoMetric) states[d] == true else d in values },
                     onDay = if (isScore(metric)) null else ({ d -> month = monthOf(d) }),
+                    level = levels?.let { l -> { d -> l[d] } },
                 )
             }
             if (!isScore(metric)) {

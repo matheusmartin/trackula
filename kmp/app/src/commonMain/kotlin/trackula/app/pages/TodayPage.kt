@@ -47,6 +47,9 @@ import trackula.model.MainView
 import trackula.model.Metric
 import trackula.model.NumberMetric
 import trackula.model.dayScores
+import trackula.model.groupOf
+import trackula.model.groupScoreMetric
+import trackula.model.metricsOf
 import trackula.model.scoreMetric
 import trackula.sheets.Snapshot
 import trackula.sheets.Store
@@ -55,9 +58,6 @@ import trackula.sheets.Store
 class ReloadHandle {
     var run: (() -> Unit)? = null
 }
-
-/** The group of [m] for the group filter. A metric without a group is in "other". */
-private fun groupOf(m: Metric): String = m.group ?: "other"
 
 /**
  * The main page: the metrics in Today tiles, a table or calendars, where the user records entries, or the score only.
@@ -69,7 +69,8 @@ private fun groupOf(m: Metric): String = m.group ?: "other"
  * - [onBusy]: called when a load or a write starts and ends. The app bar shows a progress circle while it is true.
  * - [onDetail]: called when a metric detail screen opens (true) or closes. The App hides the bottom navigation bar on
  *   the detail screen.
- * - [readPref], [writePref]: the group filter stays in local storage.
+ * - [readPref], [writePref]: the group filter stays in local storage. The filter also selects the score: of all
+ *   metrics, or of the metrics of the selected group.
  */
 @Composable
 fun TodayPage(
@@ -192,9 +193,11 @@ fun TodayPage(
     val metrics = snapshot?.metrics.orEmpty()
     val groups = metrics.map(::groupOf).distinct()
     val selectedGroup = group?.takeIf { it in groups }
+    val shown = metricsOf(metrics, selectedGroup)
 
-    // The scores of all metrics, also with a group filter.
-    val scores = if (snapshot == null) emptyMap() else dayScores(metrics, snapshot.log, pending)
+    // The scores of the metrics that the group filter shows.
+    val scores = if (snapshot == null) emptyMap() else dayScores(shown, snapshot.log, pending)
+    val score = selectedGroup?.let { groupScoreMetric(it, groupLabel(it)) } ?: scoreMetric
 
     fun openDetail(m: Metric) {
         detailId = m.id
@@ -207,19 +210,21 @@ fun TodayPage(
     }
 
     @Composable
-    fun detail(metric: Metric, onBack: (() -> Unit)?) = key(metric.id) {
-        MetricDetail(
-            metric = metric,
-            log = snapshot!!.log,
-            today = today,
-            busy = busy,
-            onWrite = ::write,
-            pending = pending,
-            onCount = ::count,
-            scores = scores,
-            onBack = onBack,
-        )
-    }
+    fun detail(metric: Metric, onBack: (() -> Unit)?, groupScores: Map<String, Map<Day, Double>> = emptyMap()) =
+        key(metric.id) {
+            MetricDetail(
+                metric = metric,
+                log = snapshot!!.log,
+                today = today,
+                busy = busy,
+                onWrite = ::write,
+                pending = pending,
+                onCount = ::count,
+                scores = scores,
+                onBack = onBack,
+                groupScores = groupScores,
+            )
+        }
 
     // The detail screen of one metric. If the metric is gone from the sheet, the table shows again, with the bottom
     // navigation bar.
@@ -236,8 +241,7 @@ fun TodayPage(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        // The score view shows all metrics: no group filter.
-        if (groups.size > 1 && view != MainView.SCORE) {
+        if (groups.size > 1) {
             GroupChips(groups, selectedGroup) {
                 group = it
                 writePref("group", it)
@@ -251,7 +255,6 @@ fun TodayPage(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            val shown = metrics.filter { selectedGroup == null || groupOf(it) == selectedGroup }
             when (view) {
                 MainView.TODAY -> TodayTiles(
                     metrics = shown,
@@ -262,11 +265,20 @@ fun TodayPage(
                     pending = pending,
                 )
 
-                MainView.SCORE -> detail(scoreMetric, onBack = null)
+                // The score of all metrics: the weekday bars show the part of each group.
+                MainView.SCORE -> detail(
+                    score,
+                    onBack = null,
+                    groupScores = if (selectedGroup != null || groups.size < 2) {
+                        emptyMap()
+                    } else {
+                        groups.associateWith { dayScores(metricsOf(metrics, it), snapshot.log, pending) }
+                    },
+                )
 
                 MainView.SHORT, MainView.MONTH -> {
                     val days = view.daysUntil(today)
-                    ScoreChart(days, scores) { currentOnView(MainView.SCORE) }
+                    ScoreChart(score, days, scores) { currentOnView(MainView.SCORE) }
                     HabitTable(
                         metrics = shown,
                         log = snapshot.log,

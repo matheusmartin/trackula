@@ -16,23 +16,25 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import trackula.app.LocalExtraColors
 import trackula.model.Day
-import trackula.model.scoreMetric
+import trackula.model.NumberMetric
 
-/** The largest number of days that show the value above each dot. Longer periods have too little space. */
+/** The largest number of days that show the value above each bar. Longer periods have too little space. */
 private const val MAX_DAYS_WITH_VALUES = 7
 
 /**
- * The score of [days] as a green line chart from 0, at the top of the 5-day table and of the 31-day calendars. Short
- * periods show the value above each dot. A tap on the title opens the Score view with [onOpen].
+ * The score of [days] as green bars from 0, one for each day, at the top of the 5-day table and of the 31-day
+ * calendars. Short periods show the value above each bar. A tap on the title opens the Score view with [onOpen].
+ *
+ * [score] is `scoreMetric`, or a `groupScoreMetric` with a group filter. Its name is the title.
  *
  * The score uses the green of done tiles, not the theme red.
  */
 @Composable
-fun ScoreChart(days: List<Day>, scores: Map<Day, Double>, onOpen: () -> Unit) {
+fun ScoreChart(score: NumberMetric, days: List<Day>, scores: Map<Day, Double>, onOpen: () -> Unit) {
     AppCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text(
-                scoreMetric.name,
+                score.name,
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .semantics { contentDescription = "Show the score only" }
@@ -44,8 +46,8 @@ fun ScoreChart(days: List<Day>, scores: Map<Day, Double>, onOpen: () -> Unit) {
                     TrendChart(
                         days = days,
                         values = scores,
-                        unit = scoreMetric.unit,
-                        fromZero = true,
+                        unit = score.unit,
+                        showsBars = true,
                         showsValues = days.size <= MAX_DAYS_WITH_VALUES,
                         color = LocalExtraColors.current.done,
                     )

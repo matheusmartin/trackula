@@ -32,6 +32,7 @@ import trackula.model.MainView
 import trackula.sheets.DemoStore
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.time.Duration
 
@@ -267,14 +268,36 @@ class TodayPageTest {
     }
 
     @Test
-    fun theScoreCardUsesAllMetricsAlsoWithAGroupFilter() = runComposeUiTest {
+    fun theScoreCardShowsTheScoreOfTheSelectedGroup() = runComposeUiTest {
         showPage(MainView.SHORT)
-        val score = onAllNodesWithContentDescription("points,", substring = true)[0]
-            .fetchSemanticsNode().config[SemanticsProperties.ContentDescription]
+        onNodeWithText("Score").assertExists()
+        val all = scoreChartLabel()
         onNodeWithText("Hygiene").performClick()
         waitForIdle()
-        onNodeWithContentDescription(score.single()).assertExists()
+        onNodeWithText("Score · Hygiene").assertExists()
+        // The demo data has more points in all groups than in the 2 Hygiene habits.
+        assertNotEquals(all, scoreChartLabel())
+        onNodeWithText("All").performClick()
+        waitForIdle()
+        assertEquals(all, scoreChartLabel())
     }
+
+    @Test
+    fun theScoreViewHasTheGroupFilter() = runComposeUiTest {
+        showPage(MainView.SHORT)
+        view = MainView.SCORE
+        waitForIdle()
+        // The first "Hygiene" is the chip. The legend of the weekday averages has the group name too.
+        onAllNodesWithText("Hygiene")[0].performClick()
+        waitForIdle()
+        onNodeWithText("Score · Hygiene").assertExists()
+        assertEquals("Hygiene", prefs["group"])
+    }
+
+    /** The screen reader text of the score chart: its range and its days. */
+    private fun ComposeUiTest.scoreChartLabel(): String =
+        onAllNodesWithContentDescription("points,", substring = true)[0]
+            .fetchSemanticsNode().config[SemanticsProperties.ContentDescription].single()
 
     @Test
     fun saveAfterAGroupChangeSavesTheTilesOfTheNewGroup() = runComposeUiTest {

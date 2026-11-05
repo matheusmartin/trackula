@@ -47,8 +47,8 @@ private fun format(value: Double): String = formatNumber(value, 3)
  *
  * - Line (default): the Y axis goes from the lowest to the highest value, or from 0 with [fromZero]. Lines and dots
  *   keep their size.
- * - Bars ([showsBars] true, for `count` metrics): the Y axis goes from 0 to the highest value.
- * - [showsValues]: each dot of the line has its value above it. For short series only, for example 5 days.
+ * - Bars ([showsBars] true, for `count` metrics and the score): the Y axis goes from 0 to the highest value.
+ * - [showsValues]: each dot or bar has its value above it. For short series only, for example 5 days.
  */
 @Composable
 fun TrendChart(
@@ -68,7 +68,7 @@ fun TrendChart(
     val valueStyle = TextStyle(fontSize = 11.sp, lineHeight = 11.sp, fontWeight = FontWeight.SemiBold, color = color)
     val measurer = rememberTextMeasurer()
     val bars = if (showsBars) chartBars(days, values, CHART_WIDTH, CHART_HEIGHT) else emptyList()
-    val sidePadding = if (showsValues) 12.dp else 0.dp
+    val sidePadding = if (showsValues && !showsBars) 12.dp else 0.dp
     val label = "Values from ${format(low)} to ${withUnit(format(high), unit)}, " +
         "${shortDay(days.first())} to ${shortDay(days.last())}"
 
@@ -100,11 +100,17 @@ fun TrendChart(
                 if (showsBars) {
                     for (b in bars) {
                         val top = (b.y * sy).toFloat()
-                        drawRect(
-                            color,
-                            topLeft = Offset((b.x * sx).toFloat(), top),
-                            size = Size((b.w * sx).toFloat(), size.height - top),
-                        )
+                        val left = (b.x * sx).toFloat()
+                        val width = (b.w * sx).toFloat()
+                        drawRect(color, topLeft = Offset(left, top), size = Size(width, size.height - top))
+                        if (showsValues) {
+                            val layout = measurer.measure(format(b.value), valueStyle)
+                            val topLeft = Offset(
+                                left + (width - layout.size.width) / 2f,
+                                top - layout.size.height * 1.2f,
+                            )
+                            drawText(layout, topLeft = topLeft)
+                        }
                     }
                     return@Canvas
                 }
