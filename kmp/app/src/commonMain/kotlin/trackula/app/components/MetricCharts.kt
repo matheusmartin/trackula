@@ -26,6 +26,7 @@ import trackula.model.halves
 import trackula.model.isScore
 import trackula.model.numberStats
 import trackula.model.roundHalfAwayFromZero
+import trackula.model.scoreRanges
 import trackula.model.shortDay
 import trackula.model.streakLengths
 import trackula.model.streakRanges
@@ -34,6 +35,7 @@ import trackula.model.weekdayNames
 import trackula.model.withUnit
 import trackula.model.yesNoStats
 import trackula.model.zoomBars
+import kotlin.math.abs
 
 /**
  * The key numbers and the charts of one metric in the time [window] of the detail screen. The score has its own
@@ -56,7 +58,7 @@ fun MetricCharts(
         when {
             metric is YesNoMetric -> YesNoCharts(window, values, yesNoStats(states, window.days, window.to))
 
-            metric is NumberMetric && isScore(metric) -> ScoreCharts(metric, window, values, groupScores)
+            metric is NumberMetric && isScore(metric) -> ScoreCharts(window, values, groupScores)
 
             metric is NumberMetric && metric.isCount -> CountCharts(
                 metric,
@@ -245,70 +247,80 @@ private fun CountCharts(metric: NumberMetric, window: ZoomWindow, values: Map<Da
 }
 
 /**
- * The numbers and charts of the score, all with bars. The score of a day does not add up over time, so they show
- * averages per day and per weekday, not totals.
+ * The numbers and charts of the score ("Goals met"), in percent, all with bars. The score of a day does not add up
+ * over time, so they show averages per day and per weekday, not totals.
  *
  * - [values]: the score of each day. The changes compare the first half of the window with the second half.
  * - [groupScores]: the score of each group. With 2 or more groups, the weekday bars show the part of each group.
  */
 @Composable
-private fun ScoreCharts(
-    metric: NumberMetric,
-    window: ZoomWindow,
-    values: Map<Day, Double>,
-    groupScores: Map<String, Map<Day, Double>>,
-) {
+private fun ScoreCharts(window: ZoomWindow, values: Map<Day, Double>, groupScores: Map<String, Map<Day, Double>>) {
     val stats = countStats(values, window.days)
     val (firstHalf, secondHalf) = halves(window.days)
     val before = countStats(values, firstHalf)
     val after = countStats(values, secondHalf)
-    val best = stats.best
     val weekday = bestWeekday(stats.weekdayAverages)
     val average = after.average
     val previous = before.average
+    val allMet = window.days.count { (values[it] ?: 0.0) >= 100.0 }
     KeyNumbers(
         listOf(
-            "per day" to (stats.average?.let { withUnit(it, metric) } ?: "–"),
-            "per day, change" to
-                (if (average != null && previous != null) formatSigned(average - previous, metric.unit) else "–"),
-            "best day" to (best?.let { "${formatNumber(it.value)} · ${shortDay(it.day)}" } ?: "–"),
+            "average" to (stats.average?.let { percent(it) } ?: "–"),
+            "change, 2nd half" to
+                (if (average != null && previous != null) signedPercent(average - previous) else "–"),
+            "days with all goals met" to "$allMet",
             "best weekday" to (
-                weekday?.let { "${weekdayNames[it - 1]} · ${formatNumber(stats.weekdayAverages[it - 1]!!)}" } ?: "–"
+                weekday?.let { "${weekdayNames[it - 1]} · ${percent(stats.weekdayAverages[it - 1]!!)}" } ?: "–"
                 ),
-            "days with a score" to "${stats.logged}",
+            "days with a value" to "${stats.logged}",
         ),
     )
     ChartGrid(
         listOf(
             timeBarItem(
                 "Average per day",
-                "The average score of the days with a score in each ${window.unitName()}.",
+                "The average share of the goals met on the days of each ${window.unitName()}.",
                 window,
                 values,
                 Aggregate.AVERAGE,
-                fixedScale = true,
+                max = 100.0,
+                format = ::percent,
             ),
             ChartItem(wide = true) { WeekdayAverages(values, window, stats, groupScores, it) },
             ChartItem(wide = true) {
                 BarChart(
                     title = "Weekday change",
-                    description = "The change of each weekday average from the first half to the second half.",
+                    description = "The change of each weekday average from the first half to the second half, " +
+                        "in percentage points.",
                     bars = weekdayChanges(after.weekdayAverages, before.weekdayAverages)
                         .mapIndexed { i, change -> Bar(weekdayNames[i], change) },
                     modifier = it,
-                    format = { v -> if (v > 0) "+${formatNumber(v)}" else formatNumber(v) },
+                    format = { v -> if (v > 0) "+${formatNumber(v, 0)}" else formatNumber(v, 0) },
                 )
             },
             ChartItem(wide = true) {
                 BarChart(
                     title = "Distribution (days)",
-                    description = "The number of days with each score.",
-                    bars = stats.distribution.map { Bar("${it.value}", it.days.toDouble()) },
+                    description = "The number of days in each range of 10%. The label is the start of the range.",
+                    bars = scoreRanges(values, window.days).mapIndexed { i, n -> Bar("${i * 10}", n.toDouble()) },
                     modifier = it,
                 )
             },
         ),
     )
+}
+
+/** A score in percent without decimals, for a bar or a key number. Example: 72.5 → "73%". */
+private fun percent(value: Double): String = withUnit(formatNumber(value, 0), "%")
+
+/** A change of a score in percentage points with its sign and one decimal. Example: 3.53 → "+3.5%", −1 → "−1%". */
+private fun signedPercent(value: Double): String {
+    val text = formatNumber(abs(value))
+    return when {
+        text == "0" -> "0%"
+        value > 0 -> "+$text%"
+        else -> "−$text%"
+    }
 }
 
 /**
@@ -327,9 +339,11 @@ private fun WeekdayAverages(
     if (groupScores.size < 2) {
         BarChart(
             title = title,
-            description = "The average score on each weekday, from the days with a score.",
+            description = "The average share of the goals met on each weekday.",
             bars = stats.weekdayAverages.mapIndexed { i, average -> Bar(weekdayNames[i], average) },
             modifier = modifier,
+            max = 100.0,
+            format = ::percent,
         )
         return
     }
@@ -337,12 +351,13 @@ private fun WeekdayAverages(
     val parts = groupWeekdayParts(values, groupScores, window.days)
     StackedBarChart(
         title = title,
-        description = "The average score on each weekday, from the days with a score. Each color is a group.",
+        description = "The average share of the goals met on each weekday. Each color is the part of a group.",
         labels = weekdayNames,
         parts = parts.entries.mapIndexed { i, (group, averages) ->
             StackPart(groupLabel(group), colors[i % colors.size], averages)
         },
         modifier = modifier,
+        format = ::percent,
     )
 }
 

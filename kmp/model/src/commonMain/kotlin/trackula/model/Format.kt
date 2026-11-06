@@ -35,8 +35,15 @@ fun formatNumber(value: Double, decimals: Int = 1): String = formatTrimmed(toFix
 fun formatCompact(value: Double): String =
     if (abs(value) >= 1000) "${formatNumber(value / 1000)}k" else formatNumber(value)
 
-/** [text] and the [unit] after a space. Only [text] if [unit] is null. Example: ("82.1", "kg") → "82.1 kg". */
-fun withUnit(text: String, unit: String?): String = if (unit == null) text else "$text $unit"
+/**
+ * [text] and the [unit] after a space. Only [text] if [unit] is null. The unit "%" has no space. Examples: ("82.1",
+ * "kg") → "82.1 kg", ("75", "%") → "75%".
+ */
+fun withUnit(text: String, unit: String?): String = when (unit) {
+    null -> text
+    "%" -> "$text%"
+    else -> "$text $unit"
+}
 
 /**
  * [value] with its sign, at most 2 decimals and the [unit]. Examples: −1.3 → "−1.3 kg", 0.5 → "+0.5 kg",

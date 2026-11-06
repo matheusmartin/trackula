@@ -44,7 +44,8 @@ data class ChartBar(val day: Day, val value: Double, val x: Double, val w: Doubl
  * Places a bar for each day of [days] that has a value in [values] on a [width] × [height] chart.
  *
  * - Each day gets an equal slot. The bar fills [fill] of its slot, in the middle.
- * - Bars start at 0 at the bottom. The highest value reaches [padding] from the top.
+ * - Bars start at 0 at the bottom. The highest value reaches [padding] from the top. [top] fixes the top of the
+ *   scale, for example 100 for percents. Null: the highest value.
  * - Negative values count as 0.
  */
 fun chartBars(
@@ -54,10 +55,11 @@ fun chartBars(
     height: Double = 40.0,
     padding: Double = 4.0,
     fill: Double = 0.6,
+    top: Double? = null,
 ): List<ChartBar> {
     val present = present(days, values)
     if (present.isEmpty()) return emptyList()
-    val high = present.fold(0.0) { high, b -> max(high, b.value) }
+    val high = top ?: present.fold(0.0) { high, b -> max(high, b.value) }
     val slot = width / days.size
     return present.map { b ->
         val y = if (high <= 0) height else height - (height - padding) * max(0.0, b.value) / high

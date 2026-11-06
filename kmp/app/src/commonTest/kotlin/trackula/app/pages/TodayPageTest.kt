@@ -270,12 +270,12 @@ class TodayPageTest {
     @Test
     fun theScoreCardShowsTheScoreOfTheSelectedGroup() = runComposeUiTest {
         showPage(MainView.SHORT)
-        onNodeWithText("Score").assertExists()
+        onNodeWithText("Goals met").assertExists()
         val all = scoreChartLabel()
         onNodeWithText("Hygiene").performClick()
         waitForIdle()
-        onNodeWithText("Score · Hygiene").assertExists()
-        // The demo data has more points in all groups than in the 2 Hygiene habits.
+        onNodeWithText("Goals met · Hygiene").assertExists()
+        // The 2 Hygiene habits meet another share of their goals than all metrics of the demo data.
         assertNotEquals(all, scoreChartLabel())
         onNodeWithText("All").performClick()
         waitForIdle()
@@ -290,14 +290,13 @@ class TodayPageTest {
         // The first "Hygiene" is the chip. The legend of the weekday averages has the group name too.
         onAllNodesWithText("Hygiene")[0].performClick()
         waitForIdle()
-        onNodeWithText("Score · Hygiene").assertExists()
+        onNodeWithText("Goals met · Hygiene").assertExists()
         assertEquals("Hygiene", prefs["group"])
     }
 
     /** The screen reader text of the score chart: its range and its days. */
-    private fun ComposeUiTest.scoreChartLabel(): String =
-        onAllNodesWithContentDescription("points,", substring = true)[0]
-            .fetchSemanticsNode().config[SemanticsProperties.ContentDescription].single()
+    private fun ComposeUiTest.scoreChartLabel(): String = onAllNodesWithContentDescription("%,", substring = true)[0]
+        .fetchSemanticsNode().config[SemanticsProperties.ContentDescription].single()
 
     @Test
     fun saveAfterAGroupChangeSavesTheTilesOfTheNewGroup() = runComposeUiTest {

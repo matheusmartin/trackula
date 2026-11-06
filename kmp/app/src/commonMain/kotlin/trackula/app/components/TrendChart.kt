@@ -49,6 +49,7 @@ private fun format(value: Double): String = formatNumber(value, 3)
  *   keep their size.
  * - Bars ([showsBars] true, for `count` metrics and the score): the Y axis goes from 0 to the highest value.
  * - [showsValues]: each dot or bar has its value above it. For short series only, for example 5 days.
+ * - [max]: the top of the bar scale, for example 100 for percents. Null: the highest value.
  */
 @Composable
 fun TrendChart(
@@ -59,15 +60,18 @@ fun TrendChart(
     fromZero: Boolean = false,
     showsValues: Boolean = false,
     color: Color = MaterialTheme.colorScheme.primary,
+    max: Double? = null,
 ) {
     val points = chartPoints(days, values, CHART_WIDTH, CHART_HEIGHT, fromZero = fromZero)
     if (points.isEmpty()) return
     val high = points.maxOf { it.value }
+    // The top of the axis: [max] for bars, else the highest value. The screen reader text gives the values.
+    val top = if (showsBars && max != null) max else high
     val low = if (showsBars || fromZero) 0.0 else points.minOf { it.value }
     val textStyle = TextStyle(fontSize = 10.sp, lineHeight = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     val valueStyle = TextStyle(fontSize = 11.sp, lineHeight = 11.sp, fontWeight = FontWeight.SemiBold, color = color)
     val measurer = rememberTextMeasurer()
-    val bars = if (showsBars) chartBars(days, values, CHART_WIDTH, CHART_HEIGHT) else emptyList()
+    val bars = if (showsBars) chartBars(days, values, CHART_WIDTH, CHART_HEIGHT, top = max) else emptyList()
     val sidePadding = if (showsValues && !showsBars) 12.dp else 0.dp
     val label = "Values from ${format(low)} to ${withUnit(format(high), unit)}, " +
         "${shortDay(days.first())} to ${shortDay(days.last())}"
@@ -79,14 +83,14 @@ fun TrendChart(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         // All values 0 on a scale from 0: the only label is at the bottom, with the line or the bars.
-        val onlyBottom = high == 0.0 && (showsBars || fromZero)
+        val onlyBottom = top == 0.0 && (showsBars || fromZero)
         Column(
             modifier = Modifier.height(72.dp),
             verticalArrangement = if (onlyBottom) Arrangement.Bottom else Arrangement.SpaceBetween,
             horizontalAlignment = Alignment.End,
         ) {
-            Text(format(high), style = textStyle)
-            if (high != low) Text(format(low), style = textStyle)
+            Text(format(top), style = textStyle)
+            if (top != low) Text(format(low), style = textStyle)
         }
         Column(Modifier.weight(1f)) {
             Canvas(

@@ -22,8 +22,9 @@ import trackula.model.NumberMetric
 private const val MAX_DAYS_WITH_VALUES = 7
 
 /**
- * The score of [days] as green bars from 0, one for each day, at the top of the 5-day table and of the 31-day
- * calendars. Short periods show the value above each bar. A tap on the title opens the Score view with [onOpen].
+ * The score ("Goals met") of [days] as green bars on a scale from 0 to 100 %, one for each day, at the top of the
+ * 5-day table and of the 31-day calendars. Short periods show the value above each bar. A tap on the title opens the
+ * Goals view with [onOpen].
  *
  * [score] is `scoreMetric`, or a `groupScoreMetric` with a group filter. Its name is the title.
  *
@@ -48,6 +49,7 @@ fun ScoreChart(score: NumberMetric, days: List<Day>, scores: Map<Day, Double>, o
                         values = scores,
                         unit = score.unit,
                         showsBars = true,
+                        max = 100.0,
                         showsValues = days.size <= MAX_DAYS_WITH_VALUES,
                         color = LocalExtraColors.current.done,
                     )

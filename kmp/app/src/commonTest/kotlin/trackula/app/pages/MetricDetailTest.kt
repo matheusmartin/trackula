@@ -192,9 +192,10 @@ class MetricDetailTest {
     fun theScoreViewHasAveragesPerDayAndPerWeekdayAndNoCalendar() = runComposeUiTest {
         showPage(MainView.SCORE)
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Average per day").fetchSemanticsNodes().isNotEmpty() }
-        onNodeWithText("Score").assertExists()
+        onNodeWithText("Goals met").assertExists()
         onNodeWithText("Weekday averages").assertExists()
         onNodeWithText("best weekday").assertExists()
+        onNodeWithText("days with all goals met").assertExists()
         // The score does not add up over time: no total and no line chart.
         onNodeWithText("Running total").assertDoesNotExist()
         onNodeWithText("Totals").assertDoesNotExist()
@@ -207,26 +208,26 @@ class MetricDetailTest {
     fun theScoreViewComparesWithThePeriodBeforeAndShowsTheScoreOfEachDay() = runComposeUiTest {
         showPage(MainView.SCORE)
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weekday change").fetchSemanticsNodes().isNotEmpty() }
-        onNodeWithText("per day, change").assertExists()
+        onNodeWithText("change, 2nd half").assertExists()
         // At All, no day comes before the window. The change compares the halves of the window, so it has values.
         onNodeWithContentDescription("Back to 3 months").assertExists()
         onNodeWithText("No values in this period.").assertDoesNotExist()
-        onNodeWithText("Score by day").assertExists()
-        onNodeWithText("One row for each weekday. A darker day has a higher score.").assertExists()
+        onNodeWithText("Goals met by day").assertExists()
+        onNodeWithText("One row for each weekday. A darker day meets more of its goals.").assertExists()
     }
 
     @Test
     fun theWeekdayAveragesOfAllMetricsStackTheGroupsAndOfOneGroupDoNot() = runComposeUiTest {
         showPage(MainView.SCORE)
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weekday averages").fetchSemanticsNodes().isNotEmpty() }
-        val stacked = "The average score on each weekday, from the days with a score. Each color is a group."
+        val stacked = "The average share of the goals met on each weekday. Each color is the part of a group."
         onNodeWithText(stacked).assertExists()
         // The legend has each group name, and the group chips have it too.
         onAllNodesWithText("Hygiene").assertCountEquals(2)
         onAllNodesWithText("Hygiene")[0].performClick()
         waitForIdle()
         onNodeWithText(stacked).assertDoesNotExist()
-        onNodeWithText("The average score on each weekday, from the days with a score.").assertExists()
+        onNodeWithText("The average share of the goals met on each weekday.").assertExists()
     }
 
     /**

@@ -2,7 +2,7 @@ package trackula.model
 
 /**
  * The views of the bottom navigation bar: today as input tiles, a table of the last 5 days on all screens, one small
- * calendar per metric for the last 31 days, or the score only.
+ * calendar per metric for the last 31 days, or the score only ("Goals": the goals met).
  *
  * @property days The number of past days that the view shows. Null for [SCORE]: it shows all days, with zoom buttons.
  */
@@ -17,7 +17,7 @@ enum class MainView(val days: Int?) {
     val label: String
         get() = when (this) {
             TODAY -> "Today"
-            SCORE -> "Score"
+            SCORE -> "Goals"
             else -> "$days days"
         }
 

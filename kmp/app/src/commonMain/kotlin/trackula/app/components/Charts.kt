@@ -680,7 +680,7 @@ fun DayHeatmap(
 ) {
     val description = when {
         onDay != null -> "Tap a day to show its month in the calendar."
-        level != null -> "One row for each weekday. A darker day has a higher score."
+        level != null -> "One row for each weekday. A darker day meets more of its goals."
         else -> "One cell for each day of the window."
     }
     ChartCard(title, description, modifier) {

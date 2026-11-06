@@ -45,6 +45,13 @@ class ChartTest {
     }
 
     @Test
+    fun chartBarsWithATopScaleTheBarsToIt() {
+        val days = (0 until 2).map { Day(2026, 9, 28).addDays(it) }
+        val b = chartBars(days, mapOf(days[0] to 50.0, days[1] to 100.0), 100.0, 40.0, 4.0, top = 200.0)
+        assertEquals(listOf(31.0, 22.0), b.map { it.y })
+    }
+
+    @Test
     fun chartBarsDrawsZeroValuesWithNoHeight() {
         assertEquals(40.0, chartBars(barDays, mapOf(barDays[1] to 0.0), height = 40.0).single().y)
     }

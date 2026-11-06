@@ -30,9 +30,9 @@ class SheetsStoreTest {
         ),
         log = mutableListOf(
             mutableListOf("date", "weight", "meditate", "water"),
-            // 1 (weight <= 80) + 1 (yes) + 3 (3 glasses) = 5.
+            // Weight <= 80 (1), yes (1) and 3 of 8 glasses (0.375): (1 + 1 + 0.375) / 3 = 79.2 %.
             mutableListOf(d1.serial, 79.5, "yes", 3),
-            // 0 + 0 = 0.
+            // Weight is farther from 80 (0), no (0) and no water (0): 0 %.
             mutableListOf(d2.serial, 82, "no"),
             // No value: no score.
             mutableListOf(d3.serial),
@@ -49,7 +49,7 @@ class SheetsStoreTest {
 
         assertEquals(emptyList(), snapshot.warnings)
         assertEquals(listOf<Any?>("date", "weight", "meditate", "water", "Score"), fake.log[0])
-        assertEquals(listOf(5.0, 0.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(79.2, 0.0, null), fake.logColumn("Score"))
         assertEquals(5, fake.columnCounts[LOG_TITLE])
         // Only the new Score column gets a rule when the app adds it.
         assertEquals(listOf("E"), fake.numberRuleColumns)
@@ -74,14 +74,14 @@ class SheetsStoreTest {
     fun writesOnlyTheStaleScoreCellsAndClearsTheScoreOfARowWithoutValues() = runTest {
         val fake = sheetWithoutScore()
         fake.log[0].add("Score")
-        fake.log[1].add(5)
+        fake.log[1].add(79.2)
         fake.log[2].addAll(listOf(null, 7))
         fake.log[3].addAll(listOf(null, null, null, 4))
         fake.columnCounts[LOG_TITLE] = 5
 
         fake.store.load()
         assertEquals(listOf(listOf("Log!E3", "Log!E4")), fake.scoreWrites)
-        assertEquals(listOf(5.0, 0.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(79.2, 0.0, null), fake.logColumn("Score"))
     }
 
     @Test
@@ -90,21 +90,21 @@ class SheetsStoreTest {
         fake.store.load()
         fake.scoreWrites.clear()
 
-        // Goal `no` for meditate: row 2 loses 1 point, row 3 gets 1 point.
+        // Goal `no` for meditate: row 2 does not meet it any more, row 3 meets it.
         fake.metrics[2][7] = "no"
         fake.store.load()
-        assertEquals(listOf(4.0, 1.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(45.8, 33.3, null), fake.logColumn("Score"))
         assertEquals(listOf(listOf("Log!E2", "Log!E3")), fake.scoreWrites)
 
         // A maximum of 85 for weight: 82 kg reaches it.
         fake.metrics[1][7] = "<= 85"
         fake.store.load()
-        assertEquals(listOf(4.0, 2.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(45.8, 66.7, null), fake.logColumn("Score"))
 
-        // No goal for weight: no points.
+        // No goal for weight: a logged value meets it. The scores do not change.
         fake.metrics[1][7] = ""
         fake.store.load()
-        assertEquals(listOf(3.0, 1.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(45.8, 66.7, null), fake.logColumn("Score"))
     }
 
     @Test
@@ -116,18 +116,20 @@ class SheetsStoreTest {
         fake.log[1][3] = 6
         fake.store.load()
         assertEquals(listOf(listOf("Log!E2")), fake.scoreWrites)
-        assertEquals(listOf(8.0, 0.0, null), fake.logColumn("Score"))
+        // 6 of 8 glasses: (1 + 1 + 0.75) / 3 = 91.7 %.
+        assertEquals(listOf(91.7, 0.0, null), fake.logColumn("Score"))
     }
 
     @Test
-    fun aDeletedMetricRowOrAnInvalidGoalRemovesThePointsOfThatMetric() = runTest {
+    fun aDeletedMetricRowOrAnInvalidGoalRemovesThatMetricFromTheScore() = runTest {
         val fake = sheetWithoutScore()
         fake.store.load()
 
         fake.metrics[3][7] = "lots"
         val snapshot = fake.store.load()
         assertTrue("invalid goal" in snapshot.warnings.single())
-        assertEquals(listOf(2.0, 0.0, null), fake.logColumn("Score"))
+        // Only weight and meditate count.
+        assertEquals(listOf(100.0, 0.0, null), fake.logColumn("Score"))
     }
 
     @Test
@@ -139,11 +141,12 @@ class SheetsStoreTest {
         val d4 = Day(2026, 10, 2)
         val snapshot = fake.store.change { planCount(water, d4, listOf(CountStep(1.0), CountStep(1.0)), it) }
         assertEquals(2.0, snapshot.log.valueAt("water", d4))
-        assertEquals(listOf(5.0, 0.0, null, 2.0), fake.logColumn("Score"))
+        // 2 of 8 glasses, and no weight and no meditate: 0.25 / 3 = 8.3 %.
+        assertEquals(listOf(79.2, 0.0, null, 8.3), fake.logColumn("Score"))
 
-        // A change in a past row.
+        // A change in a past row: 1 of 8 glasses.
         fake.store.change { planCount(water, d2, listOf(CountStep(1.0)), it) }
-        assertEquals(listOf(5.0, 1.0, null, 2.0), fake.logColumn("Score"))
+        assertEquals(listOf(79.2, 4.2, null, 8.3), fake.logColumn("Score"))
     }
 
     @Test
@@ -151,8 +154,8 @@ class SheetsStoreTest {
         val fake = sheetWithoutScore()
         for (row in fake.metrics) row.removeAt(row.lastIndex)
         fake.store.load()
-        // Weight has no goal (0), meditate has the goal yes, water is a count.
-        assertEquals(listOf(4.0, 0.0, null), fake.logColumn("Score"))
+        // Without goals, a logged weight and a water count above 0 meet them. Meditate has the goal yes.
+        assertEquals(listOf(100.0, 33.3, null), fake.logColumn("Score"))
     }
 
     @Test
@@ -193,7 +196,8 @@ class SheetsStoreTest {
             ),
         )
         assertEquals(listOf(listOf("Log!E4")), fake.scoreWrites)
-        assertEquals(listOf(5.0, 0.0, 3.0), fake.logColumn("Score"))
+        // No weight (0), yes (1) and 2 of 8 glasses (0.25): 1.25 / 3 = 41.7 %.
+        assertEquals(listOf(79.2, 0.0, 41.7), fake.logColumn("Score"))
     }
 
     @Test
@@ -209,7 +213,8 @@ class SheetsStoreTest {
                 { planYesNo(meditate, d2, it, done = false) },
             ),
         )
-        assertEquals(listOf(5.0, 4.0, null), fake.logColumn("Score"))
+        // 4 of 8 glasses: 0.5 / 3 = 16.7 %.
+        assertEquals(listOf(79.2, 16.7, null), fake.logColumn("Score"))
     }
 
     @Test
@@ -222,13 +227,13 @@ class SheetsStoreTest {
         assertEquals(4.0, snapshot.log.valueAt("water", d1))
         assertTrue("could not write 1 scores" in snapshot.warnings.single())
         assertTrue("The caller does not have permission" in snapshot.warnings.single())
-        assertEquals(listOf(5.0, 0.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(79.2, 0.0, null), fake.logColumn("Score"))
 
-        // The next load tries again.
+        // The next load tries again. 4 of 8 glasses: (1 + 1 + 0.5) / 3 = 83.3 %.
         fake.failsScoreWrites = false
         val next = fake.store.load()
         assertEquals(emptyList(), next.warnings)
-        assertEquals(listOf(6.0, 0.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(83.3, 0.0, null), fake.logColumn("Score"))
     }
 
     @Test
