@@ -49,8 +49,10 @@ import trackula.model.NumberMetric
 import trackula.model.dayScores
 import trackula.model.groupOf
 import trackula.model.groupScoreMetric
+import trackula.model.groupScoreParts
 import trackula.model.metricsOf
 import trackula.model.scoreMetric
+import trackula.model.scoreParts
 import trackula.sheets.Snapshot
 import trackula.sheets.Store
 
@@ -265,14 +267,14 @@ fun TodayPage(
                     pending = pending,
                 )
 
-                // The score of all metrics: the weekday bars show the part of each group.
+                // The score of all metrics: the weekday bars show the part of each group. The parts add up to the score.
                 MainView.SCORE -> detail(
                     score,
                     onBack = null,
                     groupScores = if (selectedGroup != null || groups.size < 2) {
                         emptyMap()
                     } else {
-                        groups.associateWith { dayScores(metricsOf(metrics, it), snapshot.log, pending) }
+                        groupScoreParts(metrics, groups, scoreParts(metrics, snapshot.log, pending))
                     },
                 )
 

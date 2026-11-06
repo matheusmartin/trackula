@@ -17,6 +17,6 @@ class MainViewTest {
 
     @Test
     fun labels() {
-        assertEquals(listOf("Today", "5 days", "31 days", "Score"), MainView.entries.map { it.label })
+        assertEquals(listOf("Today", "5 days", "31 days", "Goals"), MainView.entries.map { it.label })
     }
 }

@@ -80,8 +80,8 @@ private const val WHEEL_STEP = 40f
  * - Day heatmap: the days of the window. A tap on a day shows its month in the calendar.
  * - Edit days: any month, with the same day cells and inputs as the Today page. It shows the month of the window end
  *   until the arrows, a swipe or a heatmap tap change it. Wide screens also show the month before.
- * - Score (`scoreMetric` or a `groupScoreMetric`): averages per day and per weekday, from [scores], all with bars,
- *   in green. [groupScores]: the score of each group, for the weekday bars of `scoreMetric`. The heatmap shows the
+ * - Score (`scoreMetric` or a `groupScoreMetric`, "Goals met"): averages per day and per weekday in percent, from
+ *   [scores], all with bars, in green. [groupScores]: the score of each group, for the weekday bars of `scoreMetric`. The heatmap shows the
  *   score of each day. It has no Edit days section: the app calculates the scores.
  *
  * [onBack] closes the screen. Null: the screen has no back button, for example the Score view.
@@ -172,7 +172,7 @@ private fun DetailContent(
                 DayHeatmap(
                     title = when {
                         metric is YesNoMetric -> "Yes days"
-                        levels != null -> "Score by day"
+                        levels != null -> "Goals met by day"
                         else -> "Days with a value"
                     },
                     from = window.from,
@@ -257,7 +257,8 @@ private fun WindowBar(
                 window.first,
                 window.today,
             ),
-            fromZero = aggregate != Aggregate.AVERAGE,
+            // The score is a percent: its weeks start at 0, as rates do.
+            fromZero = aggregate != Aggregate.AVERAGE || isScore(metric),
             from = box.from,
             to = box.to,
             onPoint = { d -> moveTo(window.endCenteredOn(d)) },

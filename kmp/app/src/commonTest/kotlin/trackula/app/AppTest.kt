@@ -109,6 +109,6 @@ class AppTest {
         setContent { App(FakePlatform(isDemo = true)) }
         onNodeWithText("Sign in with Google").assertDoesNotExist()
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weight").fetchSemanticsNodes().isNotEmpty() }
-        for (label in listOf("Today", "5 days", "31 days", "Score")) onAllNodesWithText(label).assertCountEquals(1)
+        for (label in listOf("Today", "5 days", "31 days", "Goals")) onAllNodesWithText(label).assertCountEquals(1)
     }
 }

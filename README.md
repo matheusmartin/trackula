@@ -5,8 +5,8 @@
 ## Overview
 
 - Web app to track habits and body measurements.
-- Detail screen: tap a metric name to see all its data. It has numbers and charts for a period (week, month, year or all), a month calendar to edit any day and a year heatmap. When the screen opens, the period is all the data of a `number` metric and of the score, and 3 months for the other kinds.
-- Score: the app calculates a score for each day from the values and the `goal` of each metric, and writes it in the `Score` column of the sheet. A green bar chart of the score, one bar for each day, is at the top of the "5 days" and "31 days" views. The "Score" view of the bottom navigation bar shows only the score for a period: the average per day and its change from the first half of the period to the second half, the best day and the best weekday. Its bar charts show the average per day, the average on each weekday (with the part of each group), the change of each weekday from the first half to the second half, and the distribution. A heatmap shows the score of each day, one row for each weekday. The group filter also applies to the score: with a group selected, the chart and the "Score" view show the points of the metrics of that group only. Rules: [docs/data-model.md](docs/data-model.md#score).
+- Detail screen: tap a metric name to see all its data. It has numbers and charts for a period (week, month, year or all), a month calendar to edit any day and a year heatmap. When the screen opens, the period is all the data of a `number` metric and of the goals met, and 3 months for the other kinds.
+- Goals met (the score): the app calculates for each day the percent of the goals that the day meets, from the values and the `goal` of each metric, and writes it in the `Score` column of the sheet. A metric without a goal meets it with a logged value. A green bar chart of the goals met, one bar for each day, is at the top of the "5 days" and "31 days" views. The "Goals" view of the bottom navigation bar shows only the goals met for a period: the average and its change from the first half of the period to the second half, the days with all goals met and the best weekday. Its bar charts show the average per day, the average on each weekday (with the part of each group), the change of each weekday from the first half to the second half, and the distribution. A heatmap shows the goals met of each day, one row for each weekday. The group filter also applies: with a group selected, the chart and the "Goals" view show the goals of that group only. Rules: [docs/data-model.md](docs/data-model.md#score).
 - Charts over time have zoom buttons: 1 month to 5 years. Short spans show weeks, middle spans months, long spans quarters. A small chart below shows all data. Drag or use the mouse wheel to move.
 - Storage: one Google Sheet in your Google Drive. You pick it with the Google Picker. You can edit the data by hand.
 - If the picked sheet has no `Metrics` and `Log` tabs, the app adds them.
@@ -82,7 +82,7 @@ All code is in `kmp/`, a Gradle project with one module for each layer. Each mod
 all targets), `src/commonTest/` (tests), and can have `src/wasmJsMain/` (browser code) and `src/jvmTest/`.
 
 - `model/`: data model, parsing, validation and write planning. Pure Kotlin, no dependencies. `Stats.kt` and
-  `Zoom.kt`: the numbers and zoom bars of the detail screen. `Score.kt`: the day score.
+  `Zoom.kt`: the numbers and zoom bars of the detail screen. `Score.kt`: the day score (goals met).
 - `sheets/`: Google Sheets access (`SheetsStore`, with Ktor and the Sheets REST API) and the demo mode data
   (`DemoStore`). Both implement `Store`.
 - `services/`: the build values (`Config`), the count input and the double tap logic. Browser code in `wasmJsMain`:
