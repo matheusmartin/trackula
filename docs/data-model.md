@@ -50,7 +50,7 @@ One row for each day, one column for each metric. Rows are not sorted. The app s
 |-----------------|--------|----------|---------------|-------------|
 | A: `date`       | date   | Yes      | a date, shown as `YYYY-MM-DD` | The day. Maximum one row for each day. Can be a past day. |
 | B, C, …: metric `id` | number, or `yes` / `no` | No | number, `yes`, `no` | The value of the metric on that day. Empty means no value. For `yesno`: `yes` or `no`. |
-| `Score`         | number | No       | 0 to 100      | The [score](#score) of the row: the percent of the goals met, with one decimal. The app writes it. Do not edit it: the app writes it again. |
+| `Score`         | number | No       | number ≥ 0    | The [score](#score) of the row. The app writes it. Do not edit it: the app writes it again. |
 
 Rules:
 
@@ -68,34 +68,24 @@ Example:
 
 | date       | weight | meditate | water | reading | Score |
 |------------|--------|----------|-------|---------|-------|
-| 2026-09-29 | 82.4   |          | 8     | 20      | 100   |
-| 2026-09-30 | 82.1   | yes      | 5     | 25      | 90.6  |
+| 2026-09-29 | 82.4   |          | 8     | 20      | 10    |
+| 2026-09-30 | 82.1   | yes      | 5     | 25      | 8     |
 
-Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses, reading 25 min, 90.6 % of the
-goals met.
+Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses, reading 25 min, score 8.
 
 ## Score
 
-The score is "Goals met": the percent of the day goals that a day meets, from 0 to 100 %. You do not log it: the app
-calculates it from the values and the goals. 100 % means that the day meets all goals.
+The score of a day is the sum of the points of all metrics on that day. You do not log it: the app calculates it from
+the values and the goals.
 
-Each metric meets its goal by a part from 0 to 1 on each day:
-
-| Kind and goal | Part | Example |
-|---------------|------|---------|
-| `yesno` | 1 if the value is the goal. 0 for the other value or for no value. | Goal `yes`: `yes` gives 1. Goal `no`: `no` gives 1. |
-| `count`, goal "at least" (`8` or `>= 8`) | The value divided by the goal, at most 1. | `water` 5 of 8 glasses gives 0.625. 10 glasses give 1. |
-| `count`, goal "at most" (`<= 2`) | 1 if the value reaches the goal, else 0. | `coffee` 2 gives 1, 3 gives 0. |
-| `number` with a goal | 1 if the value reaches the goal, if it is closer to the goal than the previous log, or if it is the first log. Else 0. | Goal `<= 80`: 83 (first log) gives 1, then 82.6 gives 1 (closer), then 82.8 gives 0 (farther), then 79.9 gives 1 (goal). |
-| `count` or `number` without a goal | 1 for a logged value. A `count` must be above 0. So the work on a metric without a goal also counts. | `walk` 30 min gives 1. `waist` 92 cm gives 1. |
-| Any kind, no value on the day | 0 | No `meditate` value gives 0. |
-
-The score of a day is the average of the parts of the metrics that count on that day, in percent with one decimal.
-A metric counts from the day of its first value. So a new metric does not lower the scores of the days before it.
+| Kind     | Points | Example |
+|----------|--------|---------|
+| `yesno`  | 1 if the value is the goal. 0 for the other value or for no value. | Goal `yes`: `yes` gives 1. Goal `no`: `no` gives 1. |
+| `count`  | 1 for each `step`, also above the goal. The goal does not change the points. A value below 0 gives 0. | `water` 5 with step 1 gives 5. `walk` 30 min with step 10 gives 3. |
+| `number` | 1 if the value reaches the goal, if it is closer to the goal than the previous log, or if it is the first log. Else 0. Always 0 without goal. | Goal `<= 80`: 83 (first log) gives 1, then 82.6 gives 1 (closer), then 82.8 gives 0 (farther), then 79.9 gives 1 (goal). |
 
 Example, with the metrics above, for 2026-09-30: weight 82.1 is closer to 80 than 82.4 of the previous log (1),
-meditate `yes` (1), water 5 of 8 (0.625), reading 25 ≥ 20 (1). Waist has no value yet, so it does not count. The
-score is (1 + 1 + 0.625 + 1) / 4 = 90.6 %. On 2026-09-29, meditate does not count yet: (1 + 1 + 1) / 3 = 100 %.
+meditate `yes` (1), water 5 (5), reading 25 ≥ 20 (1). The score is 8.
 
 The previous log of a `number` metric is the latest earlier day with a value of that metric. Missed days do not
 matter: a weekly value compares with the value of the week before. If a day has 2 or more rows, its last row is the
@@ -104,42 +94,39 @@ value of the day.
 Rules:
 
 - The app writes the score in the `Score` column of each `Log` row. A row without a metric value has an empty score.
-  A score as text, for example `'75`, changes to the number. The header stays `Score`.
+  A score as text, for example `'3`, changes to the number.
 - If a day has 2 or more rows, each row has the score of its own values. The app shows the score of the last row, as
   it does for the values.
 - The app calculates all scores again each time it loads the sheet: when it opens the sheet, after the reload button,
   and after the values that you log in the app (one time for each save or tap). It writes only the cells that
   changed. So the scores follow:
   - a new or changed value, also of a past day, in the app or by hand in the sheet,
-  - a new goal, a new `kind` in the `Metrics` tab,
-  - a deleted metric: it does not count,
+  - a new goal, a new `step` or a new `kind` in the `Metrics` tab,
+  - a deleted metric: its values do not give points,
   - for a `number` metric, a new, changed or deleted value also changes the score of the next day with a value of
-    that metric, because that day has a new previous log,
-  - a new first value of a metric also changes the scores of the later days, because the metric counts from that
-    day.
+    that metric, because that day has a new previous log.
 - If you change the sheet by hand while the app is open, the scores change at the next load. Use the reload button.
 - If the app cannot write the scores, for example in a view-only sheet or at the request limit of the Sheets API, it
   shows a warning and continues. The next load tries again.
 - The app does not read the `Score` column. It shows the scores that it calculates, also for count taps that it did not
   write yet. Demo mode has no `Score` column.
-- Older app versions wrote a sum of points in the `Score` column. The next load writes the percent in its place.
-- In the app, a green bar chart of the goals met, one bar for each day on a scale from 0 to 100 %, is at the top of
-  the "5 days" and "31 days" views. A tap on "Goals met" opens the "Goals" view of the bottom navigation bar: the
-  score only, in green, with bars. It shows the average, the change from the first half to the second half, the days
-  with all goals met, the best weekday, and charts of the average per day, the average on each weekday, the change
-  of each weekday and the distribution in ranges of 10 %. The Today tiles do not show the score.
-  - The weekday averages of all metrics stack the part of each group, in one color for each group. The part of a
-    group is the share of the goals that its metrics meet, of all goals that count. So the parts of a weekday add up
-    to its average.
-  - "Weekday change" and "change, 2nd half" compare the first half of the period with the second half, in percentage
-    points. Example: in the 14 days from Oct 1 to Oct 14, the days from Oct 8 to Oct 14 compare with the days from
-    Oct 1 to Oct 7. With an odd number of days, the second half has one day more. The change does not use the days
-    before the period: at "All", there are none.
-  - "Goals met by day": one cell for each day, one row for each weekday. A darker cell meets more of its goals. A day
-    with 100 % has the full color.
+- In the app, a green bar chart of the score, one bar for each day, is at the top of the "5 days" and "31 days"
+  views. A tap on "Score" opens the "Score" view of the bottom navigation bar: the score only, in green, with bars.
+  It shows the average per day, the best day, the best weekday, and charts of the average per day, the average on
+  each weekday and the distribution. It does not show a total: the score of a day does not add up over time. The
+  Today tiles do not show the score.
+  - The weekday averages of all metrics stack the part of each group, in one color for each group. The parts of a
+    weekday add up to its average: a day without points of a group adds 0 to that group.
+  - "Weekday change" and "per day, change" compare the first half of the period with the second half. Example: in
+    the 14 days from Oct 1 to Oct 14, the days from Oct 8 to Oct 14 compare with the days from Oct 1 to Oct 7. With
+    an odd number of days, the second half has one day more. The change does not use the days before the period: at
+    "All", there are none.
+  - "Score by day": one cell for each day, one row for each weekday. A darker cell has a higher score. The day with
+    the highest score of the period has the full color.
 - The group filter of the app (the `group` column) also applies to the score. With a group selected, the chart and
-  the "Goals" view show the percent of the goals of that group only. The title shows the group, for example
-  "Goals met · Habits". The `Score` column always has the score of all metrics.
+  the "Score" view show the group score: the sum of the points of the metrics of that group only. The title shows the
+  group, for example "Score · Habits". The sum of the group scores is the score of the day. The `Score` column always
+  has the score of all metrics.
 
 ## Consistency
 

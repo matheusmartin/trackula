@@ -1,7 +1,6 @@
 package trackula.model
 
 import kotlin.math.max
-import kotlin.math.min
 
 /**
  * The first half and the second half of [days]. With an odd number of days, the second half has one day more.
@@ -42,22 +41,12 @@ fun groupWeekdayParts(
 }
 
 /**
- * The level of each day of [days] with a score in [values], from 0 to 1: the score in percent divided by 100.
- * Example: the scores 50 and 100 give the levels 0.5 and 1.
+ * The level of each day of [days] with a score in [values], from 0 to 1: the score divided by the highest score of
+ * [days]. A score below 0 counts as 0. All levels are 0 if no score is above 0. Example: the scores 5 and 10 give the
+ * levels 0.5 and 1.
  */
-fun scoreLevels(values: Map<Day, Double>, days: List<Day>): Map<Day, Double> =
-    days.filter { it in values }.associateWith { min(1.0, max(0.0, values.getValue(it) / 100)) }
-
-/**
- * The number of days of [days] with a score in [values] in each range of 10 percent: 0 to 9.9, 10 to 19.9, … 90 to
- * 99.9, and 100. The result has 11 counts. Example: the scores 5, 95 and 100 give 1 in the first, the tenth and the
- * last range.
- */
-fun scoreRanges(values: Map<Day, Double>, days: List<Day>): List<Int> {
-    val counts = MutableList(11) { 0 }
-    for (d in days) {
-        val v = values[d] ?: continue
-        counts[min(10, max(0, (v / 10).toInt()))]++
-    }
-    return counts
+fun scoreLevels(values: Map<Day, Double>, days: List<Day>): Map<Day, Double> {
+    val scored = days.filter { it in values }.associateWith { max(0.0, values.getValue(it)) }
+    val high = scored.values.maxOrNull() ?: return emptyMap()
+    return scored.mapValues { (_, v) -> if (high == 0.0) 0.0 else v / high }
 }

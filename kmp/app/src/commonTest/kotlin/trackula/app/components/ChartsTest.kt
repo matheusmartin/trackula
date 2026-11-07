@@ -92,7 +92,7 @@ class ChartsTest {
     fun aHeatmapWithLevelsHasWeekdayLabels() = runComposeUiTest {
         setContent {
             TrackulaTheme(dark = false) {
-                DayHeatmap("Goals met by day", days.first(), days.last(), { true }, days.last(), level = { 0.5 })
+                DayHeatmap("Score by day", days.first(), days.last(), { true }, days.last(), level = { 0.5 })
             }
         }
         onNodeWithText("Mo").assertExists()
@@ -127,6 +127,6 @@ class ChartsTest {
         setContent {
             TrackulaTheme(dark = false) { ScoreChart(scoreMetric, days, mapOf(days[0] to 3.0, days[4] to 5.0)) {} }
         }
-        onNodeWithContentDescription("Values from 0 to 5%, Sep 29 to Oct 3").assertExists()
+        onNodeWithContentDescription("Values from 0 to 5 points, Sep 29 to Oct 3").assertExists()
     }
 }

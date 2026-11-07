@@ -46,16 +46,10 @@ class ScoreStatsTest {
     }
 
     @Test
-    fun scoreLevelsAreTheScoresOfThePeriodDividedBy100() {
-        val values = mapOf(day(0) to 50.0, day(1) to 100.0, day(2) to 0.0, day(9) to 20.0)
+    fun scoreLevelsDivideByTheHighestScoreOfThePeriod() {
+        val values = mapOf(day(0) to 5.0, day(1) to 10.0, day(2) to -1.0, day(9) to 20.0)
         assertEquals(mapOf(day(0) to 0.5, day(1) to 1.0, day(2) to 0.0), scoreLevels(values, range(0, 7)))
+        assertEquals(mapOf(day(0) to 0.0), scoreLevels(mapOf(day(0) to 0.0), range(0, 7)))
         assertEquals(emptyMap(), scoreLevels(values, range(3, 3)))
-    }
-
-    @Test
-    fun scoreRangesCountTheDaysOfThePeriodInRangesOf10Percent() {
-        val values = mapOf(day(0) to 5.0, day(1) to 9.9, day(2) to 95.0, day(3) to 100.0, day(9) to 50.0)
-        assertEquals(listOf(2, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1), scoreRanges(values, range(0, 7)))
-        assertEquals(List(11) { 0 }, scoreRanges(emptyMap(), range(0, 7)))
     }
 }
