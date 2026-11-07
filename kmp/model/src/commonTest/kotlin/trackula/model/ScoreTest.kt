@@ -128,6 +128,30 @@ class ScoreTest {
     }
 
     @Test
+    fun pointsByMetricGivesThePointsOfEachMetricThatAddUpToTheDayScores() {
+        val points = pointsByMetric(dayMetrics, dayLog)
+        assertEquals(mapOf(d29 to 1.0, d30 to 0.0), points["weight"])
+        assertEquals(mapOf(d29 to 3.0), points["water"])
+        assertEquals(mapOf(d29 to 1.0, d30 to 0.0), points["meditate"])
+        val sums = points.values.flatMap { it.entries }.groupBy({ it.key }, { it.value }).mapValues { it.value.sum() }
+        assertEquals(dayScores(dayMetrics, dayLog), sums)
+        assertEquals(emptyMap(), pointsByMetric(listOf(reading), dayLog)["reading"])
+    }
+
+    @Test
+    fun groupScoresAddThePointsOfTheMetricsOfEachGroup() {
+        val metrics = listOf(
+            weight.copy(group = "body"),
+            water.copy(group = "habits"),
+            meditate.copy(group = "habits"),
+            smoke.copy(group = "habits"),
+        )
+        val groups = groupScores(metrics, listOf("body", "habits"), pointsByMetric(metrics, dayLog))
+        assertEquals(mapOf(d29 to 1.0, d30 to 0.0), groups["body"])
+        assertEquals(mapOf(d29 to 5.0, d30 to 0.0), groups["habits"])
+    }
+
+    @Test
     fun dayScoresGivesNoScoreToADayWithoutAValue() {
         assertFalse(Day(2026, 9, 28) in dayScores(dayMetrics, dayLog))
     }

@@ -122,7 +122,24 @@ Rules:
     an odd number of days, the second half has one day more. The change does not use the days before the period: at
     "All", there are none.
   - "Score by day": one cell for each day, one row for each weekday. A darker cell has a higher score. The day with
-    the highest score of the period has the full color.
+    the highest score of the period has the full color. A tap on a day shows its month in "Score by month".
+  - "This week and last week": each day of this week, Monday to today, next to the same weekday of last week. It
+    always shows these 2 weeks, also when the period is another one.
+  - "Above and below your average": the last 28 days of the period, each as a bar up or down from the average of
+    these days.
+  - "Days by group": the last 14 days of the period, each as a bar with the points of each group. Only for the score
+    of all metrics, with 2 or more groups.
+  - "Weekday range": for each weekday, a bar from the lowest to the highest score, and a dot at the average.
+  - "Metrics by weekday": one row for each metric, one cell for each weekday, with the average points of the metric
+    on the days with a value of that metric. Each row has its own scale: its darkest cell is its best weekday.
+  - "Points by metric": the points of each metric in the period, and its share of the score, the most points first.
+    With 2 or more groups, each bar has the color of its group.
+  - "Habits that go with good days": for each metric, the average points of the other metrics on the days when the
+    metric gives points, minus the same average on the days when it gives none. The metric's own points do not
+    count, so that they do not count twice. A metric needs 5 days of each kind. This shows a link, not a cause.
+    Example: +1.2 for meditate means that the other metrics give 1.2 more points on the days with meditate.
+  - "Score by month": a month calendar with the score of each day. A darker day has a higher score. It is read-only,
+    and it shows the month of the end of the period until the arrows or a tap on the heatmap change it.
 - The group filter of the app (the `group` column) also applies to the score. With a group selected, the chart and
   the "Score" view show the group score: the sum of the points of the metrics of that group only. The title shows the
   group, for example "Score · Habits". The sum of the group scores is the score of the day. The `Score` column always

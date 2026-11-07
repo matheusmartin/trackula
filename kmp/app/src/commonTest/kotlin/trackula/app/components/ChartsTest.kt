@@ -11,6 +11,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import trackula.app.TrackulaTheme
 import trackula.model.Day
+import trackula.model.MonthKey
+import trackula.model.ValueRange
 import trackula.model.daysBetween
 import trackula.model.scoreMetric
 import kotlin.test.Test
@@ -128,5 +130,83 @@ class ChartsTest {
             TrackulaTheme(dark = false) { ScoreChart(scoreMetric, days, mapOf(days[0] to 3.0, days[4] to 5.0)) {} }
         }
         onNodeWithContentDescription("Values from 0 to 5 points, Sep 29 to Oct 3").assertExists()
+    }
+
+    @Test
+    fun aHorizontalBarChartShowsEachRowWithItsTextAlsoForNegativeValues() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) {
+                HorizontalBarChart(
+                    "Links",
+                    "Rows.",
+                    listOf(HBar("Meditate", 1.5, Color.Green, "+1.5"), HBar("Teeth", -0.5, Color.Red, "−0.5")),
+                )
+            }
+        }
+        onNodeWithContentDescription("Meditate: +1.5").assertExists()
+        onNodeWithContentDescription("Teeth: −0.5").assertExists()
+    }
+
+    @Test
+    fun aHorizontalBarChartWithoutRowsSaysSo() = runComposeUiTest {
+        setContent { TrackulaTheme(dark = false) { HorizontalBarChart("Links", "Rows.", emptyList()) } }
+        onNodeWithText("No values in this period.").assertExists()
+    }
+
+    @Test
+    fun aGroupedBarChartShowsTheValuesOfTheLastSeriesAndALegend() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) {
+                GroupedBarChart(
+                    "Weeks",
+                    "Two weeks.",
+                    listOf("Mo", "Tu"),
+                    listOf(
+                        StackPart("Last week", Color.Gray, listOf(7.0, 8.0)),
+                        StackPart("This week", Color.Green, listOf(9.0, null)),
+                    ),
+                )
+            }
+        }
+        onNodeWithText("9").assertExists()
+        onNodeWithText("7").assertDoesNotExist()
+        onNodeWithText("Last week").assertExists()
+        onNodeWithText("This week").assertExists()
+    }
+
+    @Test
+    fun aRangeBarChartShowsTheAverages() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) {
+                RangeBarChart("Range", "Weekdays.", listOf("Mo", "Tu"), listOf(ValueRange(10.0, 14.0, 12.0), null))
+            }
+        }
+        onNodeWithText("12").assertExists()
+    }
+
+    @Test
+    fun aCellGridGivesEachCellToScreenReaders() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) {
+                CellGrid("Grid", "Cells.", listOf("Mo", "Tu"), listOf("Water" to listOf(5.5, null)))
+            }
+        }
+        onNodeWithContentDescription("Water, Mo: 5.5").assertExists()
+        onNodeWithContentDescription("Water, Tu: no value").assertExists()
+    }
+
+    @Test
+    fun theScoreCalendarShowsTheScoresOfTheMonthAndStopsAtTheMonthOfToday() = runComposeUiTest {
+        var month = MonthKey(2026, 9)
+        setContent {
+            TrackulaTheme(dark = false) {
+                ScoreCalendar(mapOf(days[0] to 12.0), days.last(), MonthKey(2026, 9)) { month = it }
+            }
+        }
+        onNodeWithText("September 2026").assertExists()
+        onNodeWithContentDescription("Sep 29: 12").assertExists()
+        onNodeWithContentDescription("Sep 28: no score").assertExists()
+        onNodeWithContentDescription("Next month").performClick()
+        assertEquals(MonthKey(2026, 10), month)
     }
 }

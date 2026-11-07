@@ -50,3 +50,87 @@ fun scoreLevels(values: Map<Day, Double>, days: List<Day>): Map<Day, Double> {
     val high = scored.values.maxOrNull() ?: return emptyMap()
     return scored.mapValues { (_, v) -> if (high == 0.0) 0.0 else v / high }
 }
+
+/** The [low] and [high] value of a set of values, and their [average]. Example: the scores of all Mondays. */
+data class ValueRange(val low: Double, val high: Double, val average: Double)
+
+/**
+ * The lowest, highest and average score of the days of [days] with a score in [values], for each weekday, Monday
+ * first. Null for a weekday without a score. Example: 2 Mondays with 10 and 14 give low 10, high 14, average 12.
+ */
+fun weekdayRanges(values: Map<Day, Double>, days: List<Day>): List<ValueRange?> = (1..7).map { weekday ->
+    val scores = days.filter { it.weekday == weekday }.mapNotNull { values[it] }
+    if (scores.isEmpty()) null else ValueRange(scores.min(), scores.max(), withoutFloatNoise(scores.average()))
+}
+
+/**
+ * The scores of the week of [today] and of the week before, Monday first: 7 values each. Null for a day without a
+ * score, and for the days after [today]. Weeks start on Monday.
+ */
+fun thisAndLastWeek(values: Map<Day, Double>, today: Day): Pair<List<Double?>, List<Double?>> {
+    val monday = today.addDays(1 - today.weekday)
+    val thisWeek = (0..6).map { monday.addDays(it) }.map { if (it > today) null else values[it] }
+    val lastWeek = (0..6).map { values[monday.addDays(it - 7)] }
+    return thisWeek to lastWeek
+}
+
+/**
+ * The last [count] days of [days], or all of them if there are fewer. Example: the last 14 days of a window.
+ */
+fun lastDays(days: List<Day>, count: Int): List<Day> = days.takeLast(count)
+
+/**
+ * The average score of the days of [days] with a score in [values], and how far the score of each of these days is
+ * from it. Null if no day has a score. Example: the scores 10 and 14 give the average 12 and the differences −2 and
+ * +2.
+ */
+fun differencesFromAverage(values: Map<Day, Double>, days: List<Day>): Pair<Double, Map<Day, Double>>? {
+    val scored = days.filter { it in values }
+    if (scored.isEmpty()) return null
+    val average = withoutFloatNoise(scored.sumOf { values.getValue(it) } / scored.size)
+    return average to scored.associateWith { withoutFloatNoise(values.getValue(it) - average) }
+}
+
+/**
+ * The points of each metric in [points] (see `pointsByMetric`) on the days of [days], by metric id. Example: water
+ * with 5 and 6 points gives 11.
+ */
+fun metricTotals(points: Map<String, Map<Day, Double>>, days: List<Day>): Map<String, Double> =
+    points.mapValues { (_, byDay) -> withoutFloatNoise(days.sumOf { byDay[it] ?: 0.0 }) }
+
+/**
+ * The average points of each metric in [points] on each weekday, Monday first, from the days of [days] with a value
+ * of that metric, by metric id. Null for a weekday without a value. Example: a yes/no habit done on 3 of 4 Mondays
+ * gives 0.75 for Monday.
+ */
+fun metricWeekdayAverages(points: Map<String, Map<Day, Double>>, days: List<Day>): Map<String, List<Double?>> =
+    points.mapValues { (_, byDay) ->
+        (1..7).map { weekday ->
+            val values = days.filter { it.weekday == weekday }.mapNotNull { byDay[it] }
+            if (values.isEmpty()) null else withoutFloatNoise(values.average())
+        }
+    }
+
+/** The fewest days with and without points of a metric that [habitLinks] needs to compare them. */
+const val MIN_LINK_DAYS = 5
+
+/**
+ * For each metric in [points], how many more points the other metrics give on the days when the metric gives points
+ * than on the days when it gives none, by metric id. Only the days of [days] with a [score] count. The metric's own
+ * points are removed from the score, so that they do not count twice. A metric needs [MIN_LINK_DAYS] days of each
+ * kind, else it is not in the result. This is a link, not a cause.
+ *
+ * Example: on the days with meditate, the other metrics give 15 points on average, on the other days 13. The result
+ * for meditate is +2.
+ */
+fun habitLinks(points: Map<String, Map<Day, Double>>, score: Map<Day, Double>, days: List<Day>): Map<String, Double> {
+    val scored = days.filter { it in score }
+    val links = mutableMapOf<String, Double>()
+    for ((id, byDay) in points) {
+        val rest = { d: Day -> score.getValue(d) - (byDay[d] ?: 0.0) }
+        val (with, without) = scored.partition { (byDay[it] ?: 0.0) > 0 }
+        if (with.size < MIN_LINK_DAYS || without.size < MIN_LINK_DAYS) continue
+        links[id] = withoutFloatNoise(with.map(rest).average() - without.map(rest).average())
+    }
+    return links
+}

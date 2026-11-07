@@ -60,6 +60,23 @@ fun dayScores(
     log: LogTable,
     pending: Map<MetricDay, List<CountStep>> = emptyMap(),
 ): Map<Day, Double> {
+    val points = mutableMapOf<Day, MutableList<Double>>()
+    for (days in pointsByMetric(metrics, log, pending).values) {
+        for ((day, p) in days) points.getOrPut(day) { mutableListOf() }.add(p)
+    }
+    return points.mapValues { (_, p) -> total(p) }
+}
+
+/**
+ * The points of each metric of [metrics] on each day of [log] with a value of that metric, by metric id. The sum of
+ * the points of a day is its score: see [dayScores]. It includes the count taps in [pending]. A metric without a
+ * value has an empty map. Example: water 5 glasses with step 1 on Oct 1 gives `water` → (Oct 1 → 5).
+ */
+fun pointsByMetric(
+    metrics: List<Metric>,
+    log: LogTable,
+    pending: Map<MetricDay, List<CountStep>> = emptyMap(),
+): Map<String, Map<Day, Double>> {
     val byId = metrics.associateBy { it.id }
     val values = lastRowValues(byId, log).toMutableMap()
     for ((key, steps) in pending) {
@@ -68,12 +85,28 @@ fun dayScores(
         if (value != null) values[key] = value else values.remove(key)
     }
     val previous = previousValues(values)
-    val points = mutableMapOf<Day, MutableList<Double>>()
+    val points = metrics.associate { it.id to mutableMapOf<Day, Double>() }
     for ((key, value) in values) {
-        points.getOrPut(key.day) { mutableListOf() }
-            .add(metricPoints(byId.getValue(key.metricId), value, previous[key]))
+        points.getValue(key.metricId)[key.day] = metricPoints(byId.getValue(key.metricId), value, previous[key])
     }
-    return points.mapValues { (_, p) -> total(p) }
+    return points
+}
+
+/**
+ * The score of each group of [groups] on each day, from the [points] of each metric (see [pointsByMetric]): the sum of
+ * the points of the metrics of [metrics] in the group. A day without a value in the group has no group score. The
+ * group scores of a day add up to its score.
+ */
+fun groupScores(
+    metrics: List<Metric>,
+    groups: List<String>,
+    points: Map<String, Map<Day, Double>>,
+): Map<String, Map<Day, Double>> = groups.associateWith { group ->
+    val sums = mutableMapOf<Day, MutableList<Double>>()
+    for (m in metricsOf(metrics, group)) {
+        for ((day, p) in points[m.id].orEmpty()) sums.getOrPut(day) { mutableListOf() }.add(p)
+    }
+    sums.mapValues { (_, p) -> total(p) }
 }
 
 /**
