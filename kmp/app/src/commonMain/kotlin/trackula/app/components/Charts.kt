@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.sp
 import trackula.app.LocalExtraColors
 import trackula.model.BarUnit
 import trackula.model.Day
+import trackula.model.ValueRange
 import trackula.model.ZoomBar
 import trackula.model.barLabel
 import trackula.model.daysBetween
@@ -63,10 +64,10 @@ import kotlin.math.max
 import kotlin.math.min
 
 /** The height of the bar and line charts, in chart units. */
-private const val CHART_HEIGHT = 50f
+internal const val PLOT_UNITS = 50f
 
 /** The width of one bar column, in chart units. */
-private const val COLUMN_UNITS = 10f
+internal const val COLUMN_UNITS = 10f
 
 /** The largest number of bars that always fit in the card. A chart with more bars can scroll to the side. */
 private const val SCROLL_BARS = 12
@@ -84,16 +85,16 @@ private val MAX_COLUMN_WIDTH = 56.dp
 internal val WIDE_CONTENT = 608.dp
 
 /** The height of a bar or line chart. */
-private val PLOT_HEIGHT = 96.dp
+internal val PLOT_HEIGHT = 96.dp
 
 /** The text of the chart labels. */
 @Composable
-private fun labelStyle() =
+internal fun labelStyle() =
     TextStyle(fontSize = 11.sp, lineHeight = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
 /** The y coordinate of a value from [low] (bottom) to [high] (top), with 2 units of space at the top and the bottom. */
-private fun yScale(high: Double, low: Double): (Double) -> Float = { value ->
-    if (high == low) CHART_HEIGHT / 2 else (2 + (CHART_HEIGHT - 4) * (high - value) / (high - low)).toFloat()
+internal fun yScale(high: Double, low: Double): (Double) -> Float = { value ->
+    if (high == low) PLOT_UNITS / 2 else (2 + (PLOT_UNITS - 4) * (high - value) / (high - low)).toFloat()
 }
 
 /**
@@ -121,7 +122,7 @@ fun ChartCard(title: String, description: String, modifier: Modifier = Modifier,
 
 /** The text of a chart card with no chart. */
 @Composable
-private fun NoValues() = Text("No values in this period.", style = labelStyle())
+internal fun NoValues() = Text("No values in this period.", style = labelStyle())
 
 /** A card of a [ChartGrid]: [wide] cards take a full row. */
 class ChartItem(val wide: Boolean, val content: @Composable (Modifier) -> Unit)
@@ -183,7 +184,7 @@ data class Bar(val label: String, val value: Double?)
 
 /** The labels under a chart: all labels in equal columns if there are few or [all], else the first and the last. */
 @Composable
-private fun Labels(labels: List<String>, all: Boolean = false) {
+internal fun Labels(labels: List<String>, all: Boolean = false) {
     if (labels.isEmpty()) return
     if (all || labels.size <= 12) {
         Row(Modifier.fillMaxWidth()) {
@@ -211,7 +212,7 @@ private fun Labels(labels: List<String>, all: Boolean = false) {
  * It starts at the right end, with the newest bars.
  */
 @Composable
-private fun Scroller(columns: Int, content: @Composable () -> Unit) {
+internal fun Scroller(columns: Int, content: @Composable () -> Unit) {
     BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         val widest = MAX_COLUMN_WIDTH * columns
         if (columns <= SCROLL_BARS) {
@@ -247,7 +248,7 @@ private fun Scroller(columns: Int, content: @Composable () -> Unit) {
 
 /** The values above the bars of a bar chart, one in each column. A null value has no text. */
 @Composable
-private fun ValueRow(values: List<Double?>, format: (Double) -> String) {
+internal fun ValueRow(values: List<Double?>, format: (Double) -> String) {
     // Many values on a phone: smaller text.
     val dense = values.size > 8
     Row(Modifier.fillMaxWidth().padding(bottom = 3.dp)) {
@@ -277,16 +278,16 @@ private fun BarRows(bars: List<Bar>, label: String, max: Double?, format: (Doubl
     val below = values.maxOfOrNull { max(0.0, -it) } ?: 0.0
     val scale = if (above + below == 0.0) 1.0 else above + below
     // The y of 0, in chart units: the bottom without negative values.
-    val zero = if (below == 0.0) CHART_HEIGHT else (above / scale * CHART_HEIGHT).toFloat()
+    val zero = if (below == 0.0) PLOT_UNITS else (above / scale * PLOT_UNITS).toFloat()
     val filled = LocalExtraColors.current.cell
     val second = MaterialTheme.colorScheme.tertiary
     if (showValues) ValueRow(bars.map { it.value }, format)
     Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = label }) {
         val sx = size.width / (bars.size * COLUMN_UNITS)
-        val sy = size.height / CHART_HEIGHT
+        val sy = size.height / PLOT_UNITS
         bars.forEachIndexed { i, b ->
             val v = b.value ?: return@forEachIndexed
-            val height = max(0.4f, (abs(v) / scale * CHART_HEIGHT).toFloat())
+            val height = max(0.4f, (abs(v) / scale * PLOT_UNITS).toFloat())
             val top = if (v >= 0) zero - height else zero
             drawRect(
                 if (v >= 0) filled else second,
@@ -348,12 +349,12 @@ fun StackedBarChart(
                 ValueRow(sums, format)
                 Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = title }) {
                     val sx = size.width / (labels.size * COLUMN_UNITS)
-                    val sy = size.height / CHART_HEIGHT
+                    val sy = size.height / PLOT_UNITS
                     for (i in labels.indices) {
-                        var bottom = CHART_HEIGHT
+                        var bottom = PLOT_UNITS
                         for (part in parts) {
                             val v = max(0.0, part.values[i] ?: continue)
-                            val height = (v / scale * CHART_HEIGHT).toFloat()
+                            val height = (v / scale * PLOT_UNITS).toFloat()
                             drawRect(
                                 part.color,
                                 topLeft = Offset((i * COLUMN_UNITS + 1.5f) * sx, (bottom - height) * sy),
@@ -366,19 +367,25 @@ fun StackedBarChart(
                 Labels(labels, all = true)
             }
         }
-        FlowRow(
-            Modifier.padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            for (part in parts) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(Modifier.size(11.dp).background(part.color, RoundedCornerShape(3.dp)))
-                    Text(part.label, fontSize = 13.sp)
-                }
+        Legend(parts)
+    }
+}
+
+/** The legend of a chart with more than one series: a color square and the label of each of [parts]. */
+@Composable
+internal fun Legend(parts: List<StackPart>) {
+    FlowRow(
+        Modifier.padding(top = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        for (part in parts) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(11.dp).background(part.color, RoundedCornerShape(3.dp)))
+                Text(part.label, fontSize = 13.sp)
             }
         }
     }
@@ -422,7 +429,7 @@ fun LineChart(
                 Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = title }) {
                     val width = max(1, values.size - 1).toFloat()
                     val sx = size.width / width
-                    val sy = size.height / CHART_HEIGHT
+                    val sy = size.height / PLOT_UNITS
                     fun x(i: Int) = (if (values.size == 1) width / 2 else i.toFloat()) * sx
                     val series = trend ?: values
                     val path = Path()
@@ -540,7 +547,7 @@ fun TimeBars(
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = MAX_COLUMN_WIDTH * bars.size).fillMaxWidth()) {
                 if (showsRange) {
-                    RangeBars(bars, high, low, title)
+                    RangeBars(bars.map { it.toRange() }, high, low, title)
                 } else {
                     BarRows(
                         bars.map { Bar(barLabel(it.start, barUnit), it.value) },
@@ -556,19 +563,23 @@ fun TimeBars(
     }
 }
 
-/** One bar from the lowest to the highest value for each of [bars], and the average as a dot. */
+/**
+ * One bar from the lowest to the highest value for each of [ranges], and the average as a dot. A null range has no
+ * bar. The scale goes from [low] (bottom) to [high] (top).
+ */
 @Composable
-private fun RangeBars(bars: List<ZoomBar>, high: Double, low: Double, label: String) {
+internal fun RangeBars(ranges: List<ValueRange?>, high: Double, low: Double, label: String) {
     val empty = LocalExtraColors.current.cellEmpty
     val primary = MaterialTheme.colorScheme.primary
     val y = yScale(high, low)
     Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = label }) {
-        val sx = size.width / (bars.size * COLUMN_UNITS)
-        val sy = size.height / CHART_HEIGHT
-        bars.forEachIndexed { i, b ->
-            val barLow = b.low ?: return@forEachIndexed
-            val barHigh = b.high ?: return@forEachIndexed
-            val average = b.value ?: return@forEachIndexed
+        val sx = size.width / (ranges.size * COLUMN_UNITS)
+        val sy = size.height / PLOT_UNITS
+        ranges.forEachIndexed { i, r ->
+            if (r == null) return@forEachIndexed
+            val barLow = r.low
+            val barHigh = r.high
+            val average = r.average
             val x = (i * COLUMN_UNITS + 5) * sx
             // A stroke with round ends that keeps its width, as in the Dart chart.
             val top = y(barHigh) * sy
@@ -577,6 +588,11 @@ private fun RangeBars(bars: List<ZoomBar>, high: Double, low: Double, label: Str
             drawCircle(primary, 2.5.dp.toPx(), Offset(x, y(average) * sy))
         }
     }
+}
+
+/** The range of a bar with a lowest and a highest value. Null if the bar has no value. */
+private fun ZoomBar.toRange(): ValueRange? {
+    return ValueRange(low ?: return null, high ?: return null, value ?: return null)
 }
 
 /**
@@ -679,8 +695,13 @@ fun DayHeatmap(
     level: ((Day) -> Double?)? = null,
 ) {
     val description = when {
+        level != null && onDay != null ->
+            "One row for each weekday. A darker day has a higher score. Tap a day to show its month in the calendar."
+
+        level != null -> "One row for each weekday. A darker day has a higher score."
+
         onDay != null -> "Tap a day to show its month in the calendar."
-        level != null -> "One row for each weekday. A darker day meets more of its goals."
+
         else -> "One cell for each day of the window."
     }
     ChartCard(title, description, modifier) {

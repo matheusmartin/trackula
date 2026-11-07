@@ -142,11 +142,12 @@ private val lightExtra = ExtraColors(
     actionBrush = actionBrush,
     onAction = Color(0xFFFFFFFF),
     headerBrush = headerBrush,
+    // The first 4 colors pass a colorblind check on the chart cards: lightness, chroma and the distance between neighbors.
     groups = listOf(
         Color(0xFF2E7D32),
         Color(0xFF1565C0),
-        Color(0xFFEF6C00),
-        Color(0xFF6A1B9A),
+        Color(0xFFE06A10),
+        Color(0xFF8A3FC0),
         Color(0xFF00838F),
         Color(0xFFAD1457),
         Color(0xFF5D4037),
@@ -162,10 +163,10 @@ private val darkExtra = lightExtra.copy(
     // A lighter slate, so that empty cells show the blue of the theme.
     cellEmpty = Color(0xFF323C49),
     groups = listOf(
-        Color(0xFF81C784),
-        Color(0xFF64B5F6),
-        Color(0xFFFFB74D),
-        Color(0xFFBA68C8),
+        Color(0xFF4CA352),
+        Color(0xFF3D8FD8),
+        Color(0xFFCC7A22),
+        Color(0xFFA06ACB),
         Color(0xFF4DD0E1),
         Color(0xFFF06292),
         Color(0xFFA1887F),
