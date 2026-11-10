@@ -222,13 +222,12 @@ class MetricDetailTest {
     }
 
     @Test
-    fun theScoreViewHasOneChartForTimeWeekdaysMetricsAndHabits() = runComposeUiTest {
+    fun theScoreViewHasOnlyTheChartsThatShowDifferentData() = runComposeUiTest {
         showPage(MainView.SCORE)
-        waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Points by metric").fetchSemanticsNodes().isNotEmpty() }
-        for (title in listOf("Average per day", "Weekday averages", "Habits that go with good days")) {
-            onNodeWithText(title).assertExists()
-        }
-        // These charts showed again the days, the weekdays or the change that the charts above already show.
+        waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weekday averages").fetchSemanticsNodes().isNotEmpty() }
+        onNodeWithText("Average per day").assertExists()
+        // These charts showed again the days, the weekdays or the change that the other charts show, or were not
+        // useful: points by metric and habit links.
         for (title in listOf(
             "This week and last week",
             "Above and below your average",
@@ -238,12 +237,11 @@ class MetricDetailTest {
             "Metrics by weekday",
             "Distribution (days)",
             "days with a score",
+            "Points by metric",
+            "Habits that go with good days",
         )) {
             onNodeWithText(title).assertDoesNotExist()
         }
-        onAllNodesWithText("Hygiene")[0].performClick()
-        waitForIdle()
-        onNodeWithText("Points by metric").assertExists()
     }
 
     @Test

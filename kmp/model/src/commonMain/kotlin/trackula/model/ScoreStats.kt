@@ -31,37 +31,6 @@ fun groupWeekdayParts(
     }
 }
 
-/**
- * The points of each metric in [points] (see `pointsByMetric`) on the days of [days], by metric id. Example: water
- * with 5 and 6 points gives 11.
- */
-fun metricTotals(points: Map<String, Map<Day, Double>>, days: List<Day>): Map<String, Double> =
-    points.mapValues { (_, byDay) -> withoutFloatNoise(days.sumOf { byDay[it] ?: 0.0 }) }
-
-/** The fewest days with and without points of a metric that [habitLinks] needs to compare them. */
-const val MIN_LINK_DAYS = 5
-
-/**
- * For each metric in [points], how many more points the other metrics give on the days when the metric gives points
- * than on the days when it gives none, by metric id. Only the days of [days] with a [score] count. The metric's own
- * points are removed from the score, so that they do not count twice. A metric needs [MIN_LINK_DAYS] days of each
- * kind, else it is not in the result. This is a link, not a cause.
- *
- * Example: on the days with meditate, the other metrics give 15 points on average, on the other days 13. The result
- * for meditate is +2.
- */
-fun habitLinks(points: Map<String, Map<Day, Double>>, score: Map<Day, Double>, days: List<Day>): Map<String, Double> {
-    val scored = days.filter { it in score }
-    val links = mutableMapOf<String, Double>()
-    for ((id, byDay) in points) {
-        val rest = { d: Day -> score.getValue(d) - (byDay[d] ?: 0.0) }
-        val (with, without) = scored.partition { (byDay[it] ?: 0.0) > 0 }
-        if (with.size < MIN_LINK_DAYS || without.size < MIN_LINK_DAYS) continue
-        links[id] = withoutFloatNoise(with.map(rest).average() - without.map(rest).average())
-    }
-    return links
-}
-
 /** The number of weeks before the week of the window end that the week charts of the score view show. */
 const val COMPARED_WEEKS = 4
 

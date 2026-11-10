@@ -114,27 +114,6 @@ class ChartsTest {
     }
 
     @Test
-    fun aHorizontalBarChartShowsEachRowWithItsTextAlsoForNegativeValues() = runComposeUiTest {
-        setContent {
-            TrackulaTheme(dark = false) {
-                HorizontalBarChart(
-                    "Links",
-                    "Rows.",
-                    listOf(HBar("Meditate", 1.5, Color.Green, "+1.5"), HBar("Teeth", -0.5, Color.Red, "−0.5")),
-                )
-            }
-        }
-        onNodeWithContentDescription("Meditate: +1.5").assertExists()
-        onNodeWithContentDescription("Teeth: −0.5").assertExists()
-    }
-
-    @Test
-    fun aHorizontalBarChartWithoutRowsSaysSo() = runComposeUiTest {
-        setContent { TrackulaTheme(dark = false) { HorizontalBarChart("Links", "Rows.", emptyList()) } }
-        onNodeWithText("No values in this period.").assertExists()
-    }
-
-    @Test
     fun aRangeBarChartShowsTheValuesOfTheMarksAndALegend() = runComposeUiTest {
         setContent {
             TrackulaTheme(dark = false) {

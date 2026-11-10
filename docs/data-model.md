@@ -140,12 +140,6 @@ Rules:
   - "Weekday averages": the average score on each weekday. For the score of all metrics, with 2 or more groups,
     each bar stacks the part of each group, in one color for each group. The parts of a weekday add up to its
     average: a day without points of a group adds 0 to that group.
-  - "Points by metric": the points of each metric in the period, and its share of the score, the most points first.
-    With 2 or more groups, each bar has the color of its group.
-  - "Habits that go with good days": for each metric, the average points of the other metrics on the days when the
-    metric gives points, minus the same average on the days when it gives none. The metric's own points do not
-    count, so that they do not count twice. A metric needs 5 days of each kind. This shows a link, not a cause.
-    Example: +1.2 for meditate means that the other metrics give 1.2 more points on the days with meditate.
   - "Score by month": a month calendar with the score of each day. A darker day has a higher score. It is read-only.
     It shows the month of the end of the period, and its arrows show the other months. The "Score" view has no day
     heatmap: the calendar shows the same days, with their scores.
