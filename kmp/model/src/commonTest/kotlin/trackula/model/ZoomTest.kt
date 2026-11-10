@@ -2,7 +2,9 @@ package trackula.model
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ZoomTest {
     // 2026-09-28 is a Monday.
@@ -92,6 +94,7 @@ class ZoomTest {
         assertEquals(mon.addDays(-28) to today, w.from to w.to)
         assertEquals(31, w.days.size)
         assertEquals(false to true, w.atStart to w.atEnd)
+        assertFalse(w.showsAll)
     }
 
     @Test
@@ -116,6 +119,7 @@ class ZoomTest {
         val w = ZoomWindow(ZoomStep.YEAR1, first, today)
         assertEquals(listOf(Day(2026, 8, 1), Day(2026, 9, 1)), w.starts)
         assertEquals(Triple(first, true, true), Triple(w.from, w.atStart, w.atEnd))
+        assertTrue(w.showsAll)
     }
 
     @Test
