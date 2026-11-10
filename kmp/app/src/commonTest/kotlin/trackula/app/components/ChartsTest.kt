@@ -91,25 +91,6 @@ class ChartsTest {
     }
 
     @Test
-    fun aHeatmapWithLevelsHasWeekdayLabels() = runComposeUiTest {
-        setContent {
-            TrackulaTheme(dark = false) {
-                DayHeatmap("Score by day", days.first(), days.last(), { true }, days.last(), level = { 0.5 })
-            }
-        }
-        onNodeWithText("Mo").assertExists()
-        onNodeWithText("Su").assertExists()
-    }
-
-    @Test
-    fun aHeatmapWithoutLevelsHasNoWeekdayLabels() = runComposeUiTest {
-        setContent {
-            TrackulaTheme(dark = false) { DayHeatmap("Days", days.first(), days.last(), { true }, days.last()) }
-        }
-        onNodeWithText("Mo").assertDoesNotExist()
-    }
-
-    @Test
     fun aTrendChartWithoutValuesShowsNothing() = runComposeUiTest {
         setContent { TrackulaTheme(dark = false) { TrendChart(days, emptyMap()) } }
         onAllNodesWithContentDescription("Values from", substring = true).assertCountEquals(0)
@@ -154,45 +135,35 @@ class ChartsTest {
     }
 
     @Test
-    fun aGroupedBarChartShowsTheValuesOfTheLastSeriesAndALegend() = runComposeUiTest {
+    fun aRangeBarChartShowsTheValuesOfTheMarksAndALegend() = runComposeUiTest {
         setContent {
             TrackulaTheme(dark = false) {
-                GroupedBarChart(
-                    "Weeks",
-                    "Two weeks.",
-                    listOf("Mo", "Tu"),
-                    listOf(
-                        StackPart("Last week", Color.Gray, listOf(7.0, 8.0)),
-                        StackPart("This week", Color.Green, listOf(9.0, null)),
-                    ),
+                RangeBarChart(
+                    title = "Week",
+                    description = "Weekdays.",
+                    labels = listOf("Mo", "Tu"),
+                    ranges = listOf(ValueRange(10.0, 14.0, 12.0), ValueRange(3.0, 5.0, 4.0)),
+                    marks = listOf(15.0, null),
+                    rangeLabel = "4 weeks before",
+                    markLabel = "This week",
                 )
             }
         }
-        onNodeWithText("9").assertExists()
-        onNodeWithText("7").assertDoesNotExist()
-        onNodeWithText("Last week").assertExists()
+        onNodeWithText("15").assertExists()
+        onNodeWithText("12").assertDoesNotExist()
+        onNodeWithText("4 weeks before").assertExists()
+        onNodeWithText("Average").assertExists()
         onNodeWithText("This week").assertExists()
     }
 
     @Test
-    fun aRangeBarChartShowsTheAverages() = runComposeUiTest {
+    fun aRangeBarChartWithoutRangesAndMarksSaysSo() = runComposeUiTest {
         setContent {
             TrackulaTheme(dark = false) {
-                RangeBarChart("Range", "Weekdays.", listOf("Mo", "Tu"), listOf(ValueRange(10.0, 14.0, 12.0), null))
+                RangeBarChart("Week", "Weekdays.", listOf("Mo"), listOf(null), listOf(null), "Before", "Now")
             }
         }
-        onNodeWithText("12").assertExists()
-    }
-
-    @Test
-    fun aCellGridGivesEachCellToScreenReaders() = runComposeUiTest {
-        setContent {
-            TrackulaTheme(dark = false) {
-                CellGrid("Grid", "Cells.", listOf("Mo", "Tu"), listOf("Water" to listOf(5.5, null)))
-            }
-        }
-        onNodeWithContentDescription("Water, Mo: 5.5").assertExists()
-        onNodeWithContentDescription("Water, Tu: no value").assertExists()
+        onNodeWithText("No values in this period.").assertExists()
     }
 
     @Test

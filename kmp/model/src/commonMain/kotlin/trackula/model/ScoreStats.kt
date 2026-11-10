@@ -1,7 +1,5 @@
 package trackula.model
 
-import kotlin.math.max
-
 /**
  * The first half and the second half of [days]. With an odd number of days, the second half has one day more.
  * Example: the 14 days from 2026-10-01 to 2026-10-14 give 2026-10-01 to 2026-10-07 and 2026-10-08 to 2026-10-14.
@@ -9,13 +7,6 @@ import kotlin.math.max
  * The score view compares the 2 halves, not the period with the days before it: at All, no day comes before.
  */
 fun halves(days: List<Day>): Pair<List<Day>, List<Day>> = days.take(days.size / 2) to days.drop(days.size / 2)
-
-/**
- * For each weekday, Monday first, the change from the average in [before] to the average in [now]. Null if one of
- * the 2 averages is null. Example: 12.5 now and 11.0 before give 1.5.
- */
-fun weekdayChanges(now: List<Double?>, before: List<Double?>): List<Double?> =
-    now.zip(before) { n, b -> if (n == null || b == null) null else withoutFloatNoise(n - b) }
 
 /**
  * The part of each group in the weekday averages of the score. For each group of [groups] and each weekday, Monday
@@ -41,75 +32,11 @@ fun groupWeekdayParts(
 }
 
 /**
- * The level of each day of [days] with a score in [values], from 0 to 1: the score divided by the highest score of
- * [days]. A score below 0 counts as 0. All levels are 0 if no score is above 0. Example: the scores 5 and 10 give the
- * levels 0.5 and 1.
- */
-fun scoreLevels(values: Map<Day, Double>, days: List<Day>): Map<Day, Double> {
-    val scored = days.filter { it in values }.associateWith { max(0.0, values.getValue(it)) }
-    val high = scored.values.maxOrNull() ?: return emptyMap()
-    return scored.mapValues { (_, v) -> if (high == 0.0) 0.0 else v / high }
-}
-
-/** The [low] and [high] value of a set of values, and their [average]. Example: the scores of all Mondays. */
-data class ValueRange(val low: Double, val high: Double, val average: Double)
-
-/**
- * The lowest, highest and average score of the days of [days] with a score in [values], for each weekday, Monday
- * first. Null for a weekday without a score. Example: 2 Mondays with 10 and 14 give low 10, high 14, average 12.
- */
-fun weekdayRanges(values: Map<Day, Double>, days: List<Day>): List<ValueRange?> = (1..7).map { weekday ->
-    val scores = days.filter { it.weekday == weekday }.mapNotNull { values[it] }
-    if (scores.isEmpty()) null else ValueRange(scores.min(), scores.max(), withoutFloatNoise(scores.average()))
-}
-
-/**
- * The scores of the week of [today] and of the week before, Monday first: 7 values each. Null for a day without a
- * score, and for the days after [today]. Weeks start on Monday.
- */
-fun thisAndLastWeek(values: Map<Day, Double>, today: Day): Pair<List<Double?>, List<Double?>> {
-    val monday = today.addDays(1 - today.weekday)
-    val thisWeek = (0..6).map { monday.addDays(it) }.map { if (it > today) null else values[it] }
-    val lastWeek = (0..6).map { values[monday.addDays(it - 7)] }
-    return thisWeek to lastWeek
-}
-
-/**
- * The last [count] days of [days], or all of them if there are fewer. Example: the last 14 days of a window.
- */
-fun lastDays(days: List<Day>, count: Int): List<Day> = days.takeLast(count)
-
-/**
- * The average score of the days of [days] with a score in [values], and how far the score of each of these days is
- * from it. Null if no day has a score. Example: the scores 10 and 14 give the average 12 and the differences −2 and
- * +2.
- */
-fun differencesFromAverage(values: Map<Day, Double>, days: List<Day>): Pair<Double, Map<Day, Double>>? {
-    val scored = days.filter { it in values }
-    if (scored.isEmpty()) return null
-    val average = withoutFloatNoise(scored.sumOf { values.getValue(it) } / scored.size)
-    return average to scored.associateWith { withoutFloatNoise(values.getValue(it) - average) }
-}
-
-/**
  * The points of each metric in [points] (see `pointsByMetric`) on the days of [days], by metric id. Example: water
  * with 5 and 6 points gives 11.
  */
 fun metricTotals(points: Map<String, Map<Day, Double>>, days: List<Day>): Map<String, Double> =
     points.mapValues { (_, byDay) -> withoutFloatNoise(days.sumOf { byDay[it] ?: 0.0 }) }
-
-/**
- * The average points of each metric in [points] on each weekday, Monday first, from the days of [days] with a value
- * of that metric, by metric id. Null for a weekday without a value. Example: a yes/no habit done on 3 of 4 Mondays
- * gives 0.75 for Monday.
- */
-fun metricWeekdayAverages(points: Map<String, Map<Day, Double>>, days: List<Day>): Map<String, List<Double?>> =
-    points.mapValues { (_, byDay) ->
-        (1..7).map { weekday ->
-            val values = days.filter { it.weekday == weekday }.mapNotNull { byDay[it] }
-            if (values.isEmpty()) null else withoutFloatNoise(values.average())
-        }
-    }
 
 /** The fewest days with and without points of a metric that [habitLinks] needs to compare them. */
 const val MIN_LINK_DAYS = 5
@@ -133,4 +60,71 @@ fun habitLinks(points: Map<String, Map<Day, Double>>, score: Map<Day, Double>, d
         links[id] = withoutFloatNoise(with.map(rest).average() - without.map(rest).average())
     }
     return links
+}
+
+/** The number of weeks before the week of the window end that the week charts of the score view compare with. */
+const val COMPARED_WEEKS = 4
+
+/**
+ * The days of the week of [end], from Monday to [end], and all days of the [weeks] weeks before that week, oldest
+ * first. Weeks start on Monday. Example: Wednesday 2026-10-07 and 4 weeks give 2026-10-05 to 2026-10-07, and
+ * 2026-09-07 to 2026-10-04.
+ */
+private fun weekAndBefore(end: Day, weeks: Int): Pair<List<Day>, List<Day>> {
+    val monday = barStart(end, BarUnit.WEEK)
+    return daysBetween(monday, end) to daysBetween(monday.addDays(-7 * weeks), monday.addDays(-1))
+}
+
+/** One weekday of [weekdaysInRange]: its [score] in the week, and its [range] in the weeks before. */
+data class WeekdayInRange(val score: Double?, val range: ValueRange?)
+
+/**
+ * For each weekday, Monday first: the score of that weekday in the week of [end], and the lowest, highest and average
+ * score of that weekday in the [weeks] weeks before. Only the days with a score in [values] count. A weekday after
+ * [end] or without a score has a null score. A weekday without a score in the weeks before has a null range.
+ *
+ * Example: the Mondays of the weeks before have 10, 12 and 14, and the Monday of the week has 15. Monday gets the
+ * score 15 and the range 10 to 14, with the average 12.
+ */
+fun weekdaysInRange(values: Map<Day, Double>, end: Day, weeks: Int = COMPARED_WEEKS): List<WeekdayInRange> {
+    val (week, before) = weekAndBefore(end, weeks)
+    return (1..7).map { weekday ->
+        val scores = before.filter { it.weekday == weekday }.mapNotNull { values[it] }
+        WeekdayInRange(
+            score = week.firstOrNull { it.weekday == weekday }?.let { values[it] },
+            range = if (scores.isEmpty()) {
+                null
+            } else {
+                ValueRange(scores.min(), scores.max(), withoutFloatNoise(scores.average()))
+            },
+        )
+    }
+}
+
+/**
+ * The change of each part of the score from the [weeks] weeks before the week of [end] to that week, by part id: the
+ * average points per day of the part in the week, from Monday to [end], minus its average points per day on the same
+ * weekdays of the weeks before. [parts]: the points of each part by day, for example the score of each group or the
+ * points of each metric. Only the days with a [score] count, and a day without points of a part counts as 0.
+ *
+ * A part without points on these days is not in the result. If the week or the weeks before have no day with a score,
+ * the result is empty.
+ *
+ * Example: [end] is a Wednesday. Habits gives 3 points per day from Monday to Wednesday, and 2.5 points per day on the
+ * Mondays to Wednesdays of the weeks before. The change of habits is +0.5.
+ */
+fun weekChanges(
+    parts: Map<String, Map<Day, Double>>,
+    score: Map<Day, Double>,
+    end: Day,
+    weeks: Int = COMPARED_WEEKS,
+): Map<String, Double> {
+    val (week, before) = weekAndBefore(end, weeks)
+    val now = week.filter { it in score }
+    val earlier = before.filter { it.weekday <= end.weekday && it in score }
+    if (now.isEmpty() || earlier.isEmpty()) return emptyMap()
+    fun List<Day>.perDay(byDay: Map<Day, Double>) = sumOf { byDay[it] ?: 0.0 } / size
+    return parts
+        .filterValues { byDay -> (now + earlier).any { (byDay[it] ?: 0.0) != 0.0 } }
+        .mapValues { (_, byDay) -> withoutFloatNoise(now.perDay(byDay) - earlier.perDay(byDay)) }
 }

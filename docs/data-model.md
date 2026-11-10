@@ -111,35 +111,36 @@ Rules:
 - The app does not read the `Score` column. It shows the scores that it calculates, also for count taps that it did not
   write yet. Demo mode has no `Score` column.
 - In the app, a green bar chart of the score, one bar for each day, is at the top of the "5 days" and "31 days"
-  views. A tap on "Score" opens the "Score" view of the bottom navigation bar: the score only, in green, with bars.
-  It shows the average per day, the best day, the best weekday, and charts of the average per day, the average on
-  each weekday and the distribution. It does not show a total: the score of a day does not add up over time. The
-  Today tiles do not show the score.
-  - The weekday averages of all metrics stack the part of each group, in one color for each group. The parts of a
-    weekday add up to its average: a day without points of a group adds 0 to that group.
-  - "Weekday change" and "per day, change" compare the first half of the period with the second half. Example: in
-    the 14 days from Oct 1 to Oct 14, the days from Oct 8 to Oct 14 compare with the days from Oct 1 to Oct 7. With
-    an odd number of days, the second half has one day more. The change does not use the days before the period: at
-    "All", there are none.
-  - "Score by day": one cell for each day, one row for each weekday. A darker cell has a higher score. The day with
-    the highest score of the period has the full color. A tap on a day shows its month in "Score by month".
-  - "This week and last week": each day of this week, Monday to today, next to the same weekday of last week. It
-    always shows these 2 weeks, also when the period is another one.
-  - "Above and below your average": the last 28 days of the period, each as a bar up or down from the average of
-    these days.
-  - "Days by group": the last 14 days of the period, each as a bar with the points of each group. Only for the score
-    of all metrics, with 2 or more groups.
-  - "Weekday range": for each weekday, a bar from the lowest to the highest score, and a dot at the average.
-  - "Metrics by weekday": one row for each metric, one cell for each weekday, with the average points of the metric
-    on the days with a value of that metric. Each row has its own scale: its darkest cell is its best weekday.
+  views. A tap on "Score" opens the "Score" view of the bottom navigation bar: the score only, in green. Each part
+  shows different data, so that no part shows again the days or the weekdays of another part. It does not show a
+  total: the score of a day does not add up over time. The Today tiles do not show the score.
+  - Key numbers: "per day" (the average of the days with a score), "change", "best day" and "best weekday".
+  - "change" compares the first half of the period with the second half. Example: in the 14 days from Oct 1 to Oct
+    14, the days from Oct 8 to Oct 14 compare with the days from Oct 1 to Oct 7. With an odd number of days, the
+    second half has one day more. The change does not use the days before the period: at "All", there are none.
+  - "Average per day": one bar for each week, month or quarter of the period, with the average score of its days
+    with a score.
+  - "This week and the 4 weeks before": for each weekday, the score of this week (a diamond), and a bar from the
+    lowest to the highest score of that weekday in the 4 weeks before, with a dot at their average. A day after today
+    has only the bar: the usual range of that weekday. "This week" is the week of the end of the period. If you move
+    the period back, the chart shows the week of its end, for example "The week of Oct 5 and the 4 weeks before".
+  - "Change by group": for each group, the points per day of this week minus the points per day on the same weekdays
+    of the 4 weeks before. Example: on a Wednesday, Monday to Wednesday of this week compare with the Mondays to
+    Wednesdays of the 4 weeks before. Only the days with a score count, and a day without points of a group counts as
+    0. The largest change is at the top. With a group selected, or with only one group, it is "Change by metric", with
+    one row for each metric. A group or metric without points on these days has no row.
+  - "Weekday averages": the average score on each weekday. For the score of all metrics, with 2 or more groups,
+    each bar stacks the part of each group, in one color for each group. The parts of a weekday add up to its
+    average: a day without points of a group adds 0 to that group.
   - "Points by metric": the points of each metric in the period, and its share of the score, the most points first.
     With 2 or more groups, each bar has the color of its group.
   - "Habits that go with good days": for each metric, the average points of the other metrics on the days when the
     metric gives points, minus the same average on the days when it gives none. The metric's own points do not
     count, so that they do not count twice. A metric needs 5 days of each kind. This shows a link, not a cause.
     Example: +1.2 for meditate means that the other metrics give 1.2 more points on the days with meditate.
-  - "Score by month": a month calendar with the score of each day. A darker day has a higher score. It is read-only,
-    and it shows the month of the end of the period until the arrows or a tap on the heatmap change it.
+  - "Score by month": a month calendar with the score of each day. A darker day has a higher score. It is read-only.
+    It shows the month of the end of the period, and its arrows show the other months. The "Score" view has no day
+    heatmap: the calendar shows the same days, with their scores.
 - The group filter of the app (the `group` column) also applies to the score. With a group selected, the chart and
   the "Score" view show the group score: the sum of the points of the metrics of that group only. The title shows the
   group, for example "Score · Habits". The sum of the group scores is the score of the day. The `Score` column always

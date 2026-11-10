@@ -36,7 +36,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
@@ -57,17 +56,16 @@ import trackula.model.daysBetween
 import trackula.model.formatNumber
 import trackula.model.roundHalfAwayFromZero
 import trackula.model.shortDay
-import trackula.model.weekdayNames
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
 /** The height of the bar and line charts, in chart units. */
-internal const val PLOT_UNITS = 50f
+private const val PLOT_UNITS = 50f
 
 /** The width of one bar column, in chart units. */
-internal const val COLUMN_UNITS = 10f
+private const val COLUMN_UNITS = 10f
 
 /** The largest number of bars that always fit in the card. A chart with more bars can scroll to the side. */
 private const val SCROLL_BARS = 12
@@ -85,7 +83,7 @@ private val MAX_COLUMN_WIDTH = 56.dp
 internal val WIDE_CONTENT = 608.dp
 
 /** The height of a bar or line chart. */
-internal val PLOT_HEIGHT = 96.dp
+private val PLOT_HEIGHT = 96.dp
 
 /** The text of the chart labels. */
 @Composable
@@ -93,7 +91,7 @@ internal fun labelStyle() =
     TextStyle(fontSize = 11.sp, lineHeight = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
 /** The y coordinate of a value from [low] (bottom) to [high] (top), with 2 units of space at the top and the bottom. */
-internal fun yScale(high: Double, low: Double): (Double) -> Float = { value ->
+private fun yScale(high: Double, low: Double): (Double) -> Float = { value ->
     if (high == low) PLOT_UNITS / 2 else (2 + (PLOT_UNITS - 4) * (high - value) / (high - low)).toFloat()
 }
 
@@ -564,13 +562,21 @@ fun TimeBars(
 }
 
 /**
- * One bar from the lowest to the highest value for each of [ranges], and the average as a dot. A null range has no
- * bar. The scale goes from [low] (bottom) to [high] (top).
+ * One bar in the color [bar] from the lowest to the highest value for each of [ranges], and the average as a dot in
+ * the color [dot]. A null range has no bar. With [marks], a diamond in the cell color shows the mark of each column,
+ * also in a column without a range. A null mark has no diamond. The scale goes from [low] (bottom) to [high] (top).
  */
 @Composable
-internal fun RangeBars(ranges: List<ValueRange?>, high: Double, low: Double, label: String) {
-    val empty = LocalExtraColors.current.cellEmpty
-    val primary = MaterialTheme.colorScheme.primary
+internal fun RangeBars(
+    ranges: List<ValueRange?>,
+    high: Double,
+    low: Double,
+    label: String,
+    bar: Color = LocalExtraColors.current.cellEmpty,
+    dot: Color = MaterialTheme.colorScheme.primary,
+    marks: List<Double?> = emptyList(),
+) {
+    val mark = LocalExtraColors.current.cell
     val y = yScale(high, low)
     Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = label }) {
         val sx = size.width / (ranges.size * COLUMN_UNITS)
@@ -584,8 +590,22 @@ internal fun RangeBars(ranges: List<ValueRange?>, high: Double, low: Double, lab
             // A stroke with round ends that keeps its width, as in the Dart chart.
             val top = y(barHigh) * sy
             val bottom = max(y(barHigh) + 0.5f, y(barLow)) * sy
-            drawLine(empty, Offset(x, top), Offset(x, bottom), strokeWidth = 10.dp.toPx(), cap = StrokeCap.Round)
-            drawCircle(primary, 2.5.dp.toPx(), Offset(x, y(average) * sy))
+            drawLine(bar, Offset(x, top), Offset(x, bottom), strokeWidth = 10.dp.toPx(), cap = StrokeCap.Round)
+            drawCircle(dot, 2.5.dp.toPx(), Offset(x, y(average) * sy))
+        }
+        val half = 6.dp.toPx()
+        marks.forEachIndexed { i, v ->
+            if (v == null) return@forEachIndexed
+            val x = (i * COLUMN_UNITS + 5) * sx
+            val center = y(v) * sy
+            val diamond = Path().apply {
+                moveTo(x, center - half)
+                lineTo(x + half, center)
+                lineTo(x, center + half)
+                lineTo(x - half, center)
+                close()
+            }
+            drawPath(diamond, mark)
         }
     }
 }
@@ -669,19 +689,9 @@ fun Overview(weeks: List<ZoomBar>, fromZero: Boolean, from: Day, to: Day, onPoin
 /** The largest number of days that show as single cells. Single days of a longer window are too small. */
 private const val MAX_HEATMAP_DAYS = 371
 
-/** The smallest cell of a [DayHeatmap] that has weekday labels next to its rows. */
-private val MIN_LABELED_CELL = 12.dp
-
-/** The width of the weekday labels of a [DayHeatmap]. */
-private val WEEKDAY_LABEL_WIDTH = 22.dp
-
 /**
  * The days from [from] to [to] in week columns, Monday at the top. A day that [filled] gives true for is filled. A tap
  * on a day calls [onDay]. Without [onDay], a tap does nothing.
- *
- * With [level], the fill shows a level from 0 to 1 in place of [filled]: a light color for 0, the full color for 1.
- * A day with a null level has the empty fill. Then the rows have weekday labels, if the cells are large enough.
- * Example: the score of each day.
  */
 @Composable
 fun DayHeatmap(
@@ -692,18 +702,9 @@ fun DayHeatmap(
     today: Day,
     modifier: Modifier = Modifier,
     onDay: ((Day) -> Unit)? = null,
-    level: ((Day) -> Double?)? = null,
 ) {
-    val description = when {
-        level != null && onDay != null ->
-            "One row for each weekday. A darker day has a higher score. Tap a day to show its month in the calendar."
-
-        level != null -> "One row for each weekday. A darker day has a higher score."
-
-        onDay != null -> "Tap a day to show its month in the calendar."
-
-        else -> "One cell for each day of the window."
-    }
+    val description =
+        onDay?.let { "Tap a day to show its month in the calendar." } ?: "One cell for each day of the window."
     ChartCard(title, description, modifier) {
         if (to.serial - from.serial + 1 > MAX_HEATMAP_DAYS) {
             return@ChartCard Text("Zoom in to 1 year or less to see single days.", style = labelStyle())
@@ -714,29 +715,8 @@ fun DayHeatmap(
         val extra = LocalExtraColors.current
         BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             // Short windows: cells at most about 24 dp, centered, not the full width.
-            val labels = level != null && (maxWidth - WEEKDAY_LABEL_WIDTH) / columns >= MIN_LABELED_CELL
-            val labelWidth = if (labels) WEEKDAY_LABEL_WIDTH else 0.dp
-            val width: Dp = min((maxWidth - labelWidth).value, columns * 24f).dp
-            val cell = width / columns
-            Row {
-                if (labels) {
-                    Column(Modifier.width(labelWidth)) {
-                        for (name in weekdayNames) {
-                            Box(Modifier.height(cell), contentAlignment = Alignment.CenterStart) {
-                                Text(name, style = labelStyle(), maxLines = 1)
-                            }
-                        }
-                    }
-                }
-                DayCells(days, offset, columns, width, today, onDay) { d ->
-                    if (level == null) {
-                        if (filled(d)) extra.cell else extra.cellEmpty
-                    } else {
-                        level(d)?.let { lerp(extra.cellEmpty, extra.cell, (0.25 + 0.75 * it).toFloat()) }
-                            ?: extra.cellEmpty
-                    }
-                }
-            }
+            val width: Dp = min(maxWidth.value, columns * 24f).dp
+            DayCells(days, offset, columns, width, today, onDay) { d -> if (filled(d)) extra.cell else extra.cellEmpty }
         }
     }
 }

@@ -187,6 +187,11 @@ class MetricDetailTest {
         onNodeWithContentDescription("Back to 3 months").assertExists()
         onNodeWithContentDescription("Zoom out").assertIsNotEnabled()
         onNodeWithContentDescription("Earlier").assertIsNotEnabled()
+        // At All, the overview would show the same bars as "Average per day".
+        onNodeWithContentDescription("All data").assertDoesNotExist()
+        onNodeWithContentDescription("Back to 3 months").performClick()
+        waitForIdle()
+        onNodeWithContentDescription("All data").assertExists()
     }
 
     @Test
@@ -205,38 +210,62 @@ class MetricDetailTest {
     }
 
     @Test
-    fun theScoreViewComparesWithThePeriodBeforeAndShowsTheScoreOfEachDay() = runComposeUiTest {
+    fun theScoreViewComparesTheHalvesOfThePeriodAndShowsTheScoreOfEachDayInTheCalendar() = runComposeUiTest {
         showPage(MainView.SCORE)
-        waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weekday change").fetchSemanticsNodes().isNotEmpty() }
-        onNodeWithText("per day, change").assertExists()
+        waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("change").fetchSemanticsNodes().isNotEmpty() }
         // At All, no day comes before the window. The change compares the halves of the window, so it has values.
         onNodeWithContentDescription("Back to 3 months").assertExists()
         onNodeWithText("No values in this period.").assertDoesNotExist()
-        onNodeWithText("Score by day").assertExists()
-        onNodeWithText(
-            "One row for each weekday. A darker day has a higher score. Tap a day to show its month in the calendar.",
-        ).assertExists()
+        // The calendar shows the score of each day, so there is no heatmap of the same days.
+        onNodeWithText("Score by month").assertExists()
+        onNodeWithText("Score by day").assertDoesNotExist()
     }
 
     @Test
-    fun theScoreViewHasTheChartsOfWeeksGroupsAndMetrics() = runComposeUiTest {
+    fun theScoreViewHasOneChartForTimeWeekdaysMetricsAndHabits() = runComposeUiTest {
         showPage(MainView.SCORE)
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Points by metric").fetchSemanticsNodes().isNotEmpty() }
+        for (title in listOf("Average per day", "Weekday averages", "Habits that go with good days")) {
+            onNodeWithText(title).assertExists()
+        }
+        // These charts showed again the days, the weekdays or the change that the charts above already show.
         for (title in listOf(
             "This week and last week",
             "Above and below your average",
             "Days by group",
             "Weekday range",
+            "Weekday change",
             "Metrics by weekday",
-            "Habits that go with good days",
+            "Distribution (days)",
+            "days with a score",
         )) {
-            onNodeWithText(title).assertExists()
+            onNodeWithText(title).assertDoesNotExist()
         }
-        // One group: no split by group.
         onAllNodesWithText("Hygiene")[0].performClick()
         waitForIdle()
-        onNodeWithText("Days by group").assertDoesNotExist()
         onNodeWithText("Points by metric").assertExists()
+    }
+
+    @Test
+    fun theScoreViewComparesTheWeekOfTheWindowEndWithThe4WeeksBefore() = runComposeUiTest {
+        showPage(MainView.SCORE)
+        waitUntil(timeoutMillis = TIMEOUT) {
+            onAllNodesWithText("This week and the 4 weeks before").fetchSemanticsNodes().isNotEmpty()
+        }
+        // All metrics with 2 or more groups: the change is by group.
+        onNodeWithText("Change by group").assertExists()
+        onNodeWithText("Change by metric").assertDoesNotExist()
+        // An older window, 3 months that end on Sunday 2026-08-30: the week of its end.
+        onNodeWithContentDescription("Back to 3 months").performClick()
+        onNodeWithContentDescription("Earlier").performClick()
+        waitForIdle()
+        onNodeWithText("This week and the 4 weeks before").assertDoesNotExist()
+        onNodeWithText("The week of Aug 24 and the 4 weeks before").assertExists()
+        // One group: the change is by metric.
+        onAllNodesWithText("Hygiene")[0].performClick()
+        waitForIdle()
+        onNodeWithText("Change by metric").assertExists()
+        onNodeWithText("Change by group").assertDoesNotExist()
     }
 
     @Test

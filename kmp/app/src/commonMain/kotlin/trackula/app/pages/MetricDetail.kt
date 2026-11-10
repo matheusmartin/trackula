@@ -58,7 +58,6 @@ import trackula.model.isScore
 import trackula.model.monthOf
 import trackula.model.pointsByMetric
 import trackula.model.roundHalfAwayFromZero
-import trackula.model.scoreLevels
 import trackula.model.threeMonthsStepIndex
 import trackula.model.yesNoStates
 import trackula.model.zoomBars
@@ -77,16 +76,16 @@ private const val WHEEL_STEP = 40f
  * - Time window: the zoom buttons set its span and the bar size (see [ZoomStep]). It opens at All for a metric of kind
  *   `number` and for the score, and at 3 months for the other kinds (see [defaultStepIndex]). A tap on the zoom label
  *   goes to All, and a second tap goes back. At All without an earlier step, the tap goes to 3 months. The arrows move
- *   the window by its full span. A tap or a drag on the overview moves it there. A side drag or a side wheel on the
+ *   the window by its full span. A tap or a drag on the overview moves it there. When the window shows all data, there
+ *   is no overview: it shows the same bars as the first chart. A side drag or a side wheel on the
  *   charts moves it by bars. All numbers and charts show the same window.
  * - Day heatmap: the days of the window. A tap on a day shows its month in the calendar.
  * - Edit days: any month, with the same day cells and inputs as the Today page. It shows the month of the window end
  *   until the arrows, a swipe or a heatmap tap change it. Wide screens also show the month before.
- * - Score (`scoreMetric` or a `groupScoreMetric`): averages, weeks, weekdays, groups and metrics, from [scores], all with
- *   bars, in green. [groupScores]: the score of each group, for the charts of `scoreMetric` by group.
- *   [scoreMetrics]: the metrics that give the points, for the charts by metric. The heatmap shows the score of each
- *   day. In place of Edit days, a read-only month calendar shows the score of each day: the app calculates the
- *   scores.
+ * - Score (`scoreMetric` or a `groupScoreMetric`): key numbers and charts over time, by weekday and by metric, from
+ *   [scores], in green. [groupScores]: the score of each group, for the charts of `scoreMetric` by group.
+ *   [scoreMetrics]: the metrics that give the points, for the charts by metric. In place of the heatmap and Edit days,
+ *   a read-only month calendar shows the score of each day: the app calculates the scores.
  *
  * [onBack] closes the screen. Null: the screen has no back button, for example the Score view.
  */
@@ -181,20 +180,17 @@ private fun DetailContent(
                     scoreMetrics = scoreMetrics,
                     points = if (isScore(metric)) pointsByMetric(scoreMetrics, log, pending) else emptyMap(),
                 )
-                val levels = if (isScore(metric)) scoreLevels(values, window.days) else null
-                DayHeatmap(
-                    title = when {
-                        metric is YesNoMetric -> "Yes days"
-                        levels != null -> "Score by day"
-                        else -> "Days with a value"
-                    },
-                    from = window.from,
-                    to = window.to,
-                    today = today,
-                    filled = { d -> if (metric is YesNoMetric) states[d] == true else d in values },
-                    onDay = { d -> month = monthOf(d) },
-                    level = levels?.let { l -> { d -> l[d] } },
-                )
+                // The score has no heatmap: its month calendar shows the same days, with the score of each day.
+                if (!isScore(metric)) {
+                    DayHeatmap(
+                        title = if (metric is YesNoMetric) "Yes days" else "Days with a value",
+                        from = window.from,
+                        to = window.to,
+                        today = today,
+                        filled = { d -> if (metric is YesNoMetric) states[d] == true else d in values },
+                        onDay = { d -> month = monthOf(d) },
+                    )
+                }
             }
             if (isScore(metric)) {
                 ScoreCalendar(values, today, month ?: monthOf(window.to)) { month = it }
@@ -215,7 +211,10 @@ private fun DetailContent(
     }
 }
 
-/** The zoom buttons, the dates of the window with arrows, and the overview of all data. */
+/**
+ * The zoom buttons, the dates of the window with arrows, and the overview of all data. When the window shows all data,
+ * there is no overview: the first chart shows the same bars, and there is no other part of the data to move to.
+ */
 @Composable
 private fun WindowBar(
     metric: Metric,
@@ -263,20 +262,22 @@ private fun WindowBar(
                 }, enabled = !window.atEnd, small = true)
             }
         }
-        Overview(
-            weeks = zoomBars(
-                values,
-                aggregate,
-                barStarts(window.first, window.today, BarUnit.WEEK),
-                BarUnit.WEEK,
-                window.first,
-                window.today,
-            ),
-            fromZero = aggregate != Aggregate.AVERAGE,
-            from = box.from,
-            to = box.to,
-            onPoint = { d -> moveTo(window.endCenteredOn(d)) },
-        )
+        if (!window.showsAll) {
+            Overview(
+                weeks = zoomBars(
+                    values,
+                    aggregate,
+                    barStarts(window.first, window.today, BarUnit.WEEK),
+                    BarUnit.WEEK,
+                    window.first,
+                    window.today,
+                ),
+                fromZero = aggregate != Aggregate.AVERAGE,
+                from = box.from,
+                to = box.to,
+                onPoint = { d -> moveTo(window.endCenteredOn(d)) },
+            )
+        }
     }
 }
 

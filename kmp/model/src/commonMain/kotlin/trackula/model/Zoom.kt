@@ -44,6 +44,9 @@ enum class Aggregate {
 /** One bar: its first day, its value, and the lowest and highest value of its days. A null value draws no bar. */
 data class ZoomBar(val start: Day, val value: Double?, val low: Double?, val high: Double?)
 
+/** The [low] and [high] value of a set of values, and their [average]. Example: the values of the days of one bar. */
+data class ValueRange(val low: Double, val high: Double, val average: Double)
+
 /** A span of days, from [from] to [to]. Both days are in the span. */
 data class DayRange(val from: Day, val to: Day)
 
@@ -138,6 +141,9 @@ class ZoomWindow(val step: ZoomStep, val first: Day, val today: Day, end: Day? =
 
     /** True if the window shows the oldest bar. */
     val atStart: Boolean get() = fromIndex == 0
+
+    /** True if the window shows all bars, from the oldest to the newest. Example: the step All. */
+    val showsAll: Boolean get() = atStart && atEnd
 
     /**
      * The days in view, as a box on a chart of all data with one column for each [unit] bar. At the oldest bar, the box
