@@ -13,6 +13,7 @@ import trackula.model.BarUnit
 import trackula.model.COMPARED_WEEKS
 import trackula.model.CountStats
 import trackula.model.Day
+import trackula.model.LONG_COMPARED_WEEKS
 import trackula.model.MIN_LINK_DAYS
 import trackula.model.Metric
 import trackula.model.NumberMetric
@@ -38,8 +39,10 @@ import trackula.model.shortDay
 import trackula.model.streakLengths
 import trackula.model.streakRanges
 import trackula.model.weekChanges
+import trackula.model.weekMondays
 import trackula.model.weekdayNames
 import trackula.model.weekdaysInRange
+import trackula.model.weeklyPoints
 import trackula.model.withUnit
 import trackula.model.yesNoStats
 import trackula.model.zoomBars
@@ -260,14 +263,14 @@ private fun CountCharts(metric: NumberMetric, window: ZoomWindow, values: Map<Da
 
 /**
  * The numbers and charts of the score. Each one answers one question: how the score changes over time, how the week
- * of the window end compares with the weeks before (for each weekday, and for each group or metric), which weekdays
- * are good, which metrics give the points, and which habits go with good days. The month calendar below the charts
- * shows the score of each day (see `ScoreCalendar`). The score of a day does not add up over time, so the charts show
- * averages per day and per weekday, not totals.
+ * of the window end compares with the 4 weeks before (for each weekday, and for each group or metric) and with the 3
+ * months before (for each group or metric), which weekdays are good, which metrics give the points, and which habits
+ * go with good days. The month calendar below the charts shows the score of each day (see `ScoreCalendar`). The score
+ * of a day does not add up over time, so the charts show averages per day and per weekday, not totals.
  *
  * - [values]: the score of each day. The change compares the first half of the window with the second half.
  * - [groupScores]: the score of each group. With 2 or more groups, the weekday bars show the part of each group, the
- *   week change is by group, and the points by metric have the color of their group. Else the week change is by
+ *   week charts are by group, and the points by metric have the color of their group. Else the week charts are by
  *   metric.
  * - [scoreMetrics], [points]: the metrics that give the points, and their points by metric id.
  */
@@ -286,6 +289,7 @@ private fun ScoreCharts(
     val previous = countStats(values, firstHalf).average
     val best = stats.best
     val weekday = bestWeekday(stats.weekdayAverages)
+    val parts = scoreParts(scoreMetrics, points, groupScores)
     KeyNumbers(
         listOf(
             "per day" to (stats.average?.let { withUnit(it, metric) } ?: "–"),
@@ -308,7 +312,8 @@ private fun ScoreCharts(
                 fixedScale = true,
             ),
             ChartItem(wide = false) { WeekInRange(values, window, it) },
-            ChartItem(wide = false) { WeekChanges(scoreMetrics, points, values, window, groupScores, it) },
+            ChartItem(wide = false) { WeeklyPoints(parts, values, window, it) },
+            ChartItem(wide = true) { WeekChanges(parts, values, window, it) },
             ChartItem(wide = true) { WeekdayAverages(values, window, stats, groupScores, it) },
             ChartItem(wide = true) { PointsByMetric(scoreMetrics, points, window, groupScores, it) },
             ChartItem(wide = true) { HabitLinks(scoreMetrics, points, values, window, it) },
@@ -345,31 +350,60 @@ private fun WeekInRange(values: Map<Day, Double>, window: ZoomWindow, modifier: 
 }
 
 /**
- * The change of each group from the [COMPARED_WEEKS] weeks before to the week of the window end, the largest first.
- * With fewer than 2 [groupScores], the change of each metric of [metrics] in [points]. See `weekChanges`.
+ * The parts of the score in the week charts: the groups with 2 or more groups, else the metrics. [noun]: "group" or
+ * "metric". [points]: the points of each part by day, by part id. [names]: the name of each part, by part id.
  */
-@Composable
-private fun WeekChanges(
+private class ScoreParts(val noun: String, val points: Map<String, Map<Day, Double>>, val names: Map<String, String>) {
+    /** The name of the part [id]. */
+    fun name(id: String): String = names[id] ?: id
+}
+
+/** The groups of [groupScores] if there are 2 or more, else the metrics of [metrics] with their [points]. */
+private fun scoreParts(
     metrics: List<Metric>,
     points: Map<String, Map<Day, Double>>,
-    values: Map<Day, Double>,
-    window: ZoomWindow,
     groupScores: Map<String, Map<Day, Double>>,
-    modifier: Modifier,
-) {
-    val byGroup = groupScores.size >= 2
-    val part = if (byGroup) "group" else "metric"
-    val names = if (byGroup) groupScores.keys.associateWith(::groupLabel) else metrics.associate { it.id to it.name }
-    val changes = weekChanges(if (byGroup) groupScores else points, values, window.to)
+): ScoreParts = if (groupScores.size >= 2) {
+    ScoreParts("group", groupScores, groupScores.keys.associateWith(::groupLabel))
+} else {
+    ScoreParts("metric", points, metrics.associate { it.id to it.name })
+}
+
+/**
+ * The points per day of each part of the score in the week of the window end and in each of the [COMPARED_WEEKS]
+ * weeks before, on the same weekdays. The color of a cell shows the change from the week before. See `weeklyPoints`.
+ */
+@Composable
+private fun WeeklyPoints(parts: ScoreParts, values: Map<Day, Double>, window: ZoomWindow, modifier: Modifier) {
+    val weekly = weeklyPoints(parts.points, values, window.to, COMPARED_WEEKS)
+    ChangeTable(
+        title = "Points per day, by ${parts.noun} and week",
+        description = "The points per day of each ${parts.noun} in ${window.weekName()} (last column) and in the " +
+            "$COMPARED_WEEKS weeks before, on the same weekdays. The color shows the change from the week before.",
+        columns = weekMondays(window.to, COMPARED_WEEKS).map(::shortDay),
+        rows = weekly.entries.map { (id, perWeek) -> parts.name(id) to perWeek },
+        upLabel = "More than the week before",
+        downLabel = "Less than the week before",
+        modifier = modifier,
+    )
+}
+
+/**
+ * The change of each part of the score from the 3 months ([LONG_COMPARED_WEEKS] weeks) before to the week of the
+ * window end, the largest first. See `weekChanges`.
+ */
+@Composable
+private fun WeekChanges(parts: ScoreParts, values: Map<Day, Double>, window: ZoomWindow, modifier: Modifier) {
+    val changes = weekChanges(parts.points, values, window.to, LONG_COMPARED_WEEKS)
     val cell = LocalExtraColors.current.cell
     val negative = MaterialTheme.colorScheme.tertiary
     HorizontalBarChart(
-        title = "Change by $part",
-        description = "The points per day of each $part in ${window.weekName()}, minus its points per day on the " +
-            "same weekdays of the $COMPARED_WEEKS weeks before.",
+        title = "Change by ${parts.noun}, 3 months",
+        description = "The points per day of each ${parts.noun} in ${window.weekName()}, minus its points per day on " +
+            "the same weekdays of the 3 months ($LONG_COMPARED_WEEKS weeks) before.",
         bars = changes.entries
             .sortedByDescending { it.value }
-            .map { (id, change) -> HBar(names[id] ?: id, change, if (change >= 0) cell else negative, signed(change)) },
+            .map { (id, change) -> HBar(parts.name(id), change, if (change >= 0) cell else negative, signed(change)) },
         modifier = modifier,
     )
 }

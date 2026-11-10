@@ -167,6 +167,39 @@ class ChartsTest {
     }
 
     @Test
+    fun aChangeTableShowsTheValuesAndGivesTheChangeToScreenReaders() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) {
+                ChangeTable(
+                    title = "Weeks",
+                    description = "Points per day.",
+                    columns = listOf("Nov 2", "Nov 9"),
+                    rows = listOf("Habits" to listOf(4.7, 6.8), "Body" to listOf(null, 1.5)),
+                    upLabel = "More",
+                    downLabel = "Less",
+                )
+            }
+        }
+        // The cells give their own text to screen readers: the numbers are only in the unmerged tree.
+        onNodeWithText("6.8", useUnmergedTree = true).assertExists()
+        onNodeWithText("–", useUnmergedTree = true).assertExists()
+        onNodeWithContentDescription("Habits, Nov 2: 4.7").assertExists()
+        onNodeWithContentDescription("Habits, Nov 9: 6.8, +2.1 from Nov 2").assertExists()
+        onNodeWithContentDescription("Body, Nov 2: no value").assertExists()
+        onNodeWithContentDescription("Body, Nov 9: 1.5").assertExists()
+        onNodeWithText("More").assertExists()
+        onNodeWithText("Less").assertExists()
+    }
+
+    @Test
+    fun aChangeTableWithoutRowsSaysSo() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) { ChangeTable("Weeks", "Points.", listOf("Nov 9"), emptyList(), "Up", "Down") }
+        }
+        onNodeWithText("No values in this period.").assertExists()
+    }
+
+    @Test
     fun theScoreCalendarShowsTheScoresOfTheMonthAndStopsAtTheMonthOfToday() = runComposeUiTest {
         var month = MonthKey(2026, 9)
         setContent {

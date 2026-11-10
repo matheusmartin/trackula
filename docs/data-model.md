@@ -124,11 +124,17 @@ Rules:
     lowest to the highest score of that weekday in the 4 weeks before, with a dot at their average. A day after today
     has only the bar: the usual range of that weekday. "This week" is the week of the end of the period. If you move
     the period back, the chart shows the week of its end, for example "The week of Oct 5 and the 4 weeks before".
-  - "Change by group": for each group, the points per day of this week minus the points per day on the same weekdays
-    of the 4 weeks before. Example: on a Wednesday, Monday to Wednesday of this week compare with the Mondays to
-    Wednesdays of the 4 weeks before. Only the days with a score count, and a day without points of a group counts as
-    0. The largest change is at the top. With a group selected, or with only one group, it is "Change by metric", with
-    one row for each metric. A group or metric without points on these days has no row.
+  - "Points per day, by group and week": a table with one row for each group and one column for each week: the 4
+    weeks before and this week (the last column). Each cell has the points per day of the group on the same weekdays
+    as this week. Example: on a Wednesday, each week counts its Monday to Wednesday. The color of a cell shows the
+    change from the week before: green for more, orange for less, darker for a larger change. A cell of the first
+    column, or without change, has no color. A week without a day with a score shows "–".
+  - "Change by group, 3 months": for each group, the points per day of this week minus the points per day on the
+    same weekdays of the 3 months (13 weeks) before. Example: on a Wednesday, Monday to Wednesday of this week compare
+    with the Mondays to Wednesdays of the 13 weeks before. The largest change is at the top.
+  - In these 2 charts, only the days with a score count, and a day without points of a group counts as 0. A group
+    without points on these days has no row. With a group selected, or with only one group, the charts are by
+    metric: "Points per day, by metric and week" and "Change by metric, 3 months", with one row for each metric.
   - "Weekday averages": the average score on each weekday. For the score of all metrics, with 2 or more groups,
     each bar stacks the part of each group, in one color for each group. The parts of a weekday add up to its
     average: a day without points of a group adds 0 to that group.

@@ -103,12 +103,47 @@ class ScoreStatsTest {
             "gone" to mapOf(day(0) to 3.0),
             "empty" to emptyMap(),
         )
-        assertEquals(mapOf("habits" to 0.5, "body" to 1.5, "gone" to -1.0), weekChanges(parts, score, day(29)))
+        assertEquals(mapOf("habits" to 0.5, "body" to 1.5, "gone" to -1.0), weekChanges(parts, score, day(29), 4))
+    }
+
+    @Test
+    fun weekChangesUseAllWeeksOfTheBase() {
+        // day(28) is a Monday. day(-63) is the Monday 13 weeks before it, out of a base of 4 weeks.
+        val score = mapOf(day(-63) to 4.0, day(0) to 4.0, day(28) to 6.0)
+        val parts = mapOf("habits" to mapOf(day(-63) to 1.0, day(0) to 3.0, day(28) to 3.0))
+        assertEquals(mapOf("habits" to 0.0), weekChanges(parts, score, day(28), 4))
+        assertEquals(mapOf("habits" to 1.0), weekChanges(parts, score, day(28), LONG_COMPARED_WEEKS))
     }
 
     @Test
     fun weekChangesAreEmptyWithoutAScoreInTheWeek() {
         val score = mapOf(day(0) to 4.0, day(21) to 5.0)
-        assertEquals(emptyMap(), weekChanges(mapOf("habits" to score), score, day(29)))
+        assertEquals(emptyMap(), weekChanges(mapOf("habits" to score), score, day(29), 4))
+    }
+
+    @Test
+    fun weeklyPointsGiveThePointsPerDayOfTheSameWeekdaysOfEachWeek() {
+        // day(29) is the Tuesday of the 5th week: each week counts its Monday and Tuesday with a score.
+        val score = mapOf(
+            day(0) to 4.0,
+            day(1) to 4.0,
+            day(2) to 100.0,
+            day(7) to 4.0,
+            day(21) to 5.0,
+            day(22) to 5.0,
+            day(28) to 6.0,
+            day(29) to 6.0,
+        )
+        val habits = mapOf(day(0) to 2.0, day(1) to 3.0, day(2) to 50.0, day(7) to 2.0, day(21) to 1.0, day(28) to 3.0)
+        val points = weeklyPoints(mapOf("habits" to habits, "empty" to emptyMap()), score, day(29), 4)
+        // The 3rd week has no score: null. In the 4th week, the Tuesday has no points of habits: 0.
+        assertEquals(mapOf("habits" to listOf(2.5, 2.0, null, 0.5, 1.5)), points)
+        assertEquals(listOf(day(0), day(7), day(14), day(21), day(28)), weekMondays(day(29), 4))
+    }
+
+    @Test
+    fun stepChangesAreTheChangeFromTheValueBefore() {
+        assertEquals(listOf(null, 1.5, null, null), stepChanges(listOf(5.0, 6.5, null, 4.0)))
+        assertEquals(emptyList(), stepChanges(emptyList()))
     }
 }
