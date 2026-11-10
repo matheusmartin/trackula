@@ -114,27 +114,6 @@ class ChartsTest {
     }
 
     @Test
-    fun aHorizontalBarChartShowsEachRowWithItsTextAlsoForNegativeValues() = runComposeUiTest {
-        setContent {
-            TrackulaTheme(dark = false) {
-                HorizontalBarChart(
-                    "Links",
-                    "Rows.",
-                    listOf(HBar("Meditate", 1.5, Color.Green, "+1.5"), HBar("Teeth", -0.5, Color.Red, "−0.5")),
-                )
-            }
-        }
-        onNodeWithContentDescription("Meditate: +1.5").assertExists()
-        onNodeWithContentDescription("Teeth: −0.5").assertExists()
-    }
-
-    @Test
-    fun aHorizontalBarChartWithoutRowsSaysSo() = runComposeUiTest {
-        setContent { TrackulaTheme(dark = false) { HorizontalBarChart("Links", "Rows.", emptyList()) } }
-        onNodeWithText("No values in this period.").assertExists()
-    }
-
-    @Test
     fun aRangeBarChartShowsTheValuesOfTheMarksAndALegend() = runComposeUiTest {
         setContent {
             TrackulaTheme(dark = false) {
@@ -162,6 +141,39 @@ class ChartsTest {
             TrackulaTheme(dark = false) {
                 RangeBarChart("Week", "Weekdays.", listOf("Mo"), listOf(null), listOf(null), "Before", "Now")
             }
+        }
+        onNodeWithText("No values in this period.").assertExists()
+    }
+
+    @Test
+    fun aChangeTableShowsTheValuesAndGivesTheChangeToScreenReaders() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) {
+                ChangeTable(
+                    title = "Weeks",
+                    description = "Points per day.",
+                    columns = listOf("Nov 2", "Nov 9"),
+                    rows = listOf("Habits" to listOf(4.7, 6.8), "Body" to listOf(null, 1.5)),
+                    upLabel = "More",
+                    downLabel = "Less",
+                )
+            }
+        }
+        // The cells give their own text to screen readers: the numbers are only in the unmerged tree.
+        onNodeWithText("6.8", useUnmergedTree = true).assertExists()
+        onNodeWithText("–", useUnmergedTree = true).assertExists()
+        onNodeWithContentDescription("Habits, Nov 2: 4.7").assertExists()
+        onNodeWithContentDescription("Habits, Nov 9: 6.8, +2.1 from Nov 2").assertExists()
+        onNodeWithContentDescription("Body, Nov 2: no value").assertExists()
+        onNodeWithContentDescription("Body, Nov 9: 1.5").assertExists()
+        onNodeWithText("More").assertExists()
+        onNodeWithText("Less").assertExists()
+    }
+
+    @Test
+    fun aChangeTableWithoutRowsSaysSo() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) { ChangeTable("Weeks", "Points.", listOf("Nov 9"), emptyList(), "Up", "Down") }
         }
         onNodeWithText("No values in this period.").assertExists()
     }

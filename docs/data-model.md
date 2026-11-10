@@ -124,20 +124,22 @@ Rules:
     lowest to the highest score of that weekday in the 4 weeks before, with a dot at their average. A day after today
     has only the bar: the usual range of that weekday. "This week" is the week of the end of the period. If you move
     the period back, the chart shows the week of its end, for example "The week of Oct 5 and the 4 weeks before".
-  - "Change by group": for each group, the points per day of this week minus the points per day on the same weekdays
-    of the 4 weeks before. Example: on a Wednesday, Monday to Wednesday of this week compare with the Mondays to
-    Wednesdays of the 4 weeks before. Only the days with a score count, and a day without points of a group counts as
-    0. The largest change is at the top. With a group selected, or with only one group, it is "Change by metric", with
-    one row for each metric. A group or metric without points on these days has no row.
+  - "Points per day, by group and week": a table with one row for each group and one column for each week: the 4
+    weeks before and this week (the last column). Each cell has the points per day of the group on the same weekdays
+    as this week. Example: on a Wednesday, each week counts its Monday to Wednesday. The color of a cell shows the
+    change from the week before: green for more, orange for less, darker for a larger change. A cell of the first
+    column, or without change, has no color. A week without a day with a score shows "–".
+  - "Points per day, by group and month": the same table with one column for each month: the 3 months before and
+    this month (the last column), up to the end of the period. Each cell has the points per day of the group in all
+    days of that month with a score. The color shows the change from the month before. Example: on Nov 10, the
+    columns are Aug, Sep, Oct and Nov, and Nov counts Nov 1 to Nov 10.
+  - In these 2 tables, only the days with a score count, and a day without points of a group counts as 0. A group
+    without points on these days has no row. With a group selected, or with only one group, the tables are by metric:
+    "Points per day, by metric and week" and "Points per day, by metric and month", with one row for each metric.
+    "This week" and "this month" are the week and the month of the end of the period.
   - "Weekday averages": the average score on each weekday. For the score of all metrics, with 2 or more groups,
     each bar stacks the part of each group, in one color for each group. The parts of a weekday add up to its
     average: a day without points of a group adds 0 to that group.
-  - "Points by metric": the points of each metric in the period, and its share of the score, the most points first.
-    With 2 or more groups, each bar has the color of its group.
-  - "Habits that go with good days": for each metric, the average points of the other metrics on the days when the
-    metric gives points, minus the same average on the days when it gives none. The metric's own points do not
-    count, so that they do not count twice. A metric needs 5 days of each kind. This shows a link, not a cause.
-    Example: +1.2 for meditate means that the other metrics give 1.2 more points on the days with meditate.
   - "Score by month": a month calendar with the score of each day. A darker day has a higher score. It is read-only.
     It shows the month of the end of the period, and its arrows show the other months. The "Score" view has no day
     heatmap: the calendar shows the same days, with their scores.

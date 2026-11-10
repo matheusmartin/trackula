@@ -5,15 +5,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import trackula.app.LocalExtraColors
 import trackula.model.Aggregate
 import trackula.model.BarUnit
+import trackula.model.COMPARED_MONTHS
 import trackula.model.COMPARED_WEEKS
 import trackula.model.CountStats
 import trackula.model.Day
-import trackula.model.MIN_LINK_DAYS
 import trackula.model.Metric
 import trackula.model.NumberMetric
 import trackula.model.NumberStats
@@ -26,20 +25,23 @@ import trackula.model.countStats
 import trackula.model.formatNumber
 import trackula.model.formatPercent
 import trackula.model.formatSigned
-import trackula.model.groupOf
 import trackula.model.groupWeekdayParts
-import trackula.model.habitLinks
 import trackula.model.halves
 import trackula.model.isScore
-import trackula.model.metricTotals
+import trackula.model.monthOf
+import trackula.model.monthTitle
+import trackula.model.monthlyPoints
+import trackula.model.monthsUntil
 import trackula.model.numberStats
 import trackula.model.roundHalfAwayFromZero
 import trackula.model.shortDay
+import trackula.model.shortMonth
 import trackula.model.streakLengths
 import trackula.model.streakRanges
-import trackula.model.weekChanges
+import trackula.model.weekMondays
 import trackula.model.weekdayNames
 import trackula.model.weekdaysInRange
+import trackula.model.weeklyPoints
 import trackula.model.withUnit
 import trackula.model.yesNoStats
 import trackula.model.zoomBars
@@ -260,16 +262,16 @@ private fun CountCharts(metric: NumberMetric, window: ZoomWindow, values: Map<Da
 
 /**
  * The numbers and charts of the score. Each one answers one question: how the score changes over time, how the week
- * of the window end compares with the weeks before (for each weekday, and for each group or metric), which weekdays
- * are good, which metrics give the points, and which habits go with good days. The month calendar below the charts
- * shows the score of each day (see `ScoreCalendar`). The score of a day does not add up over time, so the charts show
- * averages per day and per weekday, not totals.
+ * of the window end compares with the 4 weeks before (for each weekday, and for each group or metric), how its month
+ * compares with the 3 months before (for each group or metric), and which weekdays are good. The month calendar below
+ * the charts shows the score of each day (see `ScoreCalendar`). The score of a day does not add up over time, so the charts show averages per day and per
+ * weekday, not totals.
  *
  * - [values]: the score of each day. The change compares the first half of the window with the second half.
  * - [groupScores]: the score of each group. With 2 or more groups, the weekday bars show the part of each group, the
- *   week change is by group, and the points by metric have the color of their group. Else the week change is by
+ *   week and month tables are by group. Else they are by metric.
+ * - [scoreMetrics], [points]: the metrics that give the points, and their points by metric id, for the tables by
  *   metric.
- * - [scoreMetrics], [points]: the metrics that give the points, and their points by metric id.
  */
 @Composable
 private fun ScoreCharts(
@@ -286,6 +288,7 @@ private fun ScoreCharts(
     val previous = countStats(values, firstHalf).average
     val best = stats.best
     val weekday = bestWeekday(stats.weekdayAverages)
+    val parts = scoreParts(scoreMetrics, points, groupScores)
     KeyNumbers(
         listOf(
             "per day" to (stats.average?.let { withUnit(it, metric) } ?: "–"),
@@ -307,11 +310,10 @@ private fun ScoreCharts(
                 Aggregate.AVERAGE,
                 fixedScale = true,
             ),
-            ChartItem(wide = false) { WeekInRange(values, window, it) },
-            ChartItem(wide = false) { WeekChanges(scoreMetrics, points, values, window, groupScores, it) },
+            ChartItem(wide = true) { WeekInRange(values, window, it) },
+            ChartItem(wide = false) { WeeklyPoints(parts, values, window, it) },
+            ChartItem(wide = false) { MonthlyPoints(parts, values, window, it) },
             ChartItem(wide = true) { WeekdayAverages(values, window, stats, groupScores, it) },
-            ChartItem(wide = true) { PointsByMetric(scoreMetrics, points, window, groupScores, it) },
-            ChartItem(wide = true) { HabitLinks(scoreMetrics, points, values, window, it) },
         ),
     )
 }
@@ -345,31 +347,63 @@ private fun WeekInRange(values: Map<Day, Double>, window: ZoomWindow, modifier: 
 }
 
 /**
- * The change of each group from the [COMPARED_WEEKS] weeks before to the week of the window end, the largest first.
- * With fewer than 2 [groupScores], the change of each metric of [metrics] in [points]. See `weekChanges`.
+ * The parts of the score in the week and month tables: the groups with 2 or more groups, else the metrics. [noun]:
+ * "group" or "metric". [points]: the points of each part by day, by part id. [names]: the name of each part, by part
+ * id.
  */
-@Composable
-private fun WeekChanges(
+private class ScoreParts(val noun: String, val points: Map<String, Map<Day, Double>>, val names: Map<String, String>) {
+    /** The name of the part [id]. */
+    fun name(id: String): String = names[id] ?: id
+}
+
+/** The groups of [groupScores] if there are 2 or more, else the metrics of [metrics] with their [points]. */
+private fun scoreParts(
     metrics: List<Metric>,
     points: Map<String, Map<Day, Double>>,
-    values: Map<Day, Double>,
-    window: ZoomWindow,
     groupScores: Map<String, Map<Day, Double>>,
-    modifier: Modifier,
-) {
-    val byGroup = groupScores.size >= 2
-    val part = if (byGroup) "group" else "metric"
-    val names = if (byGroup) groupScores.keys.associateWith(::groupLabel) else metrics.associate { it.id to it.name }
-    val changes = weekChanges(if (byGroup) groupScores else points, values, window.to)
-    val cell = LocalExtraColors.current.cell
-    val negative = MaterialTheme.colorScheme.tertiary
-    HorizontalBarChart(
-        title = "Change by $part",
-        description = "The points per day of each $part in ${window.weekName()}, minus its points per day on the " +
-            "same weekdays of the $COMPARED_WEEKS weeks before.",
-        bars = changes.entries
-            .sortedByDescending { it.value }
-            .map { (id, change) -> HBar(names[id] ?: id, change, if (change >= 0) cell else negative, signed(change)) },
+): ScoreParts = if (groupScores.size >= 2) {
+    ScoreParts("group", groupScores, groupScores.keys.associateWith(::groupLabel))
+} else {
+    ScoreParts("metric", points, metrics.associate { it.id to it.name })
+}
+
+/**
+ * The points per day of each part of the score in the week of the window end and in each of the [COMPARED_WEEKS]
+ * weeks before, on the same weekdays. The color of a cell shows the change from the week before. See `weeklyPoints`.
+ */
+@Composable
+private fun WeeklyPoints(parts: ScoreParts, values: Map<Day, Double>, window: ZoomWindow, modifier: Modifier) {
+    val weekly = weeklyPoints(parts.points, values, window.to, COMPARED_WEEKS)
+    ChangeTable(
+        title = "Points per day, by ${parts.noun} and week",
+        description = "The points per day of each ${parts.noun} in ${window.weekName()} (last column) and in the " +
+            "$COMPARED_WEEKS weeks before, on the same weekdays. The color shows the change from the week before.",
+        columns = weekMondays(window.to, COMPARED_WEEKS).map(::shortDay),
+        rows = weekly.entries.map { (id, perWeek) -> parts.name(id) to perWeek },
+        upLabel = "More than the week before",
+        downLabel = "Less than the week before",
+        modifier = modifier,
+    )
+}
+
+/**
+ * The points per day of each part of the score in the month of the window end, up to the window end, and in each of
+ * the [COMPARED_MONTHS] months before. The color of a cell shows the change from the month before. See
+ * `monthlyPoints`.
+ */
+@Composable
+private fun MonthlyPoints(parts: ScoreParts, values: Map<Day, Double>, window: ZoomWindow, modifier: Modifier) {
+    val monthly = monthlyPoints(parts.points, values, window.to, COMPARED_MONTHS)
+    val month = if (window.atEnd) "this month" else monthTitle(monthOf(window.to))
+    ChangeTable(
+        title = "Points per day, by ${parts.noun} and month",
+        description = "The points per day of each ${parts.noun} in $month (last column, up to " +
+            "${shortDay(window.to)}) and in the $COMPARED_MONTHS months before. The color shows the change from the " +
+            "month before.",
+        columns = monthsUntil(window.to, COMPARED_MONTHS).map { shortMonth(it.month) },
+        rows = monthly.entries.map { (id, perMonth) -> parts.name(id) to perMonth },
+        upLabel = "More than the month before",
+        downLabel = "Less than the month before",
         modifier = modifier,
     )
 }
@@ -405,80 +439,6 @@ private fun WeekdayAverages(
         parts = parts.entries.mapIndexed { i, (group, averages) ->
             StackPart(groupLabel(group), colors[i % colors.size], averages)
         },
-        modifier = modifier,
-    )
-}
-
-/** [value] with its sign, and a minus sign, not a hyphen. Examples: 1.5 → "+1.5", −2 → "−2", 0 → "0". */
-private fun signed(value: Double): String = when {
-    formatNumber(value) == "0" -> "0"
-    value > 0 -> "+${formatNumber(value)}"
-    else -> "−${formatNumber(-value)}"
-}
-
-/** The color of [group] in the score charts: the colors of the groups follow the order of [groups]. */
-@Composable
-private fun groupColor(group: String, groups: List<String>): Color {
-    val colors = LocalExtraColors.current.groups
-    return colors[groups.indexOf(group).coerceAtLeast(0) % colors.size]
-}
-
-/** The legend of the groups of [groups], in their colors. */
-@Composable
-private fun groupLegend(groups: List<String>): List<StackPart> =
-    groups.map { StackPart(groupLabel(it), groupColor(it, groups), emptyList()) }
-
-/** The points of each metric in the window, and its share of the score, the most points first. */
-@Composable
-private fun PointsByMetric(
-    metrics: List<Metric>,
-    points: Map<String, Map<Day, Double>>,
-    window: ZoomWindow,
-    groupScores: Map<String, Map<Day, Double>>,
-    modifier: Modifier,
-) {
-    val totals = metricTotals(points, window.days)
-    val sum = totals.values.sum()
-    val groups = groupScores.keys.toList()
-    val cell = LocalExtraColors.current.cell
-    HorizontalBarChart(
-        title = "Points by metric",
-        description = "The points of each metric in this period, and its share of the score.",
-        bars = metrics.mapNotNull { m -> totals[m.id]?.takeIf { it > 0 }?.let { m to it } }
-            .sortedByDescending { it.second }
-            .map { (m, total) ->
-                HBar(
-                    label = m.name,
-                    value = total,
-                    color = if (groups.size >= 2) groupColor(groupOf(m), groups) else cell,
-                    text = "${formatNumber(total)} · ${formatPercent(total / sum)}",
-                )
-            },
-        modifier = modifier,
-        legend = if (groups.size >= 2) groupLegend(groups) else emptyList(),
-    )
-}
-
-/** For each metric, how many more points the other metrics give on the days when it gives points. */
-@Composable
-private fun HabitLinks(
-    metrics: List<Metric>,
-    points: Map<String, Map<Day, Double>>,
-    values: Map<Day, Double>,
-    window: ZoomWindow,
-    modifier: Modifier,
-) {
-    val links = habitLinks(points, values, window.days)
-    val cell = LocalExtraColors.current.cell
-    val negative = MaterialTheme.colorScheme.tertiary
-    HorizontalBarChart(
-        title = "Habits that go with good days",
-        description = "On the days when a metric gives points, how many more points the other metrics give. " +
-            "This shows a link, not a cause. A metric needs $MIN_LINK_DAYS days with points and $MIN_LINK_DAYS " +
-            "without.",
-        bars = metrics.mapNotNull { m -> links[m.id]?.let { m to it } }
-            .sortedByDescending { it.second }
-            .map { (m, link) -> HBar(m.name, link, if (link >= 0) cell else negative, signed(link)) },
         modifier = modifier,
     )
 }

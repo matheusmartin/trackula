@@ -222,13 +222,12 @@ class MetricDetailTest {
     }
 
     @Test
-    fun theScoreViewHasOneChartForTimeWeekdaysMetricsAndHabits() = runComposeUiTest {
+    fun theScoreViewHasOnlyTheChartsThatShowDifferentData() = runComposeUiTest {
         showPage(MainView.SCORE)
-        waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Points by metric").fetchSemanticsNodes().isNotEmpty() }
-        for (title in listOf("Average per day", "Weekday averages", "Habits that go with good days")) {
-            onNodeWithText(title).assertExists()
-        }
-        // These charts showed again the days, the weekdays or the change that the charts above already show.
+        waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weekday averages").fetchSemanticsNodes().isNotEmpty() }
+        onNodeWithText("Average per day").assertExists()
+        // These charts showed again the days, the weekdays or the change that the other charts show, or were not
+        // useful: points by metric and habit links.
         for (title in listOf(
             "This week and last week",
             "Above and below your average",
@@ -238,12 +237,11 @@ class MetricDetailTest {
             "Metrics by weekday",
             "Distribution (days)",
             "days with a score",
+            "Points by metric",
+            "Habits that go with good days",
         )) {
             onNodeWithText(title).assertDoesNotExist()
         }
-        onAllNodesWithText("Hygiene")[0].performClick()
-        waitForIdle()
-        onNodeWithText("Points by metric").assertExists()
     }
 
     @Test
@@ -252,20 +250,22 @@ class MetricDetailTest {
         waitUntil(timeoutMillis = TIMEOUT) {
             onAllNodesWithText("This week and the 4 weeks before").fetchSemanticsNodes().isNotEmpty()
         }
-        // All metrics with 2 or more groups: the change is by group.
-        onNodeWithText("Change by group").assertExists()
-        onNodeWithText("Change by metric").assertDoesNotExist()
+        // All metrics with 2 or more groups: the week and month tables are by group.
+        onNodeWithText("Points per day, by group and week").assertExists()
+        onNodeWithText("Points per day, by group and month").assertExists()
+        onNodeWithText("Points per day, by metric and month").assertDoesNotExist()
         // An older window, 3 months that end on Sunday 2026-08-30: the week of its end.
         onNodeWithContentDescription("Back to 3 months").performClick()
         onNodeWithContentDescription("Earlier").performClick()
         waitForIdle()
         onNodeWithText("This week and the 4 weeks before").assertDoesNotExist()
         onNodeWithText("The week of Aug 24 and the 4 weeks before").assertExists()
-        // One group: the change is by metric.
+        // One group: the week and month tables are by metric.
         onAllNodesWithText("Hygiene")[0].performClick()
         waitForIdle()
-        onNodeWithText("Change by metric").assertExists()
-        onNodeWithText("Change by group").assertDoesNotExist()
+        onNodeWithText("Points per day, by metric and week").assertExists()
+        onNodeWithText("Points per day, by metric and month").assertExists()
+        onNodeWithText("Points per day, by group and month").assertDoesNotExist()
     }
 
     @Test

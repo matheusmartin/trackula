@@ -35,14 +35,17 @@ import trackula.model.monthTitle
 import trackula.model.shortDay
 import trackula.model.weekdayNames
 
-/** The text on a light day cell. */
-private val DARK_INK = Color(0xFF1A1E24)
+/** The text on a light cell of the score calendar or of a [ChangeTable]. */
+internal val DARK_INK = Color(0xFF1A1E24)
 
-/** The text on a dark day cell. */
-private val LIGHT_INK = Color(0xFFF4F6F9)
+/** The text on a dark cell of the score calendar or of a [ChangeTable]. */
+internal val LIGHT_INK = Color(0xFFF4F6F9)
 
-/** The highest share of the full color in a calendar day, so that the number on it stays readable. */
-private const val MAX_FILL = 0.7f
+/**
+ * The highest share of the full color in a day of the score calendar or a cell of a [ChangeTable], so that the number
+ * on it stays readable.
+ */
+internal const val MAX_FILL = 0.7f
 
 /**
  * The score of each day of one [month]: a read-only month calendar with the score of each day, Monday first. A day
