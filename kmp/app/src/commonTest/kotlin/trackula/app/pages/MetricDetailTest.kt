@@ -252,22 +252,22 @@ class MetricDetailTest {
         waitUntil(timeoutMillis = TIMEOUT) {
             onAllNodesWithText("This week and the 4 weeks before").fetchSemanticsNodes().isNotEmpty()
         }
-        // All metrics with 2 or more groups: the week charts are by group.
+        // All metrics with 2 or more groups: the week and month tables are by group.
         onNodeWithText("Points per day, by group and week").assertExists()
-        onNodeWithText("Change by group, 3 months").assertExists()
-        onNodeWithText("Change by metric, 3 months").assertDoesNotExist()
+        onNodeWithText("Points per day, by group and month").assertExists()
+        onNodeWithText("Points per day, by metric and month").assertDoesNotExist()
         // An older window, 3 months that end on Sunday 2026-08-30: the week of its end.
         onNodeWithContentDescription("Back to 3 months").performClick()
         onNodeWithContentDescription("Earlier").performClick()
         waitForIdle()
         onNodeWithText("This week and the 4 weeks before").assertDoesNotExist()
         onNodeWithText("The week of Aug 24 and the 4 weeks before").assertExists()
-        // One group: the week charts are by metric.
+        // One group: the week and month tables are by metric.
         onAllNodesWithText("Hygiene")[0].performClick()
         waitForIdle()
         onNodeWithText("Points per day, by metric and week").assertExists()
-        onNodeWithText("Change by metric, 3 months").assertExists()
-        onNodeWithText("Change by group, 3 months").assertDoesNotExist()
+        onNodeWithText("Points per day, by metric and month").assertExists()
+        onNodeWithText("Points per day, by group and month").assertDoesNotExist()
     }
 
     @Test

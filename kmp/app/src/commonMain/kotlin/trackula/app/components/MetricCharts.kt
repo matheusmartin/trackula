@@ -10,10 +10,10 @@ import androidx.compose.ui.unit.dp
 import trackula.app.LocalExtraColors
 import trackula.model.Aggregate
 import trackula.model.BarUnit
+import trackula.model.COMPARED_MONTHS
 import trackula.model.COMPARED_WEEKS
 import trackula.model.CountStats
 import trackula.model.Day
-import trackula.model.LONG_COMPARED_WEEKS
 import trackula.model.MIN_LINK_DAYS
 import trackula.model.Metric
 import trackula.model.NumberMetric
@@ -33,12 +33,16 @@ import trackula.model.habitLinks
 import trackula.model.halves
 import trackula.model.isScore
 import trackula.model.metricTotals
+import trackula.model.monthOf
+import trackula.model.monthTitle
+import trackula.model.monthlyPoints
+import trackula.model.monthsUntil
 import trackula.model.numberStats
 import trackula.model.roundHalfAwayFromZero
 import trackula.model.shortDay
+import trackula.model.shortMonth
 import trackula.model.streakLengths
 import trackula.model.streakRanges
-import trackula.model.weekChanges
 import trackula.model.weekMondays
 import trackula.model.weekdayNames
 import trackula.model.weekdaysInRange
@@ -263,15 +267,16 @@ private fun CountCharts(metric: NumberMetric, window: ZoomWindow, values: Map<Da
 
 /**
  * The numbers and charts of the score. Each one answers one question: how the score changes over time, how the week
- * of the window end compares with the 4 weeks before (for each weekday, and for each group or metric) and with the 3
- * months before (for each group or metric), which weekdays are good, which metrics give the points, and which habits
- * go with good days. The month calendar below the charts shows the score of each day (see `ScoreCalendar`). The score
- * of a day does not add up over time, so the charts show averages per day and per weekday, not totals.
+ * of the window end compares with the 4 weeks before (for each weekday, and for each group or metric), how its month
+ * compares with the 3 months before (for each group or metric), which weekdays are good, which metrics give the
+ * points, and which habits go with good days. The month calendar below the charts shows the score of each day (see
+ * `ScoreCalendar`). The score of a day does not add up over time, so the charts show averages per day and per
+ * weekday, not totals.
  *
  * - [values]: the score of each day. The change compares the first half of the window with the second half.
  * - [groupScores]: the score of each group. With 2 or more groups, the weekday bars show the part of each group, the
- *   week charts are by group, and the points by metric have the color of their group. Else the week charts are by
- *   metric.
+ *   week and month tables are by group, and the points by metric have the color of their group. Else the tables
+ *   are by metric.
  * - [scoreMetrics], [points]: the metrics that give the points, and their points by metric id.
  */
 @Composable
@@ -311,9 +316,9 @@ private fun ScoreCharts(
                 Aggregate.AVERAGE,
                 fixedScale = true,
             ),
-            ChartItem(wide = false) { WeekInRange(values, window, it) },
+            ChartItem(wide = true) { WeekInRange(values, window, it) },
             ChartItem(wide = false) { WeeklyPoints(parts, values, window, it) },
-            ChartItem(wide = true) { WeekChanges(parts, values, window, it) },
+            ChartItem(wide = false) { MonthlyPoints(parts, values, window, it) },
             ChartItem(wide = true) { WeekdayAverages(values, window, stats, groupScores, it) },
             ChartItem(wide = true) { PointsByMetric(scoreMetrics, points, window, groupScores, it) },
             ChartItem(wide = true) { HabitLinks(scoreMetrics, points, values, window, it) },
@@ -350,8 +355,9 @@ private fun WeekInRange(values: Map<Day, Double>, window: ZoomWindow, modifier: 
 }
 
 /**
- * The parts of the score in the week charts: the groups with 2 or more groups, else the metrics. [noun]: "group" or
- * "metric". [points]: the points of each part by day, by part id. [names]: the name of each part, by part id.
+ * The parts of the score in the week and month tables: the groups with 2 or more groups, else the metrics. [noun]:
+ * "group" or "metric". [points]: the points of each part by day, by part id. [names]: the name of each part, by part
+ * id.
  */
 private class ScoreParts(val noun: String, val points: Map<String, Map<Day, Double>>, val names: Map<String, String>) {
     /** The name of the part [id]. */
@@ -389,21 +395,23 @@ private fun WeeklyPoints(parts: ScoreParts, values: Map<Day, Double>, window: Zo
 }
 
 /**
- * The change of each part of the score from the 3 months ([LONG_COMPARED_WEEKS] weeks) before to the week of the
- * window end, the largest first. See `weekChanges`.
+ * The points per day of each part of the score in the month of the window end, up to the window end, and in each of
+ * the [COMPARED_MONTHS] months before. The color of a cell shows the change from the month before. See
+ * `monthlyPoints`.
  */
 @Composable
-private fun WeekChanges(parts: ScoreParts, values: Map<Day, Double>, window: ZoomWindow, modifier: Modifier) {
-    val changes = weekChanges(parts.points, values, window.to, LONG_COMPARED_WEEKS)
-    val cell = LocalExtraColors.current.cell
-    val negative = MaterialTheme.colorScheme.tertiary
-    HorizontalBarChart(
-        title = "Change by ${parts.noun}, 3 months",
-        description = "The points per day of each ${parts.noun} in ${window.weekName()}, minus its points per day on " +
-            "the same weekdays of the 3 months ($LONG_COMPARED_WEEKS weeks) before.",
-        bars = changes.entries
-            .sortedByDescending { it.value }
-            .map { (id, change) -> HBar(parts.name(id), change, if (change >= 0) cell else negative, signed(change)) },
+private fun MonthlyPoints(parts: ScoreParts, values: Map<Day, Double>, window: ZoomWindow, modifier: Modifier) {
+    val monthly = monthlyPoints(parts.points, values, window.to, COMPARED_MONTHS)
+    val month = if (window.atEnd) "this month" else monthTitle(monthOf(window.to))
+    ChangeTable(
+        title = "Points per day, by ${parts.noun} and month",
+        description = "The points per day of each ${parts.noun} in $month (last column, up to " +
+            "${shortDay(window.to)}) and in the $COMPARED_MONTHS months before. The color shows the change from the " +
+            "month before.",
+        columns = monthsUntil(window.to, COMPARED_MONTHS).map { shortMonth(it.month) },
+        rows = monthly.entries.map { (id, perMonth) -> parts.name(id) to perMonth },
+        upLabel = "More than the month before",
+        downLabel = "Less than the month before",
         modifier = modifier,
     )
 }

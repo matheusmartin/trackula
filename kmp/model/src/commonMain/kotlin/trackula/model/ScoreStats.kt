@@ -65,8 +65,8 @@ fun habitLinks(points: Map<String, Map<Day, Double>>, score: Map<Day, Double>, d
 /** The number of weeks before the week of the window end that the week charts of the score view show. */
 const val COMPARED_WEEKS = 4
 
-/** The number of weeks of "3 months" in the score view: the base of the change by group or metric. */
-const val LONG_COMPARED_WEEKS = 13
+/** The number of months before the month of the window end that the month table of the score view shows. */
+const val COMPARED_MONTHS = 3
 
 /**
  * The days from Monday to the weekday of [end], in the week of [end] or [weeksBefore] weeks before it. Weeks start on
@@ -107,43 +107,28 @@ fun weekdaysInRange(values: Map<Day, Double>, end: Day, weeks: Int = COMPARED_WE
     }
 }
 
-/** The average points per day of a part of the score on [days]. A day without points of the part counts as 0. */
-private fun List<Day>.pointsPerDay(byDay: Map<Day, Double>): Double = sumOf { byDay[it] ?: 0.0 } / size
-
-/** [parts] without the parts that have no points on [days]. */
-private fun Map<String, Map<Day, Double>>.withPointsOn(days: List<Day>) =
-    filterValues { byDay -> days.any { (byDay[it] ?: 0.0) != 0.0 } }
-
 /**
- * The change of each part of the score from the [weeks] weeks before the week of [end] to that week, by part id: the
- * average points per day of the part in the week, from Monday to [end], minus its average points per day on the same
- * weekdays of the weeks before. [parts]: the points of each part by day, for example the score of each group or the
- * points of each metric. Only the days with a [score] count, and a day without points of a part counts as 0.
- *
- * A part without points on these days is not in the result. If the week or the weeks before have no day with a score,
- * the result is empty.
- *
- * Example: [end] is a Wednesday. Habits gives 3 points per day from Monday to Wednesday, and 2.5 points per day on the
- * Mondays to Wednesdays of the weeks before. The change of habits is +0.5.
+ * The points per day of each part of the score in each period of [periods], in their order, by part id. [parts]: the
+ * points of each part by day, for example the score of each group or the points of each metric. Only the days with a
+ * [score] count, and a day without points of a part counts as 0. A period without a day with a score has null. A part
+ * without points on the days of [periods] is not in the result.
  */
-fun weekChanges(
+private fun pointsPerPeriod(
     parts: Map<String, Map<Day, Double>>,
     score: Map<Day, Double>,
-    end: Day,
-    weeks: Int,
-): Map<String, Double> {
-    val now = sameWeekdays(end, 0).filter { it in score }
-    val earlier = (1..weeks).flatMap { sameWeekdays(end, it) }.filter { it in score }
-    if (now.isEmpty() || earlier.isEmpty()) return emptyMap()
-    return parts.withPointsOn(now + earlier)
-        .mapValues { (_, byDay) -> withoutFloatNoise(now.pointsPerDay(byDay) - earlier.pointsPerDay(byDay)) }
+    periods: List<List<Day>>,
+): Map<String, List<Double?>> {
+    val scored = periods.map { days -> days.filter { it in score } }
+    fun List<Day>.perDay(byDay: Map<Day, Double>) = withoutFloatNoise(sumOf { byDay[it] ?: 0.0 } / size)
+    return parts
+        .filterValues { byDay -> scored.flatten().any { (byDay[it] ?: 0.0) != 0.0 } }
+        .mapValues { (_, byDay) -> scored.map { days -> if (days.isEmpty()) null else days.perDay(byDay) } }
 }
 
 /**
  * The points per day of each part of the score in each of the [weeks] weeks before the week of [end] and in that week,
  * oldest first, by part id. Each week has the same weekdays as the week of [end]: from Monday to the weekday of
- * [end]. [parts]: as in [weekChanges]. Only the days with a [score] count, and a day without points of a part counts
- * as 0. A week without a day with a score has null. A part without points on these days is not in the result.
+ * [end]. [parts], [score] and the result: as in [pointsPerPeriod].
  *
  * Example: [end] is a Tuesday. Habits gives 2 and 3 points on the Monday and the Tuesday of a week: 2.5 for that week.
  */
@@ -152,12 +137,25 @@ fun weeklyPoints(
     score: Map<Day, Double>,
     end: Day,
     weeks: Int,
-): Map<String, List<Double?>> {
-    val byWeek = (weeks downTo 0).map { k -> sameWeekdays(end, k).filter { it in score } }
-    return parts.withPointsOn(byWeek.flatten()).mapValues { (_, byDay) ->
-        byWeek.map { days -> if (days.isEmpty()) null else withoutFloatNoise(days.pointsPerDay(byDay)) }
-    }
-}
+): Map<String, List<Double?>> = pointsPerPeriod(parts, score, (weeks downTo 0).map { sameWeekdays(end, it) })
+
+/** The month of [end] and each of the [months] months before it, oldest first. */
+fun monthsUntil(end: Day, months: Int): List<MonthKey> = (months downTo 0).map { addMonths(monthOf(end), -it) }
+
+/**
+ * The points per day of each part of the score in each of the [months] months before the month of [end] and in that
+ * month up to [end], oldest first, by part id. [parts], [score] and the result: as in [pointsPerPeriod].
+ *
+ * Example: [end] is 2026-11-10. Habits gives 62 points in the 31 days of October: 2 for October. The days of November
+ * after the 10th do not count.
+ */
+fun monthlyPoints(
+    parts: Map<String, Map<Day, Double>>,
+    score: Map<Day, Double>,
+    end: Day,
+    months: Int,
+): Map<String, List<Double?>> =
+    pointsPerPeriod(parts, score, monthsUntil(end, months).map { month -> daysOfMonth(month).filter { it <= end } })
 
 /**
  * The change of each of [values] from the value before it. Null for the first value, and if the value or the value

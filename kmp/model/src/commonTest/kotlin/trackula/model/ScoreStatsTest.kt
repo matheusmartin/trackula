@@ -93,35 +93,6 @@ class ScoreStatsTest {
     }
 
     @Test
-    fun weekChangesCompareTheSameWeekdaysOfTheWeeksBefore() {
-        // day(29) is the Tuesday of the 5th week. Only Mondays and Tuesdays with a score count.
-        val score = mapOf(day(0) to 4.0, day(1) to 4.0, day(2) to 100.0, day(7) to 4.0, day(28) to 6.0, day(29) to 6.0)
-        val parts = mapOf(
-            "habits" to
-                mapOf(day(0) to 2.0, day(1) to 3.0, day(2) to 50.0, day(7) to 2.5, day(28) to 3.0, day(29) to 3.0),
-            "body" to mapOf(day(0) to 2.0, day(1) to 1.0, day(7) to 1.5, day(28) to 3.0, day(29) to 3.0),
-            "gone" to mapOf(day(0) to 3.0),
-            "empty" to emptyMap(),
-        )
-        assertEquals(mapOf("habits" to 0.5, "body" to 1.5, "gone" to -1.0), weekChanges(parts, score, day(29), 4))
-    }
-
-    @Test
-    fun weekChangesUseAllWeeksOfTheBase() {
-        // day(28) is a Monday. day(-63) is the Monday 13 weeks before it, out of a base of 4 weeks.
-        val score = mapOf(day(-63) to 4.0, day(0) to 4.0, day(28) to 6.0)
-        val parts = mapOf("habits" to mapOf(day(-63) to 1.0, day(0) to 3.0, day(28) to 3.0))
-        assertEquals(mapOf("habits" to 0.0), weekChanges(parts, score, day(28), 4))
-        assertEquals(mapOf("habits" to 1.0), weekChanges(parts, score, day(28), LONG_COMPARED_WEEKS))
-    }
-
-    @Test
-    fun weekChangesAreEmptyWithoutAScoreInTheWeek() {
-        val score = mapOf(day(0) to 4.0, day(21) to 5.0)
-        assertEquals(emptyMap(), weekChanges(mapOf("habits" to score), score, day(29), 4))
-    }
-
-    @Test
     fun weeklyPointsGiveThePointsPerDayOfTheSameWeekdaysOfEachWeek() {
         // day(29) is the Tuesday of the 5th week: each week counts its Monday and Tuesday with a score.
         val score = mapOf(
@@ -139,6 +110,38 @@ class ScoreStatsTest {
         // The 3rd week has no score: null. In the 4th week, the Tuesday has no points of habits: 0.
         assertEquals(mapOf("habits" to listOf(2.5, 2.0, null, 0.5, 1.5)), points)
         assertEquals(listOf(day(0), day(7), day(14), day(21), day(28)), weekMondays(day(29), 4))
+    }
+
+    @Test
+    fun monthlyPointsGiveThePointsPerDayOfEachMonthUpToTheEnd() {
+        val score = mapOf(
+            Day(2026, 7, 31) to 4.0,
+            Day(2026, 8, 5) to 4.0,
+            Day(2026, 10, 1) to 4.0,
+            Day(2026, 10, 2) to 4.0,
+            Day(2026, 11, 9) to 6.0,
+            Day(2026, 11, 10) to 6.0,
+            Day(2026, 11, 11) to 99.0,
+        )
+        val habits = mapOf(
+            Day(2026, 7, 31) to 7.0,
+            Day(2026, 8, 5) to 2.0,
+            Day(2026, 10, 1) to 3.0,
+            Day(2026, 11, 9) to 3.0,
+            Day(2026, 11, 10) to 1.0,
+            Day(2026, 11, 11) to 50.0,
+        )
+        val points = monthlyPoints(mapOf("habits" to habits, "empty" to emptyMap()), score, Day(2026, 11, 10), 3)
+        // August to November. September has no score: null. On October 2, habits gives no points: 0.
+        assertEquals(mapOf("habits" to listOf(2.0, null, 1.5, 2.0)), points)
+    }
+
+    @Test
+    fun monthsUntilCrossTheYear() {
+        assertEquals(
+            listOf(MonthKey(2025, 10), MonthKey(2025, 11), MonthKey(2025, 12), MonthKey(2026, 1)),
+            monthsUntil(Day(2026, 1, 15), 3),
+        )
     }
 
     @Test
