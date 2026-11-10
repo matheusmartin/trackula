@@ -182,7 +182,7 @@ data class Bar(val label: String, val value: Double?)
 
 /** The labels under a chart: all labels in equal columns if there are few or [all], else the first and the last. */
 @Composable
-private fun Labels(labels: List<String>, all: Boolean = false) {
+internal fun Labels(labels: List<String>, all: Boolean = false) {
     if (labels.isEmpty()) return
     if (all || labels.size <= 12) {
         Row(Modifier.fillMaxWidth()) {
@@ -210,7 +210,7 @@ private fun Labels(labels: List<String>, all: Boolean = false) {
  * It starts at the right end, with the newest bars.
  */
 @Composable
-private fun Scroller(columns: Int, content: @Composable () -> Unit) {
+internal fun Scroller(columns: Int, content: @Composable () -> Unit) {
     BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         val widest = MAX_COLUMN_WIDTH * columns
         if (columns <= SCROLL_BARS) {
@@ -246,7 +246,7 @@ private fun Scroller(columns: Int, content: @Composable () -> Unit) {
 
 /** The values above the bars of a bar chart, one in each column. A null value has no text. */
 @Composable
-private fun ValueRow(values: List<Double?>, format: (Double) -> String) {
+internal fun ValueRow(values: List<Double?>, format: (Double) -> String) {
     // Many values on a phone: smaller text.
     val dense = values.size > 8
     Row(Modifier.fillMaxWidth().padding(bottom = 3.dp)) {
@@ -562,13 +562,21 @@ fun TimeBars(
 }
 
 /**
- * One bar from the lowest to the highest value for each of [ranges], and the average as a dot. A null range has no
- * bar. The scale goes from [low] (bottom) to [high] (top).
+ * One bar in the color [bar] from the lowest to the highest value for each of [ranges], and the average as a dot in
+ * the color [dot]. A null range has no bar. With [marks], a diamond in the cell color shows the mark of each column,
+ * also in a column without a range. A null mark has no diamond. The scale goes from [low] (bottom) to [high] (top).
  */
 @Composable
-private fun RangeBars(ranges: List<ValueRange?>, high: Double, low: Double, label: String) {
-    val empty = LocalExtraColors.current.cellEmpty
-    val primary = MaterialTheme.colorScheme.primary
+internal fun RangeBars(
+    ranges: List<ValueRange?>,
+    high: Double,
+    low: Double,
+    label: String,
+    bar: Color = LocalExtraColors.current.cellEmpty,
+    dot: Color = MaterialTheme.colorScheme.primary,
+    marks: List<Double?> = emptyList(),
+) {
+    val mark = LocalExtraColors.current.cell
     val y = yScale(high, low)
     Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = label }) {
         val sx = size.width / (ranges.size * COLUMN_UNITS)
@@ -582,8 +590,22 @@ private fun RangeBars(ranges: List<ValueRange?>, high: Double, low: Double, labe
             // A stroke with round ends that keeps its width, as in the Dart chart.
             val top = y(barHigh) * sy
             val bottom = max(y(barHigh) + 0.5f, y(barLow)) * sy
-            drawLine(empty, Offset(x, top), Offset(x, bottom), strokeWidth = 10.dp.toPx(), cap = StrokeCap.Round)
-            drawCircle(primary, 2.5.dp.toPx(), Offset(x, y(average) * sy))
+            drawLine(bar, Offset(x, top), Offset(x, bottom), strokeWidth = 10.dp.toPx(), cap = StrokeCap.Round)
+            drawCircle(dot, 2.5.dp.toPx(), Offset(x, y(average) * sy))
+        }
+        val half = 6.dp.toPx()
+        marks.forEachIndexed { i, v ->
+            if (v == null) return@forEachIndexed
+            val x = (i * COLUMN_UNITS + 5) * sx
+            val center = y(v) * sy
+            val diamond = Path().apply {
+                moveTo(x, center - half)
+                lineTo(x + half, center)
+                lineTo(x, center + half)
+                lineTo(x - half, center)
+                close()
+            }
+            drawPath(diamond, mark)
         }
     }
 }

@@ -247,6 +247,28 @@ class MetricDetailTest {
     }
 
     @Test
+    fun theScoreViewComparesTheWeekOfTheWindowEndWithThe4WeeksBefore() = runComposeUiTest {
+        showPage(MainView.SCORE)
+        waitUntil(timeoutMillis = TIMEOUT) {
+            onAllNodesWithText("This week and the 4 weeks before").fetchSemanticsNodes().isNotEmpty()
+        }
+        // All metrics with 2 or more groups: the change is by group.
+        onNodeWithText("Change by group").assertExists()
+        onNodeWithText("Change by metric").assertDoesNotExist()
+        // An older window, 3 months that end on Sunday 2026-08-30: the week of its end.
+        onNodeWithContentDescription("Back to 3 months").performClick()
+        onNodeWithContentDescription("Earlier").performClick()
+        waitForIdle()
+        onNodeWithText("This week and the 4 weeks before").assertDoesNotExist()
+        onNodeWithText("The week of Aug 24 and the 4 weeks before").assertExists()
+        // One group: the change is by metric.
+        onAllNodesWithText("Hygiene")[0].performClick()
+        waitForIdle()
+        onNodeWithText("Change by metric").assertExists()
+        onNodeWithText("Change by group").assertDoesNotExist()
+    }
+
+    @Test
     fun theScoreCalendarShowsTheMonthOfTheWindowEndAndItsArrowsChangeTheMonth() = runComposeUiTest {
         showPage(MainView.SCORE)
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Score by month").fetchSemanticsNodes().isNotEmpty() }

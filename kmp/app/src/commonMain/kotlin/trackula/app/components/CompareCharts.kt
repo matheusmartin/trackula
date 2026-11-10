@@ -19,6 +19,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import trackula.app.LocalExtraColors
+import trackula.model.ValueRange
+import trackula.model.formatNumber
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -90,5 +93,51 @@ fun HorizontalBarChart(
             }
         }
         if (legend.isNotEmpty()) Legend(legend)
+    }
+}
+
+/**
+ * For each of [labels], a bar from the lowest to the highest value of [ranges], a dot at their average, and a diamond
+ * at the value of [marks]. The values of [marks] are above the bars. A null range has no bar, and a null mark has no
+ * diamond and no value. The scale goes from a little below the lowest value to the highest value, but not below 0, so
+ * that the bars are tall enough to compare. The legend names the bar [rangeLabel], the dot "Average" and the diamond
+ * [markLabel]. Example: the score of each weekday of this week in the range of the 4 weeks before.
+ */
+@Composable
+fun RangeBarChart(
+    title: String,
+    description: String,
+    labels: List<String>,
+    ranges: List<ValueRange?>,
+    marks: List<Double?>,
+    rangeLabel: String,
+    markLabel: String,
+    modifier: Modifier = Modifier,
+    format: (Double) -> String = { formatNumber(it) },
+) {
+    ChartCard(title, description, modifier) {
+        val values = ranges.flatMap { listOfNotNull(it?.low, it?.high) } + marks.filterNotNull()
+        val high = values.maxOrNull() ?: return@ChartCard NoValues()
+        val lowest = values.min()
+        // Space below the lowest value, so that its bar or diamond is not on the bottom line.
+        val low = max(0.0, lowest - max(high - lowest, 1.0) * 0.25)
+        val extra = LocalExtraColors.current
+        val bar = extra.cell.copy(alpha = 0.3f)
+        // Not the primary color: in the score view, it is the green of the diamonds.
+        val dot = MaterialTheme.colorScheme.onSurfaceVariant
+        Scroller(labels.size) {
+            Column {
+                ValueRow(marks, format)
+                RangeBars(ranges, max(high, low + 1.0), low, title, bar, dot, marks)
+                Labels(labels, all = true)
+            }
+        }
+        Legend(
+            listOf(
+                StackPart(rangeLabel, bar, emptyList()),
+                StackPart("Average", dot, emptyList()),
+                StackPart(markLabel, extra.cell, emptyList()),
+            ),
+        )
     }
 }

@@ -9,6 +9,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import trackula.app.LocalExtraColors
 import trackula.model.Aggregate
+import trackula.model.BarUnit
+import trackula.model.COMPARED_WEEKS
 import trackula.model.CountStats
 import trackula.model.Day
 import trackula.model.MIN_LINK_DAYS
@@ -18,6 +20,7 @@ import trackula.model.NumberStats
 import trackula.model.YesNoMetric
 import trackula.model.YesNoStats
 import trackula.model.ZoomWindow
+import trackula.model.barStart
 import trackula.model.bestWeekday
 import trackula.model.countStats
 import trackula.model.formatNumber
@@ -34,7 +37,9 @@ import trackula.model.roundHalfAwayFromZero
 import trackula.model.shortDay
 import trackula.model.streakLengths
 import trackula.model.streakRanges
+import trackula.model.weekChanges
 import trackula.model.weekdayNames
+import trackula.model.weekdaysInRange
 import trackula.model.withUnit
 import trackula.model.yesNoStats
 import trackula.model.zoomBars
@@ -254,14 +259,16 @@ private fun CountCharts(metric: NumberMetric, window: ZoomWindow, values: Map<Da
 }
 
 /**
- * The numbers and charts of the score. Each one answers one question: how the score changes over time, which weekdays
+ * The numbers and charts of the score. Each one answers one question: how the score changes over time, how the week
+ * of the window end compares with the weeks before (for each weekday, and for each group or metric), which weekdays
  * are good, which metrics give the points, and which habits go with good days. The month calendar below the charts
  * shows the score of each day (see `ScoreCalendar`). The score of a day does not add up over time, so the charts show
  * averages per day and per weekday, not totals.
  *
  * - [values]: the score of each day. The change compares the first half of the window with the second half.
- * - [groupScores]: the score of each group. With 2 or more groups, the weekday bars show the part of each group, and
- *   the points by metric have the color of their group.
+ * - [groupScores]: the score of each group. With 2 or more groups, the weekday bars show the part of each group, the
+ *   week change is by group, and the points by metric have the color of their group. Else the week change is by
+ *   metric.
  * - [scoreMetrics], [points]: the metrics that give the points, and their points by metric id.
  */
 @Composable
@@ -300,10 +307,70 @@ private fun ScoreCharts(
                 Aggregate.AVERAGE,
                 fixedScale = true,
             ),
+            ChartItem(wide = false) { WeekInRange(values, window, it) },
+            ChartItem(wide = false) { WeekChanges(scoreMetrics, points, values, window, groupScores, it) },
             ChartItem(wide = true) { WeekdayAverages(values, window, stats, groupScores, it) },
             ChartItem(wide = true) { PointsByMetric(scoreMetrics, points, window, groupScores, it) },
             ChartItem(wide = true) { HabitLinks(scoreMetrics, points, values, window, it) },
         ),
+    )
+}
+
+/** The week of the window end: "this week" if the window ends today, else for example "the week of Oct 5". */
+private fun ZoomWindow.weekName(): String =
+    if (atEnd) "this week" else "the week of ${shortDay(barStart(to, BarUnit.WEEK))}"
+
+/** [text] with a capital first letter. Example: "this week" → "This week". */
+private fun capitalized(text: String): String = text.replaceFirstChar { it.uppercase() }
+
+/**
+ * The score of each weekday of the week of the window end, in the range of that weekday in the [COMPARED_WEEKS] weeks
+ * before. See `weekdaysInRange`.
+ */
+@Composable
+private fun WeekInRange(values: Map<Day, Double>, window: ZoomWindow, modifier: Modifier) {
+    val week = window.weekName()
+    val weekdays = weekdaysInRange(values, window.to)
+    RangeBarChart(
+        title = "${capitalized(week)} and the $COMPARED_WEEKS weeks before",
+        description = "For each weekday: the score of $week (diamond), and the lowest to the highest score of the " +
+            "$COMPARED_WEEKS weeks before (bar), with their average (dot).",
+        labels = weekdayNames,
+        ranges = weekdays.map { it.range },
+        marks = weekdays.map { it.score },
+        rangeLabel = "$COMPARED_WEEKS weeks before",
+        markLabel = capitalized(week),
+        modifier = modifier,
+    )
+}
+
+/**
+ * The change of each group from the [COMPARED_WEEKS] weeks before to the week of the window end, the largest first.
+ * With fewer than 2 [groupScores], the change of each metric of [metrics] in [points]. See `weekChanges`.
+ */
+@Composable
+private fun WeekChanges(
+    metrics: List<Metric>,
+    points: Map<String, Map<Day, Double>>,
+    values: Map<Day, Double>,
+    window: ZoomWindow,
+    groupScores: Map<String, Map<Day, Double>>,
+    modifier: Modifier,
+) {
+    val byGroup = groupScores.size >= 2
+    val part = if (byGroup) "group" else "metric"
+    val names = if (byGroup) groupScores.keys.associateWith(::groupLabel) else metrics.associate { it.id to it.name }
+    val changes = weekChanges(if (byGroup) groupScores else points, values, window.to)
+    val cell = LocalExtraColors.current.cell
+    val negative = MaterialTheme.colorScheme.tertiary
+    HorizontalBarChart(
+        title = "Change by $part",
+        description = "The points per day of each $part in ${window.weekName()}, minus its points per day on the " +
+            "same weekdays of the $COMPARED_WEEKS weeks before.",
+        bars = changes.entries
+            .sortedByDescending { it.value }
+            .map { (id, change) -> HBar(names[id] ?: id, change, if (change >= 0) cell else negative, signed(change)) },
+        modifier = modifier,
     )
 }
 

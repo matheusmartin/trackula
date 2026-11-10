@@ -69,4 +69,46 @@ class ScoreStatsTest {
         assertEquals(emptyMap(), habitLinks(mapOf("x" to days.associateWith { 1.0 }), score, days))
         assertEquals(emptyMap(), habitLinks(mapOf("x" to mapOf(day(0) to 1.0)), score, days))
     }
+
+    @Test
+    fun weekdaysInRangeGiveTheScoreOfTheWeekAndTheRangeOfTheWeeksBefore() {
+        // day(28) is the Monday of the 5th week, day(30) its Wednesday. The 4 weeks before are day(0) to day(27).
+        val values = mapOf(
+            day(-7) to 99.0,
+            day(0) to 10.0,
+            day(7) to 12.0,
+            day(14) to 14.0,
+            day(3) to 5.0,
+            day(28) to 15.0,
+            day(29) to 8.0,
+            day(31) to 20.0,
+        )
+        val weekdays = weekdaysInRange(values, day(30))
+        assertEquals(7, weekdays.size)
+        assertEquals(WeekdayInRange(15.0, ValueRange(10.0, 14.0, 12.0)), weekdays[0])
+        assertEquals(WeekdayInRange(8.0, null), weekdays[1])
+        assertEquals(WeekdayInRange(null, null), weekdays[2])
+        // Thursday comes after the end: no score of the week, but the range of the weeks before.
+        assertEquals(WeekdayInRange(null, ValueRange(5.0, 5.0, 5.0)), weekdays[3])
+    }
+
+    @Test
+    fun weekChangesCompareTheSameWeekdaysOfTheWeeksBefore() {
+        // day(29) is the Tuesday of the 5th week. Only Mondays and Tuesdays with a score count.
+        val score = mapOf(day(0) to 4.0, day(1) to 4.0, day(2) to 100.0, day(7) to 4.0, day(28) to 6.0, day(29) to 6.0)
+        val parts = mapOf(
+            "habits" to
+                mapOf(day(0) to 2.0, day(1) to 3.0, day(2) to 50.0, day(7) to 2.5, day(28) to 3.0, day(29) to 3.0),
+            "body" to mapOf(day(0) to 2.0, day(1) to 1.0, day(7) to 1.5, day(28) to 3.0, day(29) to 3.0),
+            "gone" to mapOf(day(0) to 3.0),
+            "empty" to emptyMap(),
+        )
+        assertEquals(mapOf("habits" to 0.5, "body" to 1.5, "gone" to -1.0), weekChanges(parts, score, day(29)))
+    }
+
+    @Test
+    fun weekChangesAreEmptyWithoutAScoreInTheWeek() {
+        val score = mapOf(day(0) to 4.0, day(21) to 5.0)
+        assertEquals(emptyMap(), weekChanges(mapOf("habits" to score), score, day(29)))
+    }
 }

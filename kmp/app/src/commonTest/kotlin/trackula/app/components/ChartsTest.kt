@@ -12,6 +12,7 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import trackula.app.TrackulaTheme
 import trackula.model.Day
 import trackula.model.MonthKey
+import trackula.model.ValueRange
 import trackula.model.daysBetween
 import trackula.model.scoreMetric
 import kotlin.test.Test
@@ -130,6 +131,38 @@ class ChartsTest {
     @Test
     fun aHorizontalBarChartWithoutRowsSaysSo() = runComposeUiTest {
         setContent { TrackulaTheme(dark = false) { HorizontalBarChart("Links", "Rows.", emptyList()) } }
+        onNodeWithText("No values in this period.").assertExists()
+    }
+
+    @Test
+    fun aRangeBarChartShowsTheValuesOfTheMarksAndALegend() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) {
+                RangeBarChart(
+                    title = "Week",
+                    description = "Weekdays.",
+                    labels = listOf("Mo", "Tu"),
+                    ranges = listOf(ValueRange(10.0, 14.0, 12.0), ValueRange(3.0, 5.0, 4.0)),
+                    marks = listOf(15.0, null),
+                    rangeLabel = "4 weeks before",
+                    markLabel = "This week",
+                )
+            }
+        }
+        onNodeWithText("15").assertExists()
+        onNodeWithText("12").assertDoesNotExist()
+        onNodeWithText("4 weeks before").assertExists()
+        onNodeWithText("Average").assertExists()
+        onNodeWithText("This week").assertExists()
+    }
+
+    @Test
+    fun aRangeBarChartWithoutRangesAndMarksSaysSo() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) {
+                RangeBarChart("Week", "Weekdays.", listOf("Mo"), listOf(null), listOf(null), "Before", "Now")
+            }
+        }
         onNodeWithText("No values in this period.").assertExists()
     }
 
