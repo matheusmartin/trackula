@@ -5,7 +5,10 @@ import trackula.model.Day
 import trackula.model.NumberMetric
 import trackula.model.YesNoMetric
 import trackula.model.planClear
+import trackula.model.planDeleteMetric
+import trackula.model.planMoveMetric
 import trackula.model.planNumber
+import trackula.model.planSaveMetric
 import trackula.model.planYesNo
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -56,5 +59,28 @@ class DemoStoreTest {
 
         val cleared = st.change { planClear(weight, today, it) }
         assertNull(cleared.log.valueAt("weight", today))
+    }
+
+    @Test
+    fun aNewMetricGetsALogColumnSoThatItTakesValues() = runTest {
+        val st = store()
+        val read = NumberMetric(id = "pages", name = "Pages", icon = "menu_book", isCount = true)
+        val added = st.changeMetrics { planSaveMetric(it, read) }
+        assertEquals(read, added.metrics.last())
+
+        val s = st.change { planNumber(read, today, 12.0, it) }
+        assertEquals(12.0, s.log.valueAt("pages", today))
+        assertEquals(emptyList(), s.warnings)
+    }
+
+    @Test
+    fun deleteAndMoveChangeTheOrderOfTheSampleMetrics() = runTest {
+        val st = store()
+        val moved = st.changeMetrics { listOfNotNull(planMoveMetric(it, "waist", up = true)) }
+        assertEquals(listOf("waist", "weight"), moved.metrics.take(2).map { it.id })
+
+        val deleted = st.changeMetrics { listOf(planDeleteMetric(it, "waist")) }
+        assertEquals("weight", deleted.metrics.first().id)
+        assertEquals(listOf("waist"), deleted.deleted.map { it.id })
     }
 }

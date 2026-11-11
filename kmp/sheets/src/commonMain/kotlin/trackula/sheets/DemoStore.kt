@@ -1,10 +1,15 @@
 package trackula.sheets
 
 import kotlinx.coroutines.delay
+import trackula.model.AddMetricsColumns
 import trackula.model.AppendRow
 import trackula.model.Day
+import trackula.model.DeleteMetricRow
 import trackula.model.LogWrite
+import trackula.model.MetricsWrite
+import trackula.model.MoveMetricRow
 import trackula.model.SetCell
+import trackula.model.SetMetricCells
 import trackula.model.deletedMetrics
 import trackula.model.metricsHeader
 import trackula.model.parseLog
@@ -24,14 +29,21 @@ import kotlin.time.Duration.Companion.milliseconds
  * It has no `Score` column: the app calculates the scores that it shows from the values.
  */
 class DemoStore(today: Day, private val delay: Duration = 400.milliseconds) : Store() {
+    private val metricRows: MutableList<MutableList<Any?>> =
+        (listOf(metricsHeader) + sampleMetrics).map { it.toMutableList<Any?>() }.toMutableList()
     private val log: MutableList<MutableList<Any?>> = sampleLog(today)
 
     override suspend fun refreshRules() = delay(delay)
 
-    /** Reads the sample data. Demo mode has no `Score` column, so [writesScores] does nothing. */
+    /**
+     * Reads the sample data. Demo mode has no `Score` column, so [writesScores] does nothing. As in [SheetsStore], a
+     * metric without a `Log` column gets one at the end.
+     */
     override suspend fun load(writesScores: Boolean): Snapshot {
         delay(delay)
-        val metrics = parseMetrics(listOf(metricsHeader) + sampleMetrics)
+        val metrics = parseMetrics(metricRows)
+        val header = log.first()
+        header.addAll(metrics.items.map { it.id }.filter { it !in header })
         val ids = metrics.items.associateBy { it.id }
         val parsed = parseLog(log, ids)
         return Snapshot(metrics, parsed.table, metrics.warnings + parsed.warnings, deletedMetrics(log, ids.keys))
@@ -41,16 +53,36 @@ class DemoStore(today: Day, private val delay: Duration = 400.milliseconds) : St
         delay(delay)
         when (write) {
             is AppendRow -> log.add(write.toCells().toMutableList())
+            is SetCell -> set(log[write.row - 1], write.column, write.value ?: "")
+        }
+    }
 
-            is SetCell -> {
-                val cells = log[write.row - 1]
-                while (cells.size <= write.column) cells.add("")
-                cells[write.column] = write.value ?: ""
+    override suspend fun applyMetrics(write: MetricsWrite) {
+        delay(delay)
+        when (write) {
+            is SetMetricCells -> {
+                while (metricRows.size < write.row) metricRows.add(mutableListOf())
+                for ((column, value) in write.cells) set(metricRows[write.row - 1], column, value)
+            }
+
+            is AddMetricsColumns -> write.names.forEachIndexed { i, name -> set(metricRows[0], write.start + i, name) }
+
+            is DeleteMetricRow -> metricRows.removeAt(write.row - 1)
+
+            is MoveMetricRow -> {
+                val row = metricRows.removeAt(write.row - 1)
+                metricRows.add(if (write.before > write.row) write.before - 2 else write.before - 1, row)
             }
         }
     }
 
     internal companion object {
+        /** Sets the cell [column] of [cells] to [value]. Adds empty cells before it if the row is shorter. */
+        fun set(cells: MutableList<Any?>, column: Int, value: Any?) {
+            while (cells.size <= column) cells.add("")
+            cells[column] = value
+        }
+
         val sampleMetrics: List<List<Any>> = listOf(
             listOf("weight", "Weight", "number", "kg", 0.1, "Health", "monitor_weight", "at most 80 from 84 trend"),
             listOf("waist", "Waist", "number", "cm", 0.5, "Health", "straighten", "at most 90 from 95"),

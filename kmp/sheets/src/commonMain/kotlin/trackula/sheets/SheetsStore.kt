@@ -9,17 +9,22 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import trackula.model.AddMetricsColumns
 import trackula.model.AppendRow
+import trackula.model.DeleteMetricRow
 import trackula.model.HeaderException
 import trackula.model.LOG_TITLE
 import trackula.model.LegacyCell
 import trackula.model.LogWrite
 import trackula.model.METRICS_TITLE
 import trackula.model.Metric
+import trackula.model.MetricsWrite
+import trackula.model.MoveMetricRow
 import trackula.model.NumberMetric
 import trackula.model.SCORE_HEADER
 import trackula.model.ScoreCell
 import trackula.model.SetCell
+import trackula.model.SetMetricCells
 import trackula.model.TextDateRow
 import trackula.model.YesNoMetric
 import trackula.model.cellText
@@ -51,8 +56,8 @@ internal val goalRulePattern: String = run {
     "^ *(yes|no|(at +least|at +most|<=|>=)? *$number( +from +$number)?( +trend)?) *$"
 }
 
-/** A tab of the spreadsheet: its ID in the Sheets API, and its number of columns. */
-private data class Tab(val tabId: Int, val columnCount: Int)
+/** A tab of the spreadsheet: its ID in the Sheets API, and its number of columns and rows. */
+private data class Tab(val tabId: Int, val columnCount: Int, val rowCount: Int)
 
 /** The store of a Trackula spreadsheet in Google Sheets. See docs/data-model.md. */
 class SheetsStore(private val api: SheetsClient) : Store() {
@@ -257,6 +262,49 @@ class SheetsStore(private val api: SheetsClient) : Store() {
     }
 
     /**
+     * Writes [write] to the `Metrics` tab. A cell write uses `RAW`, so that a text such as `=1+1` or `08` stays as
+     * it is. A write after the last row or column of the tab first adds rows or columns to it.
+     */
+    override suspend fun applyMetrics(write: MetricsWrite) {
+        val tab = tabs().getValue(METRICS_TITLE)
+        when (write) {
+            is SetMetricCells -> {
+                val needed = write.row - tab.rowCount
+                if (needed > 0) api.batchUpdate(listOf(appendDimension(tab, "ROWS", needed)))
+                api.batchUpdateValues(
+                    "RAW",
+                    write.cells.map { (c, value) -> ValueRange(metricsCell(write.row, c), listOf(listOf(value))) },
+                )
+            }
+
+            is AddMetricsColumns -> {
+                val needed = write.start + write.names.size - tab.columnCount
+                if (needed > 0) api.batchUpdate(listOf(appendDimension(tab, "COLUMNS", needed)))
+                api.update(metricsCell(1, write.start), listOf(write.names), "RAW")
+            }
+
+            is DeleteMetricRow -> api.batchUpdate(
+                listOf(
+                    buildJsonObject {
+                        putJsonObject("deleteDimension") { put("range", rowRange(tab, write.row)) }
+                    },
+                ),
+            )
+
+            is MoveMetricRow -> api.batchUpdate(
+                listOf(
+                    buildJsonObject {
+                        putJsonObject("moveDimension") {
+                            put("source", rowRange(tab, write.row))
+                            put("destinationIndex", write.before - 1)
+                        }
+                    },
+                ),
+            )
+        }
+    }
+
+    /**
      * Adds a column with each of [headers] and its validation rule, after [width] columns. A header is a metric id of
      * [metrics], or [SCORE_HEADER].
      */
@@ -292,12 +340,15 @@ class SheetsStore(private val api: SheetsClient) : Store() {
 
     /** The tabs of the spreadsheet, by title. */
     private suspend fun tabs(): Map<String, Tab> {
-        val spreadsheet = api.get("sheets.properties(sheetId,title,gridProperties.columnCount)")
+        val spreadsheet = api.get("sheets.properties(sheetId,title,gridProperties(columnCount,rowCount))")
         return spreadsheet["sheets"]?.jsonArray.orEmpty().associate { tab ->
             val properties = tab.jsonObject.getValue("properties").jsonObject
-            val columnCount = properties.getValue("gridProperties").jsonObject.getValue("columnCount")
-            properties.getValue("title").jsonPrimitive.content to
-                Tab(properties.getValue("sheetId").jsonPrimitive.int, columnCount.jsonPrimitive.int)
+            val grid = properties.getValue("gridProperties").jsonObject
+            properties.getValue("title").jsonPrimitive.content to Tab(
+                tabId = properties.getValue("sheetId").jsonPrimitive.int,
+                columnCount = grid.getValue("columnCount").jsonPrimitive.int,
+                rowCount = grid.getValue("rowCount").jsonPrimitive.int,
+            )
         }
     }
 
@@ -314,6 +365,26 @@ class SheetsStore(private val api: SheetsClient) : Store() {
 
         /** The A1 notation of a `Log` cell. [row] is 1-based, [column] 0-based. */
         fun cell(row: Int, column: Int): String = "$LOG_TITLE!${columnLetter(column)}$row"
+
+        /** The A1 notation of a `Metrics` cell. [row] is 1-based, [column] 0-based. */
+        fun metricsCell(row: Int, column: Int): String = "$METRICS_TITLE!${columnLetter(column)}$row"
+
+        /** Adds [length] rows or columns ([dimension]) at the end of [tab]. */
+        fun appendDimension(tab: Tab, dimension: String, length: Int): JsonObject = buildJsonObject {
+            putJsonObject("appendDimension") {
+                put("sheetId", tab.tabId)
+                put("dimension", dimension)
+                put("length", length)
+            }
+        }
+
+        /** The 1-based [row] of [tab], as a range of the Sheets API. */
+        fun rowRange(tab: Tab, row: Int): JsonObject = buildJsonObject {
+            put("sheetId", tab.tabId)
+            put("dimension", "ROWS")
+            put("startIndex", row - 1)
+            put("endIndex", row)
+        }
     }
 }
 
