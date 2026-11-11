@@ -60,6 +60,20 @@ class SheetsStoreTest {
     }
 
     @Test
+    fun theLoadGivesTheMetricRowsAndTheLogColumnsOfDeletedMetrics() = runTest {
+        val fake = sheetWithoutScore()
+        fake.metrics.removeAt(2)
+        val snapshot = fake.store.load()
+
+        assertEquals(mapOf("weight" to 2, "water" to 3), snapshot.metricsTable.rows)
+        val meditate = snapshot.deleted.single()
+        assertEquals("meditate", meditate.id)
+        assertEquals(2, meditate.values)
+        assertEquals(d2, meditate.lastDay)
+        assertTrue(meditate.isYesNo)
+    }
+
+    @Test
     fun theGoalRuleAcceptsTheSameGoalsAsTheParser() {
         val rule = Regex(goalRulePattern)
         val goals = listOf(

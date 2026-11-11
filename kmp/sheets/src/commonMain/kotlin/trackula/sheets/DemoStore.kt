@@ -5,6 +5,7 @@ import trackula.model.AppendRow
 import trackula.model.Day
 import trackula.model.LogWrite
 import trackula.model.SetCell
+import trackula.model.deletedMetrics
 import trackula.model.metricsHeader
 import trackula.model.parseLog
 import trackula.model.parseMetrics
@@ -31,8 +32,9 @@ class DemoStore(today: Day, private val delay: Duration = 400.milliseconds) : St
     override suspend fun load(writesScores: Boolean): Snapshot {
         delay(delay)
         val metrics = parseMetrics(listOf(metricsHeader) + sampleMetrics)
-        val log = parseLog(log, metrics.items.associateBy { it.id })
-        return Snapshot(metrics.items, log.table, metrics.warnings + log.warnings)
+        val ids = metrics.items.associateBy { it.id }
+        val parsed = parseLog(log, ids)
+        return Snapshot(metrics, parsed.table, metrics.warnings + parsed.warnings, deletedMetrics(log, ids.keys))
     }
 
     override suspend fun apply(write: LogWrite) {

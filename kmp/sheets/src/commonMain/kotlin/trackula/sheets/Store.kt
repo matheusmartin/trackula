@@ -1,15 +1,26 @@
 package trackula.sheets
 
+import trackula.model.DeletedMetric
 import trackula.model.LogTable
 import trackula.model.LogWrite
 import trackula.model.Metric
+import trackula.model.MetricsTable
 
 /**
  * The data of the spreadsheet at one point in time.
  *
- * @property metrics All metrics, in sheet order.
+ * @property metricsTable The `Metrics` tab: the metrics, their rows and the invalid rows.
+ * @property deleted The `Log` columns without a metric, in column order. See [trackula.model.deletedMetrics].
  */
-data class Snapshot(val metrics: List<Metric>, val log: LogTable, val warnings: List<String>)
+data class Snapshot(
+    val metricsTable: MetricsTable,
+    val log: LogTable,
+    val warnings: List<String>,
+    val deleted: List<DeletedMetric> = emptyList(),
+) {
+    /** All valid metrics, in sheet order. */
+    val metrics: List<Metric> get() = metricsTable.items
+}
 
 /**
  * The storage of the metrics and the log. [SheetsStore] uses Google Sheets. [DemoStore] keeps sample data in memory,

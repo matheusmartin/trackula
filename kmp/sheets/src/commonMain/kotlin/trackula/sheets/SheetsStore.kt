@@ -24,6 +24,7 @@ import trackula.model.TextDateRow
 import trackula.model.YesNoMetric
 import trackula.model.cellText
 import trackula.model.columnLetter
+import trackula.model.deletedMetrics
 import trackula.model.legacyYesNoCells
 import trackula.model.metricsHeader
 import trackula.model.parseLog
@@ -160,7 +161,8 @@ class SheetsStore(private val api: SheetsClient) : Store() {
         val scoreWarnings = mutableListOf<String>()
         if (writesScores && writeScores(logRows, metrics.items, scoreWarnings)) return load(writesScores = false)
         val log = parseLog(logRows, byId)
-        return Snapshot(metrics.items, log.table, metrics.warnings + log.warnings + scoreWarnings)
+        val warnings = metrics.warnings + log.warnings + scoreWarnings
+        return Snapshot(metrics, log.table, warnings, deletedMetrics(logRows, byId.keys))
     }
 
     /**

@@ -23,6 +23,7 @@ class DemoStoreTest {
         val s = store().load()
         assertEquals(emptyList(), s.warnings)
         assertEquals(9, s.metrics.size)
+        assertEquals(emptyList(), s.deleted)
         assertEquals(120, s.log.rows.size)
         assertFalse(today in s.log.rows)
     }

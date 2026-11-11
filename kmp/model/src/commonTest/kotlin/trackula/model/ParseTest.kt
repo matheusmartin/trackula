@@ -3,6 +3,7 @@ package trackula.model
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -315,5 +316,67 @@ class ParseTest {
             listOf("A", "B", "Z", "AA", "AB", "AZ", "BA"),
             listOf(0, 1, 25, 26, 27, 51, 52).map(::columnLetter),
         )
+    }
+
+    @Test
+    fun parseMetricsGivesTheRowOfEachMetricAndTheColumnOfEachHeader() {
+        val t = parseMetrics(
+            rows(
+                listOf("kind", "id", "per_day", "name", "unit", "step", "group", "icon"),
+                listOf("yesno", "read", "one", "Read", "", "", "", "menu_book"),
+                listOf(),
+                listOf("number", "weight", "", "Weight", "kg", 0.1, "", "monitor_weight"),
+            ),
+        )
+        assertEquals(mapOf("read" to 2, "weight" to 4), t.rows)
+        assertEquals(1, t.columns["id"])
+        assertEquals(2, t.columns["per_day"])
+        assertEquals(8, t.width)
+        assertEquals(4, t.lastRow)
+    }
+
+    @Test
+    fun parseMetricsKeepsEachInvalidRowWithItsCellsAndItsProblem() {
+        val t = parseMetrics(
+            rows(
+                metricsHeader,
+                listOf("walk", "Walk", "yesno", "", "", "habits"),
+                listOf("read", "Read", "yesno", "", "", "", "menu_book"),
+                listOf("read", "Read again", "yesno", "", "", "", "menu_book"),
+            ),
+        )
+        assertEquals(listOf("read"), t.items.map { it.id })
+        assertEquals(listOf(2, 4), t.invalid.map { it.row })
+        val walk = t.invalid[0]
+        assertEquals("walk", walk.id)
+        assertEquals("habits", walk.cells["group"])
+        assertTrue(walk.problem.startsWith("no icon"))
+        assertEquals("duplicate id \"read\"", t.invalid[1].problem)
+        assertEquals(listOf("Metrics row 2: ${walk.problem}", "Metrics row 4: duplicate id \"read\""), t.warnings)
+    }
+
+    @Test
+    fun parseMetricsOfAnEmptyTabGivesTheHeaderAsTheLastRow() {
+        val t = parseMetrics(rows(metricsHeader))
+        assertEquals(1, t.lastRow)
+        assertEquals(metricsHeader.size, t.width)
+    }
+
+    @Test
+    fun parseMetricRowChecksTheCellsOfOneRow() {
+        val cells = mapOf("name" to "Water", "kind" to "count", "unit" to "glasses", "icon" to "water_drop")
+        assertEquals(
+            NumberMetric(id = "water", name = "Water", icon = "water_drop", unit = "glasses", isCount = true),
+            parseMetricRow("water", cells + ("goal" to "")),
+        )
+        val e = assertFailsWith<InvalidMetricException> { parseMetricRow("water", cells + ("goal" to "lots")) }
+        assertTrue(e.message!!.startsWith("invalid goal \"lots\""))
+    }
+
+    @Test
+    fun isValidMetricIdAcceptsLowercaseLettersDigitsAndTwoSigns() {
+        assertTrue(isValidMetricId("morning_teeth-2"))
+        assertFalse(isValidMetricId("Morning"))
+        assertFalse(isValidMetricId(""))
     }
 }
