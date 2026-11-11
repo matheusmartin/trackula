@@ -286,8 +286,7 @@ class MetricDetailTest {
     fun theWeekdayAveragesOfAllMetricsStackTheGroupsAndOfOneGroupDoNot() = runComposeUiTest {
         showPage(MainView.SCORE)
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weekday averages").fetchSemanticsNodes().isNotEmpty() }
-        val stacked = "The average score on each weekday, from the days with a score. Each shade of green is a " +
-            "group: the full green is at the bottom."
+        val stacked = "The average score on each weekday, from the days with a score. Each color is a group."
         onNodeWithText(stacked).assertExists()
         // The legends have each group name, and the group chips have it too.
         assertTrue(onAllNodesWithText("Hygiene").fetchSemanticsNodes().size >= 2)

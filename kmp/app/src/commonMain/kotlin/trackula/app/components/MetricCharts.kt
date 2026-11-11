@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import trackula.app.LocalExtraColors
@@ -27,7 +26,6 @@ import trackula.model.countStats
 import trackula.model.formatNumber
 import trackula.model.formatPercent
 import trackula.model.formatSigned
-import trackula.model.groupShades
 import trackula.model.groupWeekdayParts
 import trackula.model.halves
 import trackula.model.isScore
@@ -412,8 +410,8 @@ private fun MonthlyPoints(parts: ScoreParts, values: Map<Day, Double>, window: Z
 }
 
 /**
- * The average score on each weekday. With 2 or more [groupScores], each bar stacks the parts of the groups, in shades
- * of the score color (see `groupShades`), with a legend. See `groupWeekdayParts`.
+ * The average score on each weekday. With 2 or more [groupScores], each bar stacks the parts of the groups, each in
+ * the color of its group with a soft tone, with a legend. See `groupWeekdayParts`.
  */
 @Composable
 private fun WeekdayAverages(
@@ -433,16 +431,17 @@ private fun WeekdayAverages(
         )
         return
     }
-    val cell = LocalExtraColors.current.cell
+    val extra = LocalExtraColors.current
     val parts = groupWeekdayParts(values, groupScores, window.days)
-    // Tints toward white, not toward the empty color: on the dark theme, the empty color is near the card color.
-    val shades = groupShades(parts.size).map { lerp(Color.White, cell, it.toFloat()) }
     StackedBarChart(
         title = title,
-        description = "The average score on each weekday, from the days with a score. Each shade of green is a " +
-            "group: the full green is at the bottom.",
+        description = "The average score on each weekday, from the days with a score. Each color is a group.",
         labels = weekdayNames,
-        parts = parts.entries.mapIndexed { i, (group, averages) -> StackPart(groupLabel(group), shades[i], averages) },
+        parts = parts.entries.mapIndexed { i, (group, averages) ->
+            // The soft tone of the strongest table and calendar cells, so that the colors match the other charts.
+            val color = lerp(extra.cellEmpty, extra.groups[i % extra.groups.size], MAX_FILL)
+            StackPart(groupLabel(group), color, averages)
+        },
         modifier = modifier,
     )
 }

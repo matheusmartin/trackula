@@ -138,10 +138,9 @@ Rules:
     "Points per day, by metric and week" and "Points per day, by metric and month", with one row for each metric.
     "This week" and "this month" are the week and the month of the end of the period.
   - "Weekday averages": the average score on each weekday. For the score of all metrics, with 2 or more groups,
-    each bar stacks the part of each group, in one shade of green for each group: the first group has the full
-    green, at the bottom, the next groups have lighter shades, and a thin gap separates the parts. The other charts of the score view also use green, and orange
-    only for less than before. The parts of a weekday add up to its average: a day without points of a group adds 0
-    to that group.
+    each bar stacks the part of each group, in one color for each group. The colors have the soft tone of the
+    strongest cells of the tables and the calendar, so that they match the other charts. A thin gap separates the
+    parts. The parts of a weekday add up to its average: a day without points of a group adds 0 to that group.
   - "Score by month": a month calendar with the score of each day. A darker day has a higher score. It is read-only.
     It shows the month of the end of the period, and its arrows show the other months. The "Score" view has no day
     heatmap: the calendar shows the same days, with their scores.
