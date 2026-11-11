@@ -26,10 +26,14 @@ from fontTools.varLib import instancer
 VERSION = "0.48.1"
 INTEGRITY = "sha512-rDJyd4SAEXNSZIX1sBTwRtbOrEzta4aN7hNQPKAhFqOY0yayXIJbXf0R1s8YR+ODbzDD9bdiPCabqrGn5NUikA=="
 
-# The icons of the app buttons and of the bottom navigation bar. The script stops if the font does not have one.
+# The icons of the app buttons, of the bottom navigation bar and of the icon suggestions of the metrics form. The
+# script stops if the font does not have one.
 ICONS = """
-    arrow_back calendar_month check chevron_left chevron_right close done folder_open login logout refresh
-    show_chart swap_horiz today view_week warning zoom_in zoom_out
+    add arrow_back arrow_downward arrow_upward calendar_month check chevron_left chevron_right close delete done
+    flag folder_open history login logout refresh show_chart swap_horiz today tune view_week warning zoom_in zoom_out
+    bedtime code coffee dentistry directions_run directions_walk favorite fitness_center local_drink menu_book
+    monitor_weight mood music_note nutrition pill restaurant savings school self_improvement shower smoking_rooms spa
+    straighten water_drop
 """.split()
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]

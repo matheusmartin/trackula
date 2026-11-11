@@ -13,9 +13,6 @@ val metricsHeader = listOf("id", "name", "kind", "unit", "step", "group", "icon"
 /** The columns of [metricsHeader] that a `Metrics` tab must have. */
 private val requiredMetricsColumns = metricsHeader - "goal"
 
-/** Valid items and a warning for each invalid row. */
-data class Parsed<T>(val items: List<T>, val warnings: List<String>)
-
 /** Thrown when a header row does not contain a required column. */
 class HeaderException(val tab: String, val missing: List<String>) :
     Exception("Tab \"$tab\" has no column(s): ${missing.joinToString(", ")}") {
@@ -23,45 +20,75 @@ class HeaderException(val tab: String, val missing: List<String>) :
     override fun toString(): String = message.orEmpty()
 }
 
-/** Thrown when a row of the `Metrics` tab is not valid. The message tells the problem. */
-private class InvalidRowException(message: String) : Exception(message)
+/** Thrown when a row of the `Metrics` tab is not valid. The message tells the problem, for the user. */
+class InvalidMetricException(message: String) : Exception(message) {
+    /** The message only, without the class name. The app shows this text. */
+    override fun toString(): String = message.orEmpty()
+}
 
 private val idPattern = Regex("^[a-z0-9_-]+$")
 
+/** True if [id] is a valid metric id: lowercase letters, digits, `_` and `-`. Example: `morning_teeth`. */
+fun isValidMetricId(id: String): Boolean = idPattern.matches(id)
+
 /** Parses the `Metrics` tab. [rows] includes the header row. Throws a [HeaderException] if a column is missing. */
-fun parseMetrics(rows: List<List<Any?>>): Parsed<Metric> {
+fun parseMetrics(rows: List<List<Any?>>): MetricsTable {
     val columns = columns(METRICS_TITLE, rows, requiredMetricsColumns)
     val items = mutableListOf<Metric>()
+    val rowOf = mutableMapOf<String, Int>()
+    val invalid = mutableListOf<InvalidMetricRow>()
     val warnings = mutableListOf<String>()
-    val seen = mutableSetOf<String>()
 
     for (i in 1 until rows.size) {
-        val row = MetricRow(rows[i], columns)
+        val cells = cellsByName(rows[i], columns)
+        val row = MetricRow(cells)
         if (row.isEmpty) continue
         val at = "$METRICS_TITLE row ${i + 1}"
 
         val id = row.text("id")
-        if (id == null || !idPattern.matches(id)) {
-            warnings.add("$at: invalid id \"${id ?: ""}\". Use only lowercase letters, digits, \"_\" and \"-\".")
-        } else if (!seen.add(id)) {
-            warnings.add("$at: duplicate id \"$id\"")
+        val problem = if (id == null || !isValidMetricId(id)) {
+            "invalid id \"${id ?: ""}\". Use only lowercase letters, digits, \"_\" and \"-\"."
+        } else if (id in rowOf) {
+            "duplicate id \"$id\""
         } else {
             try {
                 items.add(metric(row, id))
-            } catch (e: InvalidRowException) {
-                warnings.add("$at: ${e.message}")
+                rowOf[id] = i + 1
+                null
+            } catch (e: InvalidMetricException) {
+                e.message
             }
         }
+        if (problem != null) {
+            warnings.add("$at: $problem")
+            invalid.add(InvalidMetricRow(row = i + 1, cells = cells, problem = problem))
+        }
     }
-    return Parsed(items, warnings)
+    return MetricsTable(
+        items = items,
+        warnings = warnings,
+        rows = rowOf,
+        columns = columns,
+        width = rows.firstOrNull().orEmpty().size,
+        invalid = invalid,
+        // The Sheets API omits the empty rows at the end. A row with only unchecked checkboxes is not empty in Sheets.
+        lastRow = maxOf(rows.size, 1),
+    )
 }
 
-/** The metric of [row]. [id] is valid. Throws an [InvalidRowException] with the problem if the row is not valid. */
+/**
+ * The metric of the `Metrics` row [cells], with the id [id]. The keys of [cells] are the lowercase header names, as
+ * in [metricsHeader]. Throws an [InvalidMetricException] with the problem if the row is not valid. The app checks the
+ * values of its metrics form with this function, so that the form and the parser accept the same rows.
+ */
+fun parseMetricRow(id: String, cells: Map<String, Any?>): Metric = metric(MetricRow(cells), id)
+
+/** The metric of [row]. [id] is valid. Throws an [InvalidMetricException] with the problem if the row is not valid. */
 private fun metric(row: MetricRow, id: String): Metric {
     val name = row.text("name") ?: id
     val group = row.text("group")
     val icon = row.text("icon")
-        ?: throw InvalidRowException("no icon. Use a Material Symbols name, such as \"water_drop\", or an emoji.")
+        ?: throw InvalidMetricException("no icon. Use a Material Symbols name, such as \"water_drop\", or an emoji.")
     val goal = row.cell("goal")
     return when (val kind = row.text("kind")) {
         "yesno" -> YesNoMetric(id = id, name = name, icon = icon, group = group, goalIsYes = yesNoGoal(goal))
@@ -77,18 +104,18 @@ private fun metric(row: MetricRow, id: String): Metric {
             group = group,
         )
 
-        else -> throw InvalidRowException("invalid kind \"${kind ?: ""}\"")
+        else -> throw InvalidMetricException("invalid kind \"${kind ?: ""}\"")
     }
 }
 
 /**
  * The goal of a yesno metric in the `goal` [cell]: true for `yes`, false for `no`. An empty cell is `yes`.
- * Throws an [InvalidRowException] for other values.
+ * Throws an [InvalidMetricException] for other values.
  */
 private fun yesNoGoal(cell: Any?): Boolean {
     if (isEmpty(cell)) return true
     val value = yesNoValue(cell)
-        ?: throw InvalidRowException("invalid goal \"${cellText(cell)}\". For a yesno metric, use yes or no.")
+        ?: throw InvalidMetricException("invalid goal \"${cellText(cell)}\". For a yesno metric, use yes or no.")
     return value == 1.0
 }
 
@@ -100,14 +127,14 @@ private fun yesNoGoal(cell: Any?): Boolean {
  * `at most 80 from 83`, `at most 80 from 83 trend`. A number without a direction, such as `8`, is a minimum. The
  * signs `>=` and `<=` of older app versions are the same as `at least` and `at most`. Case does not matter.
  *
- * Throws an [InvalidRowException] if the cell has a different form, if the start is not on the other side of the
+ * Throws an [InvalidMetricException] if the cell has a different form, if the start is not on the other side of the
  * target, or if a count metric ([isCount]) has `trend`.
  */
 private fun numberGoal(cell: Any?, isCount: Boolean): NumberGoal? {
     if (isEmpty(cell)) return null
     numberOf(cell)?.let { return NumberGoal(it) }
     val text = cellText(cell)
-    val match = numberGoalPattern.matchEntire(text.trim()) ?: throw InvalidRowException(
+    val match = numberGoalPattern.matchEntire(text.trim()) ?: throw InvalidMetricException(
         "invalid goal \"$text\". Use for example at least 8, at most 80, or at most 80 from 83 trend.",
     )
     val (direction, target, from, trend) = match.destructured
@@ -120,10 +147,10 @@ private fun numberGoal(cell: Any?, isCount: Boolean): NumberGoal? {
     val start = goal.from
     if (start != null && goal.isReachedBy(start)) {
         val side = if (goal.isMaximum) "above" else "below"
-        throw InvalidRowException("invalid goal \"$text\". The value after from must be $side the target.")
+        throw InvalidMetricException("invalid goal \"$text\". The value after from must be $side the target.")
     }
     if (isCount && goal.usesTrend) {
-        throw InvalidRowException("invalid goal \"$text\". Only a number metric can have a trend.")
+        throw InvalidMetricException("invalid goal \"$text\". Only a number metric can have a trend.")
     }
     return goal
 }
@@ -304,7 +331,7 @@ fun columnLetter(index: Int): String {
 }
 
 /** Empty checkbox cells return `false`, so `false` counts as empty. */
-private fun isEmpty(cell: Any?): Boolean = cell == null || cell == false || (cell is String && cell.isBlank())
+internal fun isEmpty(cell: Any?): Boolean = cell == null || cell == false || (cell is String && cell.isBlank())
 
 /** The text of a [cell], as Dart compiled to JavaScript gives it. A number has no ".0": 8.0 is "8". Null is "". */
 fun cellText(cell: Any?): String = when (cell) {
@@ -327,16 +354,19 @@ private fun columns(tab: String, rows: List<List<Any?>>, required: List<String>)
     return columns
 }
 
-/** One row of the `Metrics` tab. The Sheets API omits empty cells at the end of a row. */
-private class MetricRow(
-    private val cells: List<Any?>,
-    /** The column index of each lowercase header name. */
-    private val columns: Map<String, Int>,
-) {
-    val isEmpty: Boolean get() = cells.all(::isEmpty)
+/**
+ * The cells of a `Metrics` row by lowercase header name, for each of [columns]. The Sheets API omits empty cells at
+ * the end of a row: they are null.
+ */
+private fun cellsByName(cells: List<Any?>, columns: Map<String, Int>): Map<String, Any?> =
+    columns.filterKeys { it.isNotEmpty() }.mapValues { (_, c) -> cells.getOrNull(c) }
+
+/** One row of the `Metrics` tab: its cells by lowercase header name. */
+private class MetricRow(private val cells: Map<String, Any?>) {
+    val isEmpty: Boolean get() = cells.values.all(::isEmpty)
 
     /** The cell in column [name]. Null if the cell is empty, or if the tab has no such column. */
-    fun cell(name: String): Any? = columns[name]?.let(cells::getOrNull)
+    fun cell(name: String): Any? = cells[name]
 
     /** The trimmed text of the cell in column [name]. Null if the cell is empty. */
     fun text(name: String): String? = cell(name)?.let { cellText(it).trim() }?.takeIf { it.isNotEmpty() }

@@ -2,6 +2,7 @@ package trackula.app
 
 import kotlinx.coroutines.CompletableDeferred
 import trackula.model.LogWrite
+import trackula.model.MetricsWrite
 import trackula.sheets.Snapshot
 import trackula.sheets.Store
 
@@ -12,6 +13,7 @@ import trackula.sheets.Store
 class CountingStore(private val inner: Store) : Store() {
     var loads = 0
     val writes = mutableListOf<LogWrite>()
+    val metricsWrites = mutableListOf<MetricsWrite>()
 
     /** The data of the last load. The page loads after each write, so this has the result of the last write. */
     var last: Snapshot? = null
@@ -37,5 +39,11 @@ class CountingStore(private val inner: Store) : Store() {
         if (failWrites) throw IllegalStateException("No network.")
         writes.add(write)
         inner.apply(write)
+    }
+
+    override suspend fun applyMetrics(write: MetricsWrite) {
+        if (failWrites) throw IllegalStateException("No network.")
+        metricsWrites.add(write)
+        inner.applyMetrics(write)
     }
 }

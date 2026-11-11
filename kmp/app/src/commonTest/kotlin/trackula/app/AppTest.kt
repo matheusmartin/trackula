@@ -46,6 +46,24 @@ class AppTest {
     }
 
     @Test
+    fun theMetricsButtonOpensTheMetricsScreenWithoutTheBottomNavigationBar() = runComposeUiTest {
+        val platform = FakePlatform(savedSpreadsheetId = "sheet-1")
+        setContent { App(platform) }
+        onNodeWithText("Sign in with Google").performClick()
+        waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weight").fetchSemanticsNodes().isNotEmpty() }
+
+        onNodeWithContentDescription("Metrics").performClick()
+        waitForIdle()
+        onNodeWithText("Add metric").assertExists()
+        onNodeWithText("5 days").assertDoesNotExist()
+
+        onNodeWithContentDescription("Back").performClick()
+        waitForIdle()
+        onNodeWithText("5 days").assertExists()
+        onNodeWithText("Add metric").assertDoesNotExist()
+    }
+
+    @Test
     fun aSavedSheetOpensAfterTheSignInAndChangeSheetForgetsIt() = runComposeUiTest {
         val platform = FakePlatform(savedSpreadsheetId = "sheet-1")
         setContent { App(platform) }

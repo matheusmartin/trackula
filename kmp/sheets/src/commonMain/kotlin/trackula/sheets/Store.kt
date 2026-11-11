@@ -1,15 +1,27 @@
 package trackula.sheets
 
+import trackula.model.DeletedMetric
 import trackula.model.LogTable
 import trackula.model.LogWrite
 import trackula.model.Metric
+import trackula.model.MetricsTable
+import trackula.model.MetricsWrite
 
 /**
  * The data of the spreadsheet at one point in time.
  *
- * @property metrics All metrics, in sheet order.
+ * @property metricsTable The `Metrics` tab: the metrics, their rows and the invalid rows.
+ * @property deleted The `Log` columns without a metric, in column order. See [trackula.model.deletedMetrics].
  */
-data class Snapshot(val metrics: List<Metric>, val log: LogTable, val warnings: List<String>)
+data class Snapshot(
+    val metricsTable: MetricsTable,
+    val log: LogTable,
+    val warnings: List<String>,
+    val deleted: List<DeletedMetric> = emptyList(),
+) {
+    /** All valid metrics, in sheet order. */
+    val metrics: List<Metric> get() = metricsTable.items
+}
 
 /**
  * The storage of the metrics and the log. [SheetsStore] uses Google Sheets. [DemoStore] keeps sample data in memory,
@@ -29,6 +41,23 @@ abstract class Store {
 
     /** Writes [write]. Callers use [change] or [changeAll], which plan the write on the latest data. */
     abstract suspend fun apply(write: LogWrite)
+
+    /** Writes [write] to the `Metrics` tab. Callers use [changeMetrics], which plans the write on the latest data. */
+    abstract suspend fun applyMetrics(write: MetricsWrite)
+
+    /**
+     * Reads the latest data, writes the changes of [plan] to the `Metrics` tab, sets the rules again and reads the data
+     * again. The last load adds the `Log` column of a new metric and writes the new scores, for example after a new
+     * goal.
+     *
+     * The rules follow the new kinds and the new columns. See [refreshRules].
+     */
+    suspend fun changeMetrics(plan: (MetricsTable) -> List<MetricsWrite>): Snapshot {
+        val writes = plan(load(writesScores = false).metricsTable)
+        for (write in writes) applyMetrics(write)
+        if (writes.isNotEmpty()) refreshRules()
+        return load()
+    }
 
     /**
      * Reads the latest data, writes the change of [plan] on it, and reads the data again.

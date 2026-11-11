@@ -57,6 +57,9 @@ private fun AppContent(platform: Platform) {
     // True while the Today page shows a metric detail screen: then the bottom navigation bar is hidden.
     var showsDetail by remember { mutableStateOf(false) }
 
+    // True while the Today page shows the metrics screen. The bottom navigation bar is hidden there too.
+    var managing by remember { mutableStateOf(false) }
+
     val demo = remember { if (platform.isDemo) DemoStore(platform.today()) else null }
     val config = platform.config
 
@@ -71,14 +74,16 @@ private fun AppContent(platform: Platform) {
         reload = reload,
         onBusy = { busy = it },
         onDetail = { showsDetail = it },
+        managing = managing,
+        onManaging = { managing = it },
         readPref = platform::readPref,
         writePref = platform::writePref,
     )
 
     if (demo != null) {
         Layout(
-            header = { Header(onReload = { reload.run?.invoke() }, busy = busy) },
-            showsNavigation = !showsDetail,
+            header = { Header(onReload = { reload.run?.invoke() }, busy = busy, onMetrics = { managing = !managing }) },
+            showsNavigation = !showsDetail && !managing,
             view = view,
             onView = { view = it },
         ) {
@@ -107,18 +112,27 @@ private fun AppContent(platform: Platform) {
             Header(
                 onReload = if (connected) ({ reload.run?.invoke() }) else null,
                 busy = busy,
-                onSignOut = if (currentSession == null) null else ({ session = null }),
+                onMetrics = if (connected) ({ managing = !managing }) else null,
+                onSignOut = if (currentSession == null) {
+                    null
+                } else {
+                    {
+                        session = null
+                        managing = false
+                    }
+                },
                 onDisconnect = if (connected) {
                     {
                         platform.savedSpreadsheetId = null
                         spreadsheetId = null
+                        managing = false
                     }
                 } else {
                     null
                 },
             )
         },
-        showsNavigation = connected && !showsDetail,
+        showsNavigation = connected && !showsDetail && !managing,
         view = view,
         onView = { view = it },
     ) {

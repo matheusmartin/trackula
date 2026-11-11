@@ -6,11 +6,15 @@ import trackula.model.CountStep
 import trackula.model.Day
 import trackula.model.LOG_TITLE
 import trackula.model.METRICS_TITLE
+import trackula.model.NumberGoal
 import trackula.model.NumberMetric
 import trackula.model.YesNoMetric
 import trackula.model.metricsHeader
 import trackula.model.parseMetrics
 import trackula.model.planCount
+import trackula.model.planDeleteMetric
+import trackula.model.planMoveMetric
+import trackula.model.planSaveMetric
 import trackula.model.planYesNo
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -57,6 +61,20 @@ class SheetsStoreTest {
         // The Score column is not a metric.
         assertEquals(listOf("weight", "meditate", "water"), snapshot.log.columns.keys.toList())
         assertEquals(1, fake.scoreWrites.size)
+    }
+
+    @Test
+    fun theLoadGivesTheMetricRowsAndTheLogColumnsOfDeletedMetrics() = runTest {
+        val fake = sheetWithoutScore()
+        fake.metrics.removeAt(2)
+        val snapshot = fake.store.load()
+
+        assertEquals(mapOf("weight" to 2, "water" to 3), snapshot.metricsTable.rows)
+        val meditate = snapshot.deleted.single()
+        assertEquals("meditate", meditate.id)
+        assertEquals(2, meditate.values)
+        assertEquals(d2, meditate.lastDay)
+        assertTrue(meditate.isYesNo)
     }
 
     @Test
@@ -270,6 +288,77 @@ class SheetsStoreTest {
         fake.store.load()
         assertEquals(1, fake.scoreWrites.size)
         assertEquals(listOf<Double?>(null, null, null), fake.logColumn("Score"))
+    }
+
+    @Test
+    fun changeMetricsAddsAMetricRowAndItsLogColumnWithItsRule() = runTest {
+        val fake = sheetWithoutScore()
+        fake.store.load()
+        fake.numberRuleColumns.clear()
+        val read = YesNoMetric(id = "read", name = "=Read", icon = "menu_book", group = "habits")
+
+        val snapshot = fake.store.changeMetrics { planSaveMetric(it, read) }
+        assertEquals<List<Any?>>(
+            listOf("read", "=Read", "yesno", "", "", "habits", "menu_book", "yes"),
+            fake.metrics[4],
+        )
+        assertEquals(read, snapshot.metrics.last())
+        assertEquals("read", fake.log[0][5])
+        assertEquals(5, snapshot.log.columns["read"])
+        assertEquals(emptyList(), snapshot.warnings)
+    }
+
+    @Test
+    fun changeMetricsWritesANewKindAndGoalAndTheNewScoresAndRules() = runTest {
+        val fake = sheetWithoutScore()
+        fake.store.load()
+        fake.numberRuleColumns.clear()
+        val weight = fake.metric("weight") as NumberMetric
+
+        val goal = NumberGoal(target = 2.0, isMaximum = false)
+        val snapshot = fake.store.changeMetrics { planSaveMetric(it, weight.copy(isCount = true, goal = goal)) }
+        assertEquals<List<Any?>>(
+            listOf("weight", "Weight", "count", "kg", 0.1, "body", "monitor_weight", "at least 2"),
+            fake.metrics[1],
+        )
+        assertEquals(weight.copy(isCount = true, goal = goal), snapshot.metrics.first())
+        // The rules are set again: the weight column of the Log tab keeps its number rule.
+        assertTrue("B" in fake.numberRuleColumns)
+        // At least 2: 79.5 and 82 give 1 point, and the day without weight is a count of 0. Before, 82 gave 0.
+        assertEquals(listOf(83.3, 33.3, 0.0), fake.logColumn("Score"))
+    }
+
+    @Test
+    fun changeMetricsDeletesAndMovesRowsButTheLogKeepsTheValues() = runTest {
+        val fake = sheetWithoutScore()
+        fake.store.load()
+
+        val moved = fake.store.changeMetrics { listOfNotNull(planMoveMetric(it, "water", up = true)) }
+        assertEquals(listOf("weight", "water", "meditate"), moved.metrics.map { it.id })
+        assertEquals("water", fake.metrics[2][0])
+
+        val deleted = fake.store.changeMetrics { listOf(planDeleteMetric(it, "meditate")) }
+        assertEquals(listOf("weight", "water"), deleted.metrics.map { it.id })
+        assertEquals(3, fake.metrics.size)
+        assertEquals("meditate", deleted.deleted.single().id)
+        assertEquals("meditate", fake.log[0][2])
+    }
+
+    @Test
+    fun changeMetricsAddsRowsToAFullTabAndTheGoalColumnToAnOlderTab() = runTest {
+        val fake = sheetWithoutScore()
+        for (row in fake.metrics) row.removeAt(row.lastIndex)
+        fake.rowCounts[METRICS_TITLE] = 4
+        fake.columnCounts[METRICS_TITLE] = 7
+        fake.store.load()
+
+        val read = YesNoMetric(id = "read", name = "Read", icon = "menu_book", goalIsYes = false)
+        val snapshot = fake.store.changeMetrics { planSaveMetric(it, read) }
+        assertEquals(5, fake.rowCounts[METRICS_TITLE])
+        assertEquals(8, fake.columnCounts[METRICS_TITLE])
+        assertEquals("goal", fake.metrics[0][7])
+        assertEquals("no", fake.metrics[4][7])
+        assertEquals(read, snapshot.metrics.last())
     }
 }
 

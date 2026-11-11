@@ -43,6 +43,9 @@ class FakeSheets(
 ) {
     val columnCounts = mutableMapOf(METRICS_TITLE to 26, LOG_TITLE to logColumns)
 
+    /** The number of rows of each tab. `appendDimension` adds rows. */
+    val rowCounts = mutableMapOf(METRICS_TITLE to 1000, LOG_TITLE to 1000)
+
     /** False: the `Score` column does not keep a written value, as if something in the sheet changes it back. */
     var keepsScores = true
 
@@ -64,6 +67,8 @@ class FakeSheets(
     val store = SheetsStore(SheetsClient(HttpClient(MockEngine { handle(it) }), "sheet-id"))
 
     private val tabIds = mapOf(METRICS_TITLE to 1, LOG_TITLE to 2)
+
+    private fun title(tabId: Int): String = tabIds.entries.first { it.value == tabId }.key
 
     private fun tab(title: String): MutableList<MutableList<Any?>> = when (title) {
         METRICS_TITLE -> metrics
@@ -133,7 +138,10 @@ class FakeSheets(
                             putJsonObject("properties") {
                                 put("sheetId", id)
                                 put("title", title)
-                                putJsonObject("gridProperties") { put("columnCount", columnCounts[title]) }
+                                putJsonObject("gridProperties") {
+                                    put("columnCount", columnCounts[title])
+                                    put("rowCount", rowCounts[title])
+                                }
                             }
                         },
                     )
@@ -160,8 +168,26 @@ class FakeSheets(
             }
             replies.add(reply ?: JsonObject(emptyMap()))
             request["appendDimension"]?.jsonObject?.let { append ->
-                val title = tabIds.entries.first { it.value == append.getValue("sheetId").jsonPrimitive.int }.key
-                columnCounts[title] = columnCounts.getValue(title) + append.getValue("length").jsonPrimitive.int
+                val title = title(append.getValue("sheetId").jsonPrimitive.int)
+                val dimension = append.getValue("dimension").jsonPrimitive.content
+                val counts = if (dimension == "ROWS") rowCounts else columnCounts
+                counts[title] = counts.getValue(title) + append.getValue("length").jsonPrimitive.int
+            }
+            request["deleteDimension"]?.jsonObject?.let { delete ->
+                val range = delete.getValue("range").jsonObject
+                val rows = tab(title(range.getValue("sheetId").jsonPrimitive.int))
+                val start = range.getValue("startIndex").jsonPrimitive.int
+                val end = minOf(range.getValue("endIndex").jsonPrimitive.int, rows.size)
+                repeat(end - start) { rows.removeAt(start) }
+            }
+            request["moveDimension"]?.jsonObject?.let { move ->
+                val source = move.getValue("source").jsonObject
+                val rows = tab(title(source.getValue("sheetId").jsonPrimitive.int))
+                val start = source.getValue("startIndex").jsonPrimitive.int
+                val destination = move.getValue("destinationIndex").jsonPrimitive.int
+                while (rows.size < maxOf(start + 1, destination)) rows.add(mutableListOf())
+                val row = rows.removeAt(start)
+                rows.add(if (destination > start) destination - 1 else destination, row)
             }
             request["setDataValidation"]?.jsonObject?.let { validation ->
                 val range = validation.getValue("range").jsonObject
