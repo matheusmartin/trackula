@@ -325,7 +325,8 @@ data class StackPart(val label: String, val color: Color, val values: List<Doubl
 
 /**
  * Bars from 0 that stack the [parts], the first part at the bottom, with [labels] below and a legend. The sum of each
- * bar is above it. A bar with only null values has no bar and no sum. A value below 0 counts as 0.
+ * bar is above it. A bar with only null values has no bar and no sum. A value below 0 counts as 0. A thin gap is
+ * above each part, so that parts with near colors stay apart.
  */
 @Composable
 fun StackedBarChart(
@@ -348,15 +349,18 @@ fun StackedBarChart(
                 Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = title }) {
                     val sx = size.width / (labels.size * COLUMN_UNITS)
                     val sy = size.height / PLOT_UNITS
+                    val gap = 1.5.dp.toPx()
                     for (i in labels.indices) {
                         var bottom = PLOT_UNITS
                         for (part in parts) {
                             val v = max(0.0, part.values[i] ?: continue)
                             val height = (v / scale * PLOT_UNITS).toFloat()
+                            // The gap is taken from the top of the part, so that the bar keeps its full height.
+                            val shown = max(0f, height * sy - gap)
                             drawRect(
                                 part.color,
-                                topLeft = Offset((i * COLUMN_UNITS + 1.5f) * sx, (bottom - height) * sy),
-                                size = Size(7 * sx, height * sy),
+                                topLeft = Offset((i * COLUMN_UNITS + 1.5f) * sx, bottom * sy - shown),
+                                size = Size(7 * sx, shown),
                             )
                             bottom -= height
                         }

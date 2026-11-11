@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import trackula.app.LocalExtraColors
 import trackula.model.Aggregate
@@ -25,6 +27,7 @@ import trackula.model.countStats
 import trackula.model.formatNumber
 import trackula.model.formatPercent
 import trackula.model.formatSigned
+import trackula.model.groupShades
 import trackula.model.groupWeekdayParts
 import trackula.model.halves
 import trackula.model.isScore
@@ -264,8 +267,8 @@ private fun CountCharts(metric: NumberMetric, window: ZoomWindow, values: Map<Da
  * The numbers and charts of the score. Each one answers one question: how the score changes over time, how the week
  * of the window end compares with the 4 weeks before (for each weekday, and for each group or metric), how its month
  * compares with the 3 months before (for each group or metric), and which weekdays are good. The month calendar below
- * the charts shows the score of each day (see `ScoreCalendar`). The score of a day does not add up over time, so the charts show averages per day and per
- * weekday, not totals.
+ * the charts shows the score of each day (see `ScoreCalendar`). The score of a day does not add up over time, so the
+ * charts show averages per day and per weekday, not totals.
  *
  * - [values]: the score of each day. The change compares the first half of the window with the second half.
  * - [groupScores]: the score of each group. With 2 or more groups, the weekday bars show the part of each group, the
@@ -409,8 +412,8 @@ private fun MonthlyPoints(parts: ScoreParts, values: Map<Day, Double>, window: Z
 }
 
 /**
- * The average score on each weekday. With 2 or more [groupScores], each bar stacks the parts of the groups, with a
- * legend. See `groupWeekdayParts`.
+ * The average score on each weekday. With 2 or more [groupScores], each bar stacks the parts of the groups, in shades
+ * of the score color (see `groupShades`), with a legend. See `groupWeekdayParts`.
  */
 @Composable
 private fun WeekdayAverages(
@@ -430,15 +433,16 @@ private fun WeekdayAverages(
         )
         return
     }
-    val colors = LocalExtraColors.current.groups
+    val cell = LocalExtraColors.current.cell
     val parts = groupWeekdayParts(values, groupScores, window.days)
+    // Tints toward white, not toward the empty color: on the dark theme, the empty color is near the card color.
+    val shades = groupShades(parts.size).map { lerp(Color.White, cell, it.toFloat()) }
     StackedBarChart(
         title = title,
-        description = "The average score on each weekday, from the days with a score. Each color is a group.",
+        description = "The average score on each weekday, from the days with a score. Each shade of green is a " +
+            "group: the full green is at the bottom.",
         labels = weekdayNames,
-        parts = parts.entries.mapIndexed { i, (group, averages) ->
-            StackPart(groupLabel(group), colors[i % colors.size], averages)
-        },
+        parts = parts.entries.mapIndexed { i, (group, averages) -> StackPart(groupLabel(group), shades[i], averages) },
         modifier = modifier,
     )
 }
