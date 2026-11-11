@@ -37,11 +37,13 @@ import trackula.app.resources.logo
  *
  * - [onReload] reloads the sheet data. Null: no reload button, for example before the user chooses a sheet.
  * - [busy] is true while data loads or saves: a progress circle shows instead of the reload button.
+ * - [onMetrics] opens or closes the metrics screen. Null: no metrics button.
  */
 @Composable
 fun Header(
     onReload: (() -> Unit)? = null,
     busy: Boolean = false,
+    onMetrics: (() -> Unit)? = null,
     onSignOut: (() -> Unit)? = null,
     onDisconnect: (() -> Unit)? = null,
 ) {
@@ -79,6 +81,7 @@ fun Header(
                     AppIconButton(icon = "refresh", title = "Reload", onClick = onReload)
                 }
             }
+            if (onMetrics != null) AppIconButton(icon = "tune", title = "Metrics", onClick = onMetrics)
             if (onDisconnect != null) AppIconButton(icon = "swap_horiz", title = "Change sheet", onClick = onDisconnect)
             if (onSignOut != null) AppIconButton(icon = "logout", title = "Sign out", onClick = onSignOut)
         }

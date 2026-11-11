@@ -14,7 +14,8 @@ data class DeletedMetric(val id: String, val values: Int, val lastDay: Day?, val
 /**
  * The deleted metrics of the `Log` tab: the columns whose header is a valid id that is not in [metricIds]. [rows]
  * includes the header row. A duplicate column counts once: the first one. The `date` and `Score` columns are not
- * metrics.
+ * metrics. [metricIds] also has the ids of the invalid rows of the `Metrics` tab: such a row is not deleted, and the
+ * app fixes it, not restores it.
  *
  * Example: a `Log` header `date, weight, steps, Score` and the metric `weight` give the deleted metric `steps`.
  */

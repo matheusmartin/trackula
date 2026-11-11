@@ -47,6 +47,15 @@ fun planSaveMetric(table: MetricsTable, metric: Metric): List<MetricsWrite> =
     planCells(table, table.rows[metric.id] ?: (table.lastRow + 1), metricCells(metric))
 
 /**
+ * The writes that change the row of [metric] in [table]: the row with its id. Throws a [MissingMetricException] if
+ * [table] has no row with the id, for example after a deletion in the sheet: a change does not add the metric again.
+ */
+fun planEditMetric(table: MetricsTable, metric: Metric): List<MetricsWrite> {
+    if (metric.id !in table.rows) throw MissingMetricException(metric.id)
+    return planSaveMetric(table, metric)
+}
+
+/**
  * The writes that replace the invalid row [old] with [metric]. The row is found by its cells, not by its number, as
  * a manual edit can move it. Throws a [ChangedRowException] if [table] has no invalid row with the cells of [old].
  */

@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +47,8 @@ import trackula.model.LogTable
 import trackula.model.LogWrite
 import trackula.model.MainView
 import trackula.model.Metric
+import trackula.model.MetricsTable
+import trackula.model.MetricsWrite
 import trackula.model.NumberMetric
 import trackula.model.dayScores
 import trackula.model.groupOf
@@ -71,6 +75,8 @@ class ReloadHandle {
  * - [onBusy]: called when a load or a write starts and ends. The app bar shows a progress circle while it is true.
  * - [onDetail]: called when a metric detail screen opens (true) or closes. The App hides the bottom navigation bar on
  *   the detail screen.
+ * - [managing]: true if the page shows the metrics screen (see [MetricsPage]). The App owns it, and [onManaging]
+ *   changes it. The App hides the bottom navigation bar on the metrics screen.
  * - [readPref], [writePref]: the group filter stays in local storage. The filter also selects the score: of all
  *   metrics, or of the metrics of the selected group.
  */
@@ -87,6 +93,8 @@ fun TodayPage(
     onDetail: (Boolean) -> Unit,
     readPref: (String) -> String?,
     writePref: (String, String?) -> Unit,
+    managing: Boolean = false,
+    onManaging: (Boolean) -> Unit = {},
 ) {
     // The latest callbacks: the reload handle and the coroutines keep one function for the life of the page.
     val currentExpired by rememberUpdatedState(expired)
@@ -97,6 +105,7 @@ fun TodayPage(
     var busy by remember(store) { mutableStateOf(false) }
     var error by remember(store) { mutableStateOf<String?>(null) }
     val currentOnDetail by rememberUpdatedState(onDetail)
+    val currentOnManaging by rememberUpdatedState(onManaging)
     // The id of the metric with the open detail screen. Null shows the table.
     var detailId by remember(store) { mutableStateOf<String?>(null) }
     // The selected group, or null for all groups.
@@ -162,6 +171,16 @@ fun TodayPage(
         scope.launch {
             job.join()
             if (saved) currentOnView(MainView.SHORT)
+        }
+    }
+
+    // Writes a change to the Metrics tab. [onDone] runs after a write without an error, for example to close the form.
+    fun writeMetrics(plan: (MetricsTable) -> List<MetricsWrite>, onDone: () -> Unit) {
+        var saved = false
+        val job = run { store.changeMetrics(plan).also { saved = true } } ?: return
+        scope.launch {
+            job.join()
+            if (saved) onDone()
         }
     }
 
@@ -236,6 +255,21 @@ fun TodayPage(
         )
     }
 
+    // The metrics screen replaces the detail screen: a change of a metric can also change its detail screen.
+    LaunchedEffect(managing) {
+        if (managing && detailId != null) closeDetail()
+    }
+    if (managing && snapshot != null) {
+        MetricsPage(
+            data = snapshot,
+            busy = busy,
+            error = error,
+            onWrite = ::writeMetrics,
+            onClose = { currentOnManaging(false) },
+        )
+        return
+    }
+
     // The detail screen of one metric. If the metric is gone from the sheet, the table shows again, with the bottom
     // navigation bar.
     val detailMetric = metrics.firstOrNull { it.id == detailId }
@@ -260,10 +294,8 @@ fun TodayPage(
         error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         if (snapshot == null) return@Column
         if (metrics.isEmpty()) {
-            Text(
-                "No metrics. Add rows to the \"Metrics\" tab of the sheet.",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text("No metrics.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Button(onClick = { currentOnManaging(true) }) { Text("Add a metric") }
         } else {
             when (view) {
                 MainView.TODAY -> TodayTiles(
@@ -299,7 +331,10 @@ fun TodayPage(
                 }
             }
         }
-        if (snapshot.warnings.isNotEmpty()) Warnings(snapshot.warnings)
+        if (snapshot.warnings.isNotEmpty()) {
+            val onFix = if (snapshot.metricsTable.invalid.isEmpty()) null else ({ currentOnManaging(true) })
+            Warnings(snapshot.warnings, onFix)
+        }
     }
 }
 
@@ -326,9 +361,9 @@ private fun GroupChip(label: String, selected: Boolean, onClick: () -> Unit) {
     )
 }
 
-/** The warnings of the sheet: invalid rows and cells. */
+/** The warnings of the sheet: invalid rows and cells. [onFix] opens the metrics screen. Null: no Fix button. */
 @Composable
-private fun Warnings(warnings: List<String>) {
+private fun Warnings(warnings: List<String>, onFix: (() -> Unit)?) {
     OutlinedCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -336,6 +371,7 @@ private fun Warnings(warnings: List<String>) {
                 Text("Sheet warnings", style = MaterialTheme.typography.titleMedium)
             }
             for (w in warnings) Text("• $w")
+            if (onFix != null) TextButton(onClick = onFix) { Text("Fix the metric rows") }
         }
     }
 }

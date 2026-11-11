@@ -46,7 +46,8 @@ class DemoStore(today: Day, private val delay: Duration = 400.milliseconds) : St
         header.addAll(metrics.items.map { it.id }.filter { it !in header })
         val ids = metrics.items.associateBy { it.id }
         val parsed = parseLog(log, ids)
-        return Snapshot(metrics, parsed.table, metrics.warnings + parsed.warnings, deletedMetrics(log, ids.keys))
+        val known = ids.keys + metrics.invalid.map { it.id }
+        return Snapshot(metrics, parsed.table, metrics.warnings + parsed.warnings, deletedMetrics(log, known))
     }
 
     override suspend fun apply(write: LogWrite) {

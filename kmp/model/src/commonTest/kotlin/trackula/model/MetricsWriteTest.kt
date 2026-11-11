@@ -46,6 +46,12 @@ class MetricsWriteTest {
     }
 
     @Test
+    fun anEditDoesNotAddAMetricThatIsGone() {
+        assertEquals(planSaveMetric(table, weight), planEditMetric(table, weight))
+        assertFailsWith<MissingMetricException> { planEditMetric(table, YesNoMetric("read", "Read", "menu_book")) }
+    }
+
+    @Test
     fun aFixWritesTheInvalidRowThatHasTheSameCells() {
         val walk = table.invalid.single()
         val write = planFixRow(table, walk, YesNoMetric("walk", "Walk", "directions_walk")).single() as SetMetricCells

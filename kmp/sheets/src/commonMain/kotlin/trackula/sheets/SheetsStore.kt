@@ -167,7 +167,8 @@ class SheetsStore(private val api: SheetsClient) : Store() {
         if (writesScores && writeScores(logRows, metrics.items, scoreWarnings)) return load(writesScores = false)
         val log = parseLog(logRows, byId)
         val warnings = metrics.warnings + log.warnings + scoreWarnings
-        return Snapshot(metrics, log.table, warnings, deletedMetrics(logRows, byId.keys))
+        val ids = byId.keys + metrics.invalid.map { it.id }
+        return Snapshot(metrics, log.table, warnings, deletedMetrics(logRows, ids))
     }
 
     /**

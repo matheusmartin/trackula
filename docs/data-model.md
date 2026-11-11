@@ -4,7 +4,8 @@
 
 - Storage is one Google Sheet.
 - The sheet has 2 tabs:
-  - `Metrics`: the list of things you track. You edit it by hand.
+  - `Metrics`: the list of things you track. You edit it in the [metrics screen](#metrics-screen) of the app, or by
+    hand.
   - `Log`: one row for each day, one column for each metric, and the `Score` column. The app writes it. You can edit
     the metric columns by hand.
 - Row 1 of each tab is the header row. Do not change the header names.
@@ -27,7 +28,7 @@ One row for each metric. The row order is the display order in the app.
 
 Rules:
 
-- To hide a metric, delete its row. Its `Log` column and values stay in the sheet, and the app ignores them. To show the metric again, add the row again with the same `id`.
+- To hide a metric, delete its row. Its `Log` column and values stay in the sheet, and the app ignores them. To show the metric again, add the row again with the same `id`. The metrics screen does both: Delete and Restore.
 - The app ignores other columns. Older sheets have `per_day` and `active` columns: you can delete them.
 - Older sheets can have no `icon` column. Then the app shows an error. Add the column with an icon in each row.
 - Older sheets can have no `goal` column. Then each `yesno` metric has the goal `yes`, and the `number` and `count` metrics have no goal. Add the column to set goals.
@@ -41,6 +42,32 @@ Example:
 | meditate | Meditate | yesno  |         |      | habits | self_improvement | yes                |
 | water    | Water    | count  | glasses | 1    | habits | 💧               | at least 8         |
 | reading  | Reading  | count  | min     | 5    | habits | menu_book        | at least 20        |
+
+### Metrics screen
+
+The metrics screen of the app changes the `Metrics` tab, so you do not need to open the sheet. Rules:
+
+- The list shows the metrics in row order: the order in the app. The arrows move a row before the metric above it or
+  after the metric below it. Empty rows and invalid rows between them do not move.
+- "Add metric" writes a new row after the last row. The app makes the `id` from the name: lowercase letters and
+  digits, with `_` between the words. Example: "Morning teeth" gives `morning_teeth`. If a metric, an invalid row or
+  a `Log` column has this id, a number goes after it: `morning_teeth_2`. So a new metric does not get the values of a
+  deleted metric. The `id` does not change after that.
+- Save writes only the columns of the table above. The other columns of the row do not change. The app writes text
+  as it is, so a name such as `=1+1` stays text. The goal is in words: `at least 8`, `at most 80 from 83 trend`. So
+  an older goal such as `>= 8` becomes `at least 8` after a save.
+- A metric with values cannot change between `yesno` and the other kinds: its values would become invalid. `number`
+  and `count` use the same values, so a change between them is always possible.
+- Delete removes the row of the metric. Its `Log` column and values stay. "Deleted metrics" lists the `Log` columns
+  without a metric, with their number of values and the last day. Restore writes a new row with the `id` of the
+  column, so the metric shows again with all its values.
+- "Rows with problems" lists the rows that the app cannot read, with the problem. Examples: no icon, an invalid goal,
+  a duplicate `id`. "Fix" opens the row in the form, and Save writes the same row. A row with an invalid or a
+  duplicate `id` gets a new `id` from its name.
+- If the `Metrics` tab has no `goal` column, the first save adds it.
+- Each change reads the tab first and finds the row by its `id`, so manual edits in the sheet do not break it. After
+  the change, the app sets the rules again and loads the sheet: a new metric gets its `Log` column, and a new goal
+  gives new scores.
 
 ### Goal
 

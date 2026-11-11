@@ -27,7 +27,11 @@ private val symbolName = Regex("^[a-z0-9_]+$")
  * border keeps the chip visible on the card.
  */
 @Composable
-fun MetricIcon(metric: Metric, large: Boolean = false) {
+fun MetricIcon(metric: Metric, large: Boolean = false) = MetricIcon(metric.icon, large)
+
+/** The chip of [icon], a Material Symbols name or a text such as an emoji. See the [MetricIcon] of a metric. */
+@Composable
+fun MetricIcon(icon: String, large: Boolean = false) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(if (large) 10.dp else 8.dp)
     Box(
@@ -38,10 +42,10 @@ fun MetricIcon(metric: Metric, large: Boolean = false) {
             .clearAndSetSemantics {},
         contentAlignment = Alignment.Center,
     ) {
-        if (symbolName.matches(metric.icon)) {
-            Symbol(metric.icon, size = if (large) 28.dp else 20.dp, color = colors.primary)
+        if (symbolName.matches(icon)) {
+            Symbol(icon, size = if (large) 28.dp else 20.dp, color = colors.primary)
         } else {
-            Text(metric.icon, fontSize = if (large) 24.sp else 16.sp, maxLines = 1)
+            Text(icon, fontSize = if (large) 24.sp else 16.sp, maxLines = 1)
         }
     }
 }
