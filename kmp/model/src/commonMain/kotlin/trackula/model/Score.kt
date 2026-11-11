@@ -28,8 +28,9 @@ fun isScore(metric: Metric): Boolean = metric.id == SCORE_HEADER || metric.id.st
 fun isScored(metric: Metric): Boolean = metric !is NumberMetric || metric.goal != null
 
 /**
- * True if [metric] counts on each day from its first value: a yes/no or a count metric. A day without a value gives 0
- * points. A number metric is a measurement, not a task for each day: it counts only on the days with a value.
+ * True if [metric] counts on each day from its first value: a yes/no or a count metric. A day without a value has the
+ * value 0: `no`, or a count of 0. A number metric is a measurement, not a task for each day: it counts only on the
+ * days with a value.
  */
 private fun countsEachDay(metric: Metric): Boolean = metric !is NumberMetric || metric.isCount
 
@@ -48,60 +49,38 @@ fun metricPoints(metric: Metric, value: Double): Double = when (metric) {
 
 /**
  * The points of each metric of [metrics] that gives points (see [isScored]) on each day that it counts, from 0 to 1,
- * by metric id. The values include the count taps in [pending]. If a day has more than one row, only its last row
- * counts, as in [LogTable.rows].
+ * by metric id. The values come from [metricValues], with the count taps in [pending]. A metric without points is not
+ * in the result.
  *
- * - A yes/no or count metric counts on each day from its first value to [today], or to the last row of [log] if that
- *   row is later. A day without a value gives 0, also a day without a row.
+ * - A yes/no or count metric counts on each day from its first value to [today], and on each later day with a row. A
+ *   day without a value, also a day without a row, has the value 0: `no` for yes/no, and 0 for a count. Without
+ *   [today], it counts only on the days with a row, as in the `Score` column.
  * - A number metric counts only on the days with a value. With a trend goal, its points come from the [trend].
  *
- * Example: water `at least 8`, 6 glasses on Oct 1, and today Oct 2 without a value give `water` → (Oct 1 → 0.75,
- * Oct 2 → 0).
+ * Examples: water `at least 8`, 6 glasses on Oct 1, and today Oct 2 without a value give `water` → (Oct 1 → 0.75,
+ * Oct 2 → 0). Coffee `at most 2` gives 1 on a day without a value: 0 coffees.
  */
 fun pointsByMetric(
     metrics: List<Metric>,
     log: LogTable,
     today: Day? = null,
     pending: Map<MetricDay, List<CountStep>> = emptyMap(),
-): Map<String, Map<Day, Double>> {
-    val scored = metrics.filter(::isScored)
-    val values = dayValues(scored, log, pending)
-    val end = listOfNotNull(today, log.rows.keys.maxOrNull()).maxOrNull()
-    return scored.associate { metric ->
-        val byDay = values[metric.id].orEmpty()
-        val usesTrend = metric is NumberMetric && metric.goal?.usesTrend == true
-        val points = (if (usesTrend) trend(byDay) else byDay).mapValues { (_, value) -> metricPoints(metric, value) }
-        metric.id to if (countsEachDay(metric)) withEmptyDays(points, end) else points
-    }
-}
+): Map<String, Map<Day, Double>> = metrics.filter(::isScored).associate { metric ->
+    val values = metricValues(metric, log, pending)
+    val usesTrend = metric is NumberMetric && metric.goal?.usesTrend == true
+    val points = (if (usesTrend) trend(values) else values).mapValues { (_, value) -> metricPoints(metric, value) }
+    metric.id to if (countsEachDay(metric)) withEmptyDays(points, metricPoints(metric, 0.0), log, today) else points
+}.filterValues { it.isNotEmpty() }
 
 /**
- * The value of each metric of [metrics] on each day of [log], by metric id, with the count taps in [pending]. If a
- * day has more than one row, the value of its last row.
+ * [points] with [empty] on each day without points, after the first day of [points]: each day with a row of [log],
+ * and each day up to [today].
  */
-private fun dayValues(
-    metrics: List<Metric>,
-    log: LogTable,
-    pending: Map<MetricDay, List<CountStep>>,
-): Map<String, Map<Day, Double>> {
-    val byId = metrics.associateBy { it.id }
-    val values = log.entries
-        .filter { it.metricId in byId && log.rows[it.date] == it.row }
-        .associate { MetricDay(it.metricId, it.date) to it.value }
-        .toMutableMap()
-    for ((key, steps) in pending) {
-        if (byId[key.metricId] !is NumberMetric) continue
-        val value = applyCountSteps(values[key], steps)
-        if (value != null) values[key] = value else values.remove(key)
-    }
-    return values.entries.groupBy({ it.key.metricId }, { it.key.day to it.value }).mapValues { it.value.toMap() }
-}
-
-/** [points] with 0 for each day without points: from the first day of [points] to [end], or to its last day. */
-private fun withEmptyDays(points: Map<Day, Double>, end: Day?): Map<Day, Double> {
+private fun withEmptyDays(points: Map<Day, Double>, empty: Double, log: LogTable, today: Day?): Map<Day, Double> {
     val first = points.keys.minOrNull() ?: return points
-    val last = maxOf(points.keys.max(), end ?: first)
-    return daysBetween(first, last).associateWith { points[it] ?: 0.0 }
+    val untilToday = if (today == null) emptyList() else daysBetween(first, today)
+    val days = (log.rows.keys.filter { it > first } + untilToday).filter { it !in points }
+    return points + days.associateWith { empty }
 }
 
 /**

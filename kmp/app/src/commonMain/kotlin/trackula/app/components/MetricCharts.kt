@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
@@ -95,7 +96,8 @@ private fun ZoomWindow.unitName(): String = unit.name.lowercase()
 
 /**
  * The bars of the window. With [fixedScale], the top of the scale comes from all bars, so that it does not change
- * while the window moves: for sums.
+ * while the window moves: for sums. [max] fixes the top of the scale, for example 100 for percentages. [format] gives
+ * the text of a value.
  */
 private fun timeBarItem(
     title: String,
@@ -290,8 +292,12 @@ private fun ScoreCharts(
     val previous = countStats(values, firstHalf).average
     val best = stats.best
     val weekday = bestWeekday(stats.weekdayAverages)
-    val groups = scoreMetrics.filter { it.id in points }.map(::groupOf).distinct()
-    val parts = scoreParts(scoreMetrics, groups, points)
+    // The groups and the parts change only with the data, not when the window moves.
+    val groups = remember(scoreMetrics, points) { scoreMetrics.filter { it.id in points }.map(::groupOf).distinct() }
+    val parts = remember(scoreMetrics, groups, points) { scoreParts(scoreMetrics, groups, points) }
+    val partsOfGroups = remember(scoreMetrics, groups, points) {
+        if (groups.size >= 2) groupParts(scoreMetrics, groups, points) else emptyMap()
+    }
     KeyNumbers(
         listOf(
             "per day" to (stats.average?.let { withUnit(it, metric) } ?: "–"),
@@ -319,7 +325,7 @@ private fun ScoreCharts(
                 LineChart(
                     title = "Strength (%)",
                     description = "It goes up on days with a high score and down on days with a low score. Each " +
-                        "day moves it ${formatPercent(STRENGTH_WEIGHT)} of the way to the score of the day.",
+                        "day with a score moves it ${formatPercent(STRENGTH_WEIGHT)} of the way to that score.",
                     days = window.days,
                     values = strength(values.mapValues { it.value / 100 }, window.days).map { it * 100 },
                     modifier = it,
@@ -331,10 +337,7 @@ private fun ScoreCharts(
             ChartItem(wide = true) { WeekInRange(values, window, it) },
             ChartItem(wide = false) { WeeklyScores(parts, window, it) },
             ChartItem(wide = false) { MonthlyScores(parts, window, it) },
-            ChartItem(wide = true) {
-                val groupParts = if (groups.size >= 2) groupParts(scoreMetrics, groups, points) else emptyMap()
-                WeekdayAverages(values, window, stats, groupParts, it)
-            },
+            ChartItem(wide = true) { WeekdayAverages(values, window, stats, partsOfGroups, it) },
         ),
     )
 }

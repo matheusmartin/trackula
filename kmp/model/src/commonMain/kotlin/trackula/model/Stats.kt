@@ -6,9 +6,12 @@ import kotlin.math.min
 /** A value on a day, for example the best day of a count. */
 data class DayValue(val day: Day, val value: Double)
 
-/** The yes/no states of [metricId] in [entries]: true for `yes`, false for `no`. Days without entry are left out. */
-fun yesNoStates(metricId: String, entries: List<LogEntry>): Map<Day, Boolean> =
-    entries.filter { it.metricId == metricId }.associate { it.date to (it.value == 1.0) }
+/**
+ * The yes/no states of [metric] in [log]: true for `yes`, false for `no`. Days without entry are left out. See
+ * [metricValues].
+ */
+fun yesNoStates(metric: YesNoMetric, log: LogTable): Map<Day, Boolean> =
+    metricValues(metric, log).mapValues { it.value == 1.0 }
 
 /**
  * The numbers and charts of a yes/no metric in a period.
@@ -103,8 +106,7 @@ private fun yesDays(states: Map<Day, Boolean>, last: Day?): Map<Day, Double> {
 /**
  * The strength of each day of [days], from 0 to 1. [values]: the result of each day, from 0 (bad) to 1 (good), also
  * before [days]. Each day with a value moves the strength [STRENGTH_WEIGHT] of the way to the value. A day without a
- * value does not change it. Before the first value, the strength is 0. So a long period does not start with many
- * empty days at 0.
+ * value does not change it. Before the first value, the strength is 0.
  *
  * Example: 1 on 20 days gives 0.64 (1 − 0.95^20). Then 0 on one day gives 0.61.
  */

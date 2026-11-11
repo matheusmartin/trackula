@@ -9,6 +9,7 @@ import trackula.model.METRICS_TITLE
 import trackula.model.NumberMetric
 import trackula.model.YesNoMetric
 import trackula.model.metricsHeader
+import trackula.model.parseMetrics
 import trackula.model.planCount
 import trackula.model.planYesNo
 import kotlin.test.Test
@@ -59,6 +60,24 @@ class SheetsStoreTest {
     }
 
     @Test
+    fun theGoalRuleAcceptsTheSameGoalsAsTheParser() {
+        val rule = Regex(goalRulePattern)
+        val goals = listOf(
+            "yes", "No", "8", "-5", "at least 8", "At  Most 2 from 4", ">= 7 from 5", "<=75.5",
+            "at most 80 from 83.5 trend", "maybe", "< 75", "trend", "at least", "8 from", "at most 80 trend from 83",
+            "8.", "at least 8 trends",
+        )
+        for (goal in goals) {
+            val parsed = listOf("yesno", "number").any { kind ->
+                parseMetrics(
+                    listOf(metricsHeader, listOf("x", "X", kind, "", "", "", "check", goal)),
+                ).items.isNotEmpty()
+            }
+            assertEquals(parsed, rule.matches(goal.lowercase()), goal)
+        }
+    }
+
+    @Test
     fun aSecondLoadWritesNothing() = runTest {
         val fake = sheetWithoutScore()
         fake.store.load()
@@ -91,26 +110,26 @@ class SheetsStoreTest {
         fake.store.load()
         fake.scoreWrites.clear()
 
-        // Goal `no` for meditate: row 2 loses 1 point, row 3 gets 1 point.
+        // Goal `no` for meditate: row 2 loses 1 point, rows 3 and 4 get 1 point. Row 4 has no value: a no day.
         fake.metrics[2][7] = "no"
         fake.store.load()
-        assertEquals(listOf(50.0, 33.3, 0.0), fake.logColumn("Score"))
-        assertEquals(listOf(listOf("Log!E2", "Log!E3")), fake.scoreWrites)
+        assertEquals(listOf(50.0, 33.3, 50.0), fake.logColumn("Score"))
+        assertEquals(listOf(listOf("Log!E2", "Log!E3", "Log!E4")), fake.scoreWrites)
 
         // A maximum of 85 for weight: 82 kg reaches it.
         fake.metrics[1][7] = "<= 85"
         fake.store.load()
-        assertEquals(listOf(50.0, 66.7, 0.0), fake.logColumn("Score"))
+        assertEquals(listOf(50.0, 66.7, 50.0), fake.logColumn("Score"))
 
         // From 85 to 80: 82 kg is 0.6 of the way.
         fake.metrics[1][7] = "at most 80 from 85"
         fake.store.load()
-        assertEquals(listOf(50.0, 53.3, 0.0), fake.logColumn("Score"))
+        assertEquals(listOf(50.0, 53.3, 50.0), fake.logColumn("Score"))
 
         // No goal for weight: it does not count.
         fake.metrics[1][7] = ""
         fake.store.load()
-        assertEquals(listOf(25.0, 50.0, 0.0), fake.logColumn("Score"))
+        assertEquals(listOf(25.0, 50.0, 50.0), fake.logColumn("Score"))
     }
 
     @Test

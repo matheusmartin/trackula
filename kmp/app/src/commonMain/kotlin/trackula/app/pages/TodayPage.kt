@@ -197,13 +197,16 @@ fun TodayPage(
     val selectedGroup = group?.takeIf { it in groups }
     val shown = metricsOf(metrics, selectedGroup)
 
-    // The points of the metrics that the group filter shows, and their scores.
-    val points = if (snapshot == null) {
-        emptyMap()
-    } else {
-        pointsOf(metrics, selectedGroup, pointsByMetric(metrics, snapshot.log, today, pending))
+    // The points of the metrics that the group filter shows, and their scores. They change only with the data, the
+    // taps, the day and the filter.
+    val points = remember(snapshot, today, pending, selectedGroup) {
+        if (snapshot == null) {
+            emptyMap()
+        } else {
+            pointsOf(metrics, selectedGroup, pointsByMetric(metrics, snapshot.log, today, pending))
+        }
     }
-    val scores = dayScores(points)
+    val scores = remember(points) { dayScores(points) }
     val score = selectedGroup?.let { groupScoreMetric(it, groupLabel(it)) } ?: scoreMetric
 
     fun openDetail(m: Metric) {

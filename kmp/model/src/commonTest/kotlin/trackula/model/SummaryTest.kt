@@ -21,19 +21,36 @@ class SummaryTest {
             ),
             metrics,
         ).table
-        assertEquals(mapOf(d28 to 8.0, d30 to 5.0), dayValues(water, log.entries))
-        assertEquals(listOf(d28, d30), dayValues(meditate, log.entries).keys.toList())
+        assertEquals(mapOf(d28 to 8.0, d30 to 5.0), dayValues(water, log))
+        assertEquals(listOf(d28, d30), dayValues(meditate, log).keys.toList())
+        assertEquals(mapOf(d28 to 1.0, d29 to 0.0, d30 to 1.0), metricValues(meditate, log))
     }
 
     @Test
-    fun dayValuesWithPendingAddsCountTapsThatAreNotWrittenYet() {
+    fun metricValuesGivesTheValueOfTheLastRowOfADayAlsoIfItsCellIsEmpty() {
+        val log = parseLog(
+            rows(
+                listOf("date", "water"),
+                listOf("2026-09-28", 8),
+                listOf("2026-09-28", 5),
+                listOf("2026-09-29", 3),
+                listOf("2026-09-29", ""),
+            ),
+            metrics,
+        ).table
+        assertEquals(mapOf(d28 to 5.0), metricValues(water, log))
+        assertEquals(log.valueAt("water", d29), metricValues(water, log)[d29])
+    }
+
+    @Test
+    fun dayValuesAddsCountTapsThatAreNotWrittenYet() {
         val p = parseLog(rows(listOf("date", "water"), listOf("2026-09-29", 8), listOf("2026-09-30", 1)), metrics)
         val pending = mapOf(
             MetricDay("water", d29) to listOf(CountStep(1.0), CountStep(1.0)),
             MetricDay("water", d30) to listOf(CountStep(-1.0)),
             MetricDay("weight", d29) to listOf(CountStep(5.0)),
         )
-        assertEquals(mapOf(d29 to 10.0), dayValuesWithPending(water, p.table.entries, pending))
+        assertEquals(mapOf(d29 to 10.0), dayValues(water, p.table, pending))
     }
 
     @Test

@@ -86,7 +86,7 @@ Rules:
 - The app adds a column at the end when a metric has no column, or when the tab has no `Score` column. The app does
   this when it loads the sheet.
 - The column order does not matter. You can move columns.
-- `yesno`: `yes` means "done", `no` means "not done". Case does not matter. An empty cell means no entry: the app shows it like `no`.
+- `yesno`: `yes` means "done", `no` means "not done". Case does not matter. An empty cell means no entry: the app shows it like `no`, and the [score](#score) counts it as `no`.
   - A tap in the app writes `yes`, or `no` if the day is `yes`.
   - Old app versions wrote `1` for `yes`. When the app opens the sheet, it changes these cells to `yes` (and `0` to `no`). It does not change empty cells.
 - `number` and `count`: one value per day. For amounts, for example glasses of water, it is the day total. Single entries are not stored.
@@ -111,16 +111,18 @@ Which metrics count on a day:
 
 - A `number` or `count` metric without a goal does not count: the app only tracks it. A `yesno` metric always has a
   goal: empty means `yes`.
-- A `yesno` or `count` metric counts on each day from its first value to today. A day without a value gives 0, also a
-  day without a row. So a day that you do not log does not give a better score than a day with `no`.
+- A `yesno` or `count` metric counts on each day from its first value to today, and on each later day with a row,
+  for example a row of a day after today. A day without a value has the value 0: `no` for `yesno`, and 0 for
+  `count`. This is also true for a day without a row. So a day that you do not log gives the same points as a day
+  with `no` or 0. Examples: the goal `yes` gives 0, the goal `no` gives 1, `at least 8` gives 0, `at most 2` gives 1.
 - A `number` metric counts only on the days with a value. It is a measurement, not a task for each day. For an amount
   for each day, for example minutes of reading, use `count`.
 - A day where no metric counts has no score. Example: the days before the first value.
 
 | Kind     | Points | Example |
 |----------|--------|---------|
-| `yesno`  | 1 if the value is the goal. Else 0, also for no value. | Goal `yes`: `yes` gives 1. Goal `no`: `no` gives 1. |
-| `count`  | 1 if the value reaches the goal. Else the part of the way from the start to the target. See [Goal](#goal). | `at least 8`: 5 gives 0.625, 10 gives 1. No value gives 0. |
+| `yesno`  | 1 if the value is the goal. Else 0. No value is `no`. | Goal `yes`: `yes` gives 1, no value gives 0. Goal `no`: `no` and no value give 1. |
+| `count`  | 1 if the value reaches the goal. Else the part of the way from the start to the target. See [Goal](#goal). No value is 0. | `at least 8`: 5 gives 0.625, 10 gives 1, no value gives 0. `at most 2`: no value gives 1. |
 | `number` | The same as `count`, but only on the days with a value. With `trend`, the points come from the trend of the day. | `at most 80 from 83`: 82.1 gives 0.3. 79.5 gives 1. |
 
 Example, with the metrics above, for 2026-09-30: weight 82.1 is 0.3 of the way from 83 to 80 (0.3), meditate `yes`

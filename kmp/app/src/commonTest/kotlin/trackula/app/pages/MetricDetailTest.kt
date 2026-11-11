@@ -202,7 +202,7 @@ class MetricDetailTest {
         onNodeWithText("Weekday averages").assertExists()
         onNodeWithText("Strength (%)").assertExists()
         onNodeWithText("best weekday").assertExists()
-        // The score does not add up over time: no total and no line chart.
+        // The score does not add up over time: no total.
         onNodeWithText("Running total").assertDoesNotExist()
         onNodeWithText("Totals").assertDoesNotExist()
         onNodeWithText("total").assertDoesNotExist()

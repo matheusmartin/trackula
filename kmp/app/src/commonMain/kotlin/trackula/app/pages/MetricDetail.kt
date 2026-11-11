@@ -50,7 +50,7 @@ import trackula.model.YesNoMetric
 import trackula.model.ZoomStep
 import trackula.model.ZoomWindow
 import trackula.model.barStarts
-import trackula.model.dayValuesWithPending
+import trackula.model.dayValues
 import trackula.model.defaultStepIndex
 import trackula.model.earliestDay
 import trackula.model.formatDateRange
@@ -132,12 +132,12 @@ private fun DetailContent(
     // The month in the calendar. Null: the month of the window end.
     var month by remember(metric.id) { mutableStateOf<MonthKey?>(null) }
 
-    val states = if (metric is YesNoMetric) yesNoStates(metric.id, log.entries) else emptyMap()
+    val states = if (metric is YesNoMetric) yesNoStates(metric, log) else emptyMap()
     // For yes/no metrics: 1 for yes and 0 for no, as the rate bars expect.
     val values = when {
         metric is YesNoMetric -> states.mapValues { (_, yes) -> if (yes) 1.0 else 0.0 }
         isScore(metric) -> scores
-        else -> dayValuesWithPending(metric, log.entries, pending)
+        else -> dayValues(metric, log, pending)
     }
     val first = earliestDay(values.keys) ?: today
     val steps = zoomSteps(first, today)

@@ -51,13 +51,6 @@ class ScoreTest {
         assertFalse(isScored(walk))
     }
 
-    @Test
-    fun theTrendMovesAQuarterOfTheWayToEachNewValue() {
-        val trend = trend(mapOf(Day(2026, 10, 7) to 82.0, d29 to 82.4, d30 to 82.0))
-        assertEquals(listOf(d29, d30, Day(2026, 10, 7)), trend.keys.toList())
-        assertEquals(listOf(82.4, 82.3, 82.225), trend.values.map(::withoutFloatNoise))
-    }
-
     /** Sep 29: weight 82.1, water 6, meditate yes, smoke no. Sep 30: weight 81, meditate no. */
     private val dayMetrics = listOf(weight, water, meditate, smoke)
     private val dayLog = parseLog(
@@ -74,8 +67,52 @@ class ScoreTest {
         val points = pointsByMetric(dayMetrics, dayLog, today = oct2)
         assertEquals(mapOf(d29 to 0.75, d30 to 0.0, oct1 to 0.0, oct2 to 0.0), points["water"])
         assertEquals(mapOf(d29 to 1.0, d30 to 0.0, oct1 to 0.0, oct2 to 0.0), points["meditate"])
-        // Without today, to the last row.
-        assertEquals(mapOf(d29 to 1.0, d30 to 0.0), pointsByMetric(dayMetrics, dayLog)["smoke"])
+        // Without today, only the days with a row. Smoke has the goal no: the day without a value is a no day.
+        assertEquals(mapOf(d29 to 1.0, d30 to 1.0), pointsByMetric(dayMetrics, dayLog)["smoke"])
+    }
+
+    @Test
+    fun aDayWithoutAValueHasTheValue0NoForYesNoAnd0ForACount() {
+        val coffee = NumberMetric(
+            id = "coffee",
+            name = "Coffee",
+            icon = "coffee",
+            isCount = true,
+            goal = NumberGoal(2.0, isMaximum = true),
+        )
+        val log = parseLog(
+            rows(
+                listOf("date", "coffee", "smoke"),
+                listOf("2026-09-28", 1, "no"),
+                listOf("2026-09-29"),
+                listOf("2026-09-30", 3, "yes"),
+            ),
+            byId(coffee, smoke),
+        ).table
+        // 0 coffees on Sep 29 reach the goal at most 2. 3 coffees do not.
+        val points = pointsByMetric(listOf(coffee, smoke), log, today = d30)
+        assertEquals(mapOf(d28 to 1.0, d29 to 1.0, d30 to 0.0), points["coffee"])
+        assertEquals(mapOf(d28 to 1.0, d29 to 1.0, d30 to 0.0), points["smoke"])
+        val from4 = coffee.copy(goal = NumberGoal(2.0, isMaximum = true, from = 4.0))
+        assertEquals(mapOf(d28 to 1.0, d29 to 1.0, d30 to 0.5), pointsByMetric(listOf(from4), log)["coffee"])
+    }
+
+    @Test
+    fun aRowAfterTodayCountsButTheDaysBeforeItDoNot() {
+        val log = parseLog(
+            rows(listOf("date", "meditate"), listOf("2026-09-29", "yes"), listOf("2026-10-10")),
+            byId(meditate),
+        ).table
+        assertEquals(
+            mapOf(d29 to 1.0, d30 to 0.0, oct1 to 0.0, Day(2026, 10, 10) to 0.0),
+            pointsByMetric(listOf(meditate), log, today = oct1)["meditate"],
+        )
+    }
+
+    @Test
+    fun pointsByMetricLeavesOutAMetricWithAGoalButWithoutValues() {
+        val log = parseLog(rows(listOf("date", "meditate"), listOf("2026-09-29", "yes")), byId(meditate, water)).table
+        assertEquals(setOf("meditate"), pointsByMetric(listOf(water, meditate), log, today = oct1).keys)
     }
 
     @Test
@@ -96,6 +133,25 @@ class ScoreTest {
     }
 
     @Test
+    fun aTrendGoalUsesTheSameTrendAsTheNumberCharts() {
+        val log = parseLog(
+            rows(
+                listOf("date", "weight"),
+                listOf("2026-09-28", 83),
+                listOf("2026-09-29", 81),
+                // The last row of Sep 29 has no value: Sep 29 has no value.
+                listOf("2026-09-29", ""),
+                listOf("2026-09-30", 81),
+            ),
+            byId(weightTrend),
+        ).table
+        val chartTrend = numberStats(metricValues(weightTrend, log), listOf(d28, d29, d30)).trend
+        val points = pointsByMetric(listOf(weightTrend), log).getValue("weight")
+        assertEquals(listOf(d28, d30), points.keys.toList())
+        assertEquals(weightTrend.goal?.points(chartTrend.last()!!), points[d30])
+    }
+
+    @Test
     fun pointsByMetricLeavesOutTheMetricsWithoutAGoal() {
         val log = parseLog(rows(listOf("date", "waist", "walk"), listOf("2026-09-29", 90, 30)), byId(waist, walk)).table
         assertEquals(emptyMap(), pointsByMetric(listOf(waist, walk), log))
@@ -110,8 +166,9 @@ class ScoreTest {
             "c" to mapOf(d29 to 0.0),
         )
         assertEquals(mapOf(d29 to 58.3, d30 to 0.0), dayScores(points))
-        // Weight 0.3, water 0.75, meditate 1 and smoke 1, then weight 0.67 and 0 for the others.
-        assertEquals(mapOf(d29 to 76.3, d30 to 16.7), dayScores(pointsByMetric(dayMetrics, dayLog)))
+        // Weight 0.3, water 0.75, meditate 1 and smoke 1. Then weight 0.67, smoke 1 (no value is no) and 0 for the
+        // others.
+        assertEquals(mapOf(d29 to 76.3, d30 to 41.7), dayScores(pointsByMetric(dayMetrics, dayLog)))
     }
 
     @Test
@@ -129,7 +186,7 @@ class ScoreTest {
             MetricDay("water", d29) to listOf(CountStep(-1.0)),
         )
         // Water 5 (0.625) on Sep 29 and 2 (0.25) on Sep 30.
-        assertEquals(mapOf(d29 to 73.1, d30 to 22.9), dayScores(pointsByMetric(dayMetrics, dayLog, pending = pending)))
+        assertEquals(mapOf(d29 to 73.1, d30 to 47.9), dayScores(pointsByMetric(dayMetrics, dayLog, pending = pending)))
     }
 
     @Test
@@ -178,14 +235,14 @@ class ScoreTest {
     fun groupScoresAreTheScoresOfTheMetricsOfEachGroup() {
         val groups = groupScores(grouped, listOf("body", "habits"), pointsByMetric(grouped, dayLog))
         assertEquals(mapOf(d29 to 30.0, d30 to 66.7), groups["body"])
-        assertEquals(mapOf(d29 to 91.7, d30 to 0.0), groups["habits"])
+        assertEquals(mapOf(d29 to 91.7, d30 to 33.3), groups["habits"])
     }
 
     @Test
     fun groupPartsAddUpToTheScoreOfTheDay() {
         val parts = groupParts(grouped, listOf("body", "habits"), pointsByMetric(grouped, dayLog))
         assertEquals(mapOf(d29 to 7.5, d30 to 16.666667), parts["body"])
-        assertEquals(mapOf(d29 to 68.75, d30 to 0.0), parts["habits"])
+        assertEquals(mapOf(d29 to 68.75, d30 to 25.0), parts["habits"])
         assertEquals(76.25, parts.values.sumOf { it.getValue(d29) })
     }
 
