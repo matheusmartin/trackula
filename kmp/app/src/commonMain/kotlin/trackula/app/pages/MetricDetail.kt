@@ -56,7 +56,6 @@ import trackula.model.earliestDay
 import trackula.model.formatDateRange
 import trackula.model.isScore
 import trackula.model.monthOf
-import trackula.model.pointsByMetric
 import trackula.model.roundHalfAwayFromZero
 import trackula.model.threeMonthsStepIndex
 import trackula.model.yesNoStates
@@ -82,10 +81,10 @@ private const val WHEEL_STEP = 40f
  * - Day heatmap: the days of the window. A tap on a day shows its month in the calendar.
  * - Edit days: any month, with the same day cells and inputs as the Today page. It shows the month of the window end
  *   until the arrows, a swipe or a heatmap tap change it. Wide screens also show the month before.
- * - Score (`scoreMetric` or a `groupScoreMetric`): key numbers and charts over time, by weekday and by metric, from
- *   [scores], in green. [groupScores]: the score of each group, for the charts of `scoreMetric` by group.
- *   [scoreMetrics]: the metrics that give the points, for the charts by metric. In place of the heatmap and Edit days,
- *   a read-only month calendar shows the score of each day: the app calculates the scores.
+ * - Score (`scoreMetric` or a `groupScoreMetric`): key numbers and charts over time, by weekday, by group and by
+ *   metric, from [scores], in green. [scoreMetrics] and [points]: the metrics of the score and the points of each
+ *   metric (see `pointsByMetric`), for the charts by group and by metric. In place of the heatmap and Edit days, a
+ *   read-only month calendar shows the score of each day: the app calculates the scores.
  *
  * [onBack] closes the screen. Null: the screen has no back button, for example the Score view.
  */
@@ -100,11 +99,11 @@ fun MetricDetail(
     onCount: (NumberMetric, Day, CountStep) -> Unit,
     scores: Map<Day, Double>,
     onBack: (() -> Unit)? = null,
-    groupScores: Map<String, Map<Day, Double>> = emptyMap(),
     scoreMetrics: List<Metric> = emptyList(),
+    points: Map<String, Map<Day, Double>> = emptyMap(),
 ) {
     val content = @Composable {
-        DetailContent(metric, log, today, busy, onWrite, pending, onCount, scores, groupScores, scoreMetrics, onBack)
+        DetailContent(metric, log, today, busy, onWrite, pending, onCount, scores, scoreMetrics, points, onBack)
     }
     if (isScore(metric)) ScoreTheme(content) else content()
 }
@@ -119,8 +118,8 @@ private fun DetailContent(
     pending: Map<MetricDay, List<CountStep>>,
     onCount: (NumberMetric, Day, CountStep) -> Unit,
     scores: Map<Day, Double>,
-    groupScores: Map<String, Map<Day, Double>>,
     scoreMetrics: List<Metric>,
+    points: Map<String, Map<Day, Double>>,
     onBack: (() -> Unit)?,
 ) {
     // The index in zoomSteps. Null: defaultStepIndex.
@@ -176,9 +175,8 @@ private fun DetailContent(
                     window = window,
                     values = values,
                     states = states,
-                    groupScores = groupScores,
                     scoreMetrics = scoreMetrics,
-                    points = if (isScore(metric)) pointsByMetric(scoreMetrics, log, pending) else emptyMap(),
+                    points = points,
                 )
                 // The score has no heatmap: its month calendar shows the same days, with the score of each day.
                 if (!isScore(metric)) {

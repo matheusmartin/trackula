@@ -37,7 +37,11 @@ class FormatTest {
 
     @Test
     fun withUnitFormatSignedAndFormatPercent() {
-        assertEquals(listOf("82.1 kg", "5"), listOf(withUnit("82.1", "kg"), withUnit("5", null)))
+        assertEquals(
+            listOf("82.1 kg", "5", "73%"),
+            listOf(withUnit("82.1", "kg"), withUnit("5", null), withUnit("73", "%")),
+        )
+        assertEquals("+5.2%", formatSigned(5.2, "%"))
         assertEquals(
             listOf("−1.3 kg", "+0.46", "0 kg"),
             listOf(formatSigned(-1.3, "kg"), formatSigned(0.456, null), formatSigned(0.0, "kg")),

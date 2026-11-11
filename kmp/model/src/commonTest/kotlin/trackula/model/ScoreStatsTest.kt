@@ -19,14 +19,14 @@ class ScoreStatsTest {
 
     @Test
     fun groupWeekdayPartsAddUpToTheWeekdayAverageOfTheTotal() {
-        val total = mapOf(day(0) to 4.0, day(7) to 6.0, day(1) to 2.0)
+        val total = mapOf(day(0) to 40.0, day(7) to 60.0, day(1) to 20.0)
         val groups = mapOf(
-            "habits" to mapOf(day(0) to 3.0, day(7) to 5.0),
-            "body" to mapOf(day(0) to 1.0, day(7) to 1.0, day(1) to 2.0),
+            "habits" to mapOf(day(0) to 30.0, day(7) to 50.0),
+            "body" to mapOf(day(0) to 10.0, day(7) to 10.0, day(1) to 20.0),
         )
         val parts = groupWeekdayParts(total, groups, range(0, 14))
-        assertEquals(listOf(4.0, 0.0, null, null, null, null, null), parts["habits"])
-        assertEquals(listOf(1.0, 2.0, null, null, null, null, null), parts["body"])
+        assertEquals(listOf(40.0, 0.0, null, null, null, null, null), parts["habits"])
+        assertEquals(listOf(10.0, 20.0, null, null, null, null, null), parts["body"])
         val average = countStats(total, range(0, 14)).weekdayAverages
         for (i in 0..1) assertEquals(average[i], parts.values.sumOf { it[i]!! })
     }
@@ -61,47 +61,37 @@ class ScoreStatsTest {
     }
 
     @Test
-    fun weeklyPointsGiveThePointsPerDayOfTheSameWeekdaysOfEachWeek() {
-        // day(29) is the Tuesday of the 5th week: each week counts its Monday and Tuesday with a score.
-        val score = mapOf(
-            day(0) to 4.0,
-            day(1) to 4.0,
-            day(2) to 100.0,
-            day(7) to 4.0,
-            day(21) to 5.0,
-            day(22) to 5.0,
-            day(28) to 6.0,
-            day(29) to 6.0,
+    fun weeklyAveragesGiveTheAverageScoreOfTheSameWeekdaysOfEachWeek() {
+        // day(29) is the Tuesday of the 5th week: each week counts its Monday and Tuesday.
+        val habits = mapOf(
+            day(0) to 50.0,
+            day(1) to 100.0,
+            day(2) to 0.0,
+            day(7) to 40.0,
+            day(21) to 20.0,
+            day(22) to 0.0,
+            day(28) to 60.0,
         )
-        val habits = mapOf(day(0) to 2.0, day(1) to 3.0, day(2) to 50.0, day(7) to 2.0, day(21) to 1.0, day(28) to 3.0)
-        val points = weeklyPoints(mapOf("habits" to habits, "empty" to emptyMap()), score, day(29), 4)
-        // The 3rd week has no score: null. In the 4th week, the Tuesday has no points of habits: 0.
-        assertEquals(mapOf("habits" to listOf(2.5, 2.0, null, 0.5, 1.5)), points)
+        val averages = weeklyAverages(mapOf("habits" to habits, "empty" to emptyMap()), day(29), 4)
+        // The 3rd week has no score of habits: null. The Wednesday day(2) does not count.
+        assertEquals(mapOf("habits" to listOf(75.0, 40.0, null, 10.0, 60.0)), averages)
         assertEquals(listOf(day(0), day(7), day(14), day(21), day(28)), weekMondays(day(29), 4))
     }
 
     @Test
-    fun monthlyPointsGiveThePointsPerDayOfEachMonthUpToTheEnd() {
-        val score = mapOf(
-            Day(2026, 7, 31) to 4.0,
-            Day(2026, 8, 5) to 4.0,
-            Day(2026, 10, 1) to 4.0,
-            Day(2026, 10, 2) to 4.0,
-            Day(2026, 11, 9) to 6.0,
-            Day(2026, 11, 10) to 6.0,
-            Day(2026, 11, 11) to 99.0,
-        )
+    fun monthlyAveragesGiveTheAverageScoreOfEachMonthUpToTheEnd() {
         val habits = mapOf(
-            Day(2026, 7, 31) to 7.0,
-            Day(2026, 8, 5) to 2.0,
-            Day(2026, 10, 1) to 3.0,
-            Day(2026, 11, 9) to 3.0,
-            Day(2026, 11, 10) to 1.0,
-            Day(2026, 11, 11) to 50.0,
+            Day(2026, 7, 31) to 70.0,
+            Day(2026, 8, 5) to 20.0,
+            Day(2026, 10, 1) to 30.0,
+            Day(2026, 10, 2) to 0.0,
+            Day(2026, 11, 9) to 30.0,
+            Day(2026, 11, 10) to 10.0,
+            Day(2026, 11, 11) to 100.0,
         )
-        val points = monthlyPoints(mapOf("habits" to habits, "empty" to emptyMap()), score, Day(2026, 11, 10), 3)
-        // August to November. September has no score: null. On October 2, habits gives no points: 0.
-        assertEquals(mapOf("habits" to listOf(2.0, null, 1.5, 2.0)), points)
+        val averages = monthlyAverages(mapOf("habits" to habits, "empty" to emptyMap()), Day(2026, 11, 10), 3)
+        // August to November. September has no score: null. November 11 is after the end.
+        assertEquals(mapOf("habits" to listOf(20.0, null, 15.0, 20.0)), averages)
     }
 
     @Test

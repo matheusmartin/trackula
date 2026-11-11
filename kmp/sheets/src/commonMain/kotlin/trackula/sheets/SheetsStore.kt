@@ -34,9 +34,9 @@ import trackula.model.textDateRows
 
 /** Rows for a new `Metrics` tab. Edit or delete them in the sheet. */
 private val exampleMetrics: List<List<Any?>> = listOf(
-    listOf("weight", "Weight", "number", "kg", 0.1, "body", "monitor_weight", "<= 80"),
+    listOf("weight", "Weight", "number", "kg", 0.1, "body", "monitor_weight", "at most 80 from 85 trend"),
     listOf("meditate", "Meditate", "yesno", "", "", "habits", "self_improvement", "yes"),
-    listOf("water", "Water", "count", "glasses", 1, "habits", "water_drop", 8),
+    listOf("water", "Water", "count", "glasses", 1, "habits", "water_drop", "at least 8"),
 )
 
 /** A tab of the spreadsheet: its ID in the Sheets API, and its number of columns. */
@@ -355,11 +355,12 @@ private fun metricsRules(tabId: Int, header: List<String>): List<JsonObject> {
         at("kind") { oneOf(listOf("yesno", "number", "count")) },
         // A Material Symbols name, or a short text such as an emoji. Some emojis have up to 11 characters in Sheets.
         at("icon") { c -> formula("=OR(REGEXMATCH($c, \"^[a-z0-9_]+$\"), LEN($c) <= 16)") },
-        // `yes` or `no` for yesno metrics. A number, or a number after `<=` or `>=`, for number and count metrics.
+        // `yes` or `no` for yesno metrics. For number and count metrics: an optional direction, the target, an
+        // optional start after `from`, and an optional `trend`. Example: `at most 80 from 83 trend`.
         at("goal") { c ->
-            formula(
-                "=OR(ISNUMBER($c), REGEXMATCH(LOWER(TO_TEXT($c)), \"^ *(yes|no|(<=|>=)? *-?[0-9]+([.][0-9]+)?) *$\"))",
-            )
+            val number = "-?[0-9]+([.][0-9]+)?"
+            val goal = "(at +least|at +most|<=|>=)? *$number( +from +$number)?( +trend)?"
+            formula("=OR(ISNUMBER($c), REGEXMATCH(LOWER(TO_TEXT($c)), \"^ *(yes|no|$goal) *$\"))")
         },
     )
 }

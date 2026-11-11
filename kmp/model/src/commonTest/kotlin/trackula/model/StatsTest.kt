@@ -124,6 +124,12 @@ class StatsTest {
     }
 
     @Test
+    fun numberStatsTrendAlsoUsesTheValuesBeforeThePeriod() {
+        val s = numberStats(mapOf(day(-1) to 84.0, day(0) to 80.0), range(2))
+        assertEquals(listOf(83.0, 83.0), s.trend)
+    }
+
+    @Test
     fun numberStatsHistogram() {
         val s = numberStats(numbers, range(9))
         assertEquals(HISTOGRAM_BINS, s.histogram.size)

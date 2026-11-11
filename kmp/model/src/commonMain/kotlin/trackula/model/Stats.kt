@@ -182,8 +182,8 @@ data class Bin(val from: Double, val to: Double, val days: Int)
  * @property low The first day with the lowest value. Null if no day has a value.
  * @property high The first day with the highest value. Null if no day has a value.
  * @property values The value of each day of the period. Null if the day has no value.
- * @property trend The smooth trend of each day: an exponential moving average. Null before the first value. See
- *   [TREND_WEIGHT].
+ * @property trend The trend of each day, also from the values before the period. Null before the first value. See
+ *   [trend].
  * @property histogram The values in [HISTOGRAM_BINS] ranges of the same width, from the lowest value.
  */
 data class NumberStats(
@@ -205,6 +205,21 @@ data class NumberStats(
 /** The weight of each new value in the trend: a 7-day smoothing, as in the Libra weight app (2 / (7 + 1)). */
 const val TREND_WEIGHT = 0.25
 
+/**
+ * The trend of [values] on each day of [values]: an exponential moving average. The trend of the first day is its
+ * value. Each later value moves the trend [TREND_WEIGHT] of the way to it. The number charts show it as a line, and a
+ * goal with `trend` gives its points from it (see [NumberGoal.usesTrend]).
+ *
+ * Example: the trend 82.4 and the next value 82.0 give 82.3.
+ */
+fun trend(values: Map<Day, Double>): Map<Day, Double> {
+    var trend: Double? = null
+    return values.keys.sorted().associateWith { day ->
+        val value = values.getValue(day)
+        (trend?.let { it + TREND_WEIGHT * (value - it) } ?: value).also { trend = it }
+    }
+}
+
 /** The number of ranges in [NumberStats.histogram]. */
 const val HISTOGRAM_BINS = 8
 
@@ -222,12 +237,14 @@ fun numberStats(values: Map<Day, Double>, days: List<Day>): NumberStats {
     )
 }
 
-/** The trend of each day of [days]. See [NumberStats.trend]. */
+/** The trend of each day of [days]: the [trend] of the last day with a value. See [NumberStats.trend]. */
 private fun trend(values: Map<Day, Double>, days: List<Day>): List<Double?> {
-    var trend: Double? = null
-    return days.map { d ->
-        values[d]?.let { v -> trend = trend?.let { it + TREND_WEIGHT * (v - it) } ?: v }
-        trend
+    val trends = trend(values).entries.toList()
+    var next = 0
+    var current: Double? = null
+    return days.map { day ->
+        while (next < trends.size && trends[next].key <= day) current = trends[next++].value
+        current
     }
 }
 

@@ -275,7 +275,7 @@ class TodayPageTest {
         onNodeWithText("Hygiene").performClick()
         waitForIdle()
         onNodeWithText("Score · Hygiene").assertExists()
-        // The demo data has more points in all groups than in the 2 Hygiene habits.
+        // The demo data has other scores in all groups than in the 2 Hygiene habits.
         assertNotEquals(all, scoreChartLabel())
         onNodeWithText("All").performClick()
         waitForIdle()
@@ -296,7 +296,7 @@ class TodayPageTest {
 
     /** The screen reader text of the score chart: its range and its days. */
     private fun ComposeUiTest.scoreChartLabel(): String =
-        onAllNodesWithContentDescription("points,", substring = true)[0]
+        onAllNodesWithContentDescription("Values from", substring = true)[0]
             .fetchSemanticsNode().config[SemanticsProperties.ContentDescription].single()
 
     @Test

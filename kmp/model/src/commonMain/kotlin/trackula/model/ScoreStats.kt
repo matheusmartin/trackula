@@ -9,13 +9,13 @@ package trackula.model
 fun halves(days: List<Day>): Pair<List<Day>, List<Day>> = days.take(days.size / 2) to days.drop(days.size / 2)
 
 /**
- * The part of each group in the weekday averages of the score. For each group of [groups] and each weekday, Monday
- * first: the sum of the group score on the days of [days] with a [total] score on that weekday, divided by the number
- * of these days. A day without a group score counts as 0. So the parts of a weekday add up to the weekday average of
- * [total]. Null if no day of the weekday has a score.
+ * The part of each group in the weekday averages of the score. [groups]: the part of each group in the score of each
+ * day (see [groupParts]). For each group and each weekday, Monday first: the sum of the group part on the days of
+ * [days] with a [total] score on that weekday, divided by the number of these days. A day without a group part counts
+ * as 0. So the parts of a weekday add up to the weekday average of [total]. Null if no day of the weekday has a score.
  *
- * Example: 2 Mondays with the total 4 and 6. The group "habits" has 3 and 5, the group "body" 1 and 1. The parts of
- * Monday are 4 for "habits" and 1 for "body". Their sum is 5, the average of the total.
+ * Example: 2 Mondays with the total 40 and 60. The group "habits" has 30 and 50, the group "body" 10 and 10. The
+ * parts of Monday are 40 for "habits" and 10 for "body". Their sum is 50, the average of the total.
  */
 fun groupWeekdayParts(
     total: Map<Day, Double>,
@@ -77,54 +77,45 @@ fun weekdaysInRange(values: Map<Day, Double>, end: Day, weeks: Int = COMPARED_WE
 }
 
 /**
- * The points per day of each part of the score in each period of [periods], in their order, by part id. [parts]: the
- * points of each part by day, for example the score of each group or the points of each metric. Only the days with a
- * [score] count, and a day without points of a part counts as 0. A period without a day with a score has null. A part
- * without points on the days of [periods] is not in the result.
+ * The average score of each part of the score in each period of [periods], in their order, by part id. [parts]: the
+ * score of each part by day, from 0 to 100, for example the score of each group or the points of each metric as a
+ * percentage. Each average uses the days of the period with a score of that part. A period without such a day has
+ * null. A part without a score on the days of [periods] is not in the result.
  */
-private fun pointsPerPeriod(
+private fun averagePerPeriod(
     parts: Map<String, Map<Day, Double>>,
-    score: Map<Day, Double>,
     periods: List<List<Day>>,
-): Map<String, List<Double?>> {
-    val scored = periods.map { days -> days.filter { it in score } }
-    fun List<Day>.perDay(byDay: Map<Day, Double>) = withoutFloatNoise(sumOf { byDay[it] ?: 0.0 } / size)
-    return parts
-        .filterValues { byDay -> scored.flatten().any { (byDay[it] ?: 0.0) != 0.0 } }
-        .mapValues { (_, byDay) -> scored.map { days -> if (days.isEmpty()) null else days.perDay(byDay) } }
-}
+): Map<String, List<Double?>> = parts
+    .mapValues { (_, byDay) ->
+        periods.map { days ->
+            val scores = days.mapNotNull { byDay[it] }
+            if (scores.isEmpty()) null else withoutFloatNoise(scores.average())
+        }
+    }
+    .filterValues { averages -> averages.any { it != null } }
 
 /**
- * The points per day of each part of the score in each of the [weeks] weeks before the week of [end] and in that week,
+ * The average score of each part of the score in each of the [weeks] weeks before the week of [end] and in that week,
  * oldest first, by part id. Each week has the same weekdays as the week of [end]: from Monday to the weekday of
- * [end]. [parts], [score] and the result: as in [pointsPerPeriod].
+ * [end]. [parts] and the result: as in [averagePerPeriod].
  *
- * Example: [end] is a Tuesday. Habits gives 2 and 3 points on the Monday and the Tuesday of a week: 2.5 for that week.
+ * Example: [end] is a Tuesday. Habits has 50 and 100 on the Monday and the Tuesday of a week: 75 for that week.
  */
-fun weeklyPoints(
-    parts: Map<String, Map<Day, Double>>,
-    score: Map<Day, Double>,
-    end: Day,
-    weeks: Int,
-): Map<String, List<Double?>> = pointsPerPeriod(parts, score, (weeks downTo 0).map { sameWeekdays(end, it) })
+fun weeklyAverages(parts: Map<String, Map<Day, Double>>, end: Day, weeks: Int): Map<String, List<Double?>> =
+    averagePerPeriod(parts, (weeks downTo 0).map { sameWeekdays(end, it) })
 
 /** The month of [end] and each of the [months] months before it, oldest first. */
 fun monthsUntil(end: Day, months: Int): List<MonthKey> = (months downTo 0).map { addMonths(monthOf(end), -it) }
 
 /**
- * The points per day of each part of the score in each of the [months] months before the month of [end] and in that
- * month up to [end], oldest first, by part id. [parts], [score] and the result: as in [pointsPerPeriod].
+ * The average score of each part of the score in each of the [months] months before the month of [end] and in that
+ * month up to [end], oldest first, by part id. [parts] and the result: as in [averagePerPeriod].
  *
- * Example: [end] is 2026-11-10. Habits gives 62 points in the 31 days of October: 2 for October. The days of November
- * after the 10th do not count.
+ * Example: [end] is 2026-11-10. Habits has 80 on 10 days of October and 50 on 20 days: 60 for October. The days of
+ * November after the 10th do not count.
  */
-fun monthlyPoints(
-    parts: Map<String, Map<Day, Double>>,
-    score: Map<Day, Double>,
-    end: Day,
-    months: Int,
-): Map<String, List<Double?>> =
-    pointsPerPeriod(parts, score, monthsUntil(end, months).map { month -> daysOfMonth(month).filter { it <= end } })
+fun monthlyAverages(parts: Map<String, Map<Day, Double>>, end: Day, months: Int): Map<String, List<Double?>> =
+    averagePerPeriod(parts, monthsUntil(end, months).map { month -> daysOfMonth(month).filter { it <= end } })
 
 /**
  * The change of each of [values] from the value before it. Null for the first value, and if the value or the value

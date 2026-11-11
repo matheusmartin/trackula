@@ -106,11 +106,11 @@ class ChartsTest {
     }
 
     @Test
-    fun theScoreChartGoesFromZeroInPoints() = runComposeUiTest {
+    fun theScoreChartGoesFromZeroInPercent() = runComposeUiTest {
         setContent {
-            TrackulaTheme(dark = false) { ScoreChart(scoreMetric, days, mapOf(days[0] to 3.0, days[4] to 5.0)) {} }
+            TrackulaTheme(dark = false) { ScoreChart(scoreMetric, days, mapOf(days[0] to 30.0, days[4] to 50.0)) {} }
         }
-        onNodeWithContentDescription("Values from 0 to 5 points, Sep 29 to Oct 3").assertExists()
+        onNodeWithContentDescription("Values from 0 to 50%, Sep 29 to Oct 3").assertExists()
     }
 
     @Test

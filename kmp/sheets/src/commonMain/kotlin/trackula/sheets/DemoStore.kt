@@ -50,14 +50,14 @@ class DemoStore(today: Day, private val delay: Duration = 400.milliseconds) : St
 
     internal companion object {
         val sampleMetrics: List<List<Any>> = listOf(
-            listOf("weight", "Weight", "number", "kg", 0.1, "Health", "monitor_weight", "<= 83"),
-            listOf("waist", "Waist", "number", "cm", 0.5, "Health", "straighten", "<= 94"),
+            listOf("weight", "Weight", "number", "kg", 0.1, "Health", "monitor_weight", "at most 80 from 84 trend"),
+            listOf("waist", "Waist", "number", "cm", 0.5, "Health", "straighten", "at most 90 from 95"),
             listOf("teeth", "Morning teeth", "yesno", "", "", "Hygiene", "dentistry", "yes"),
             listOf("shower", "Morning shower", "yesno", "", "", "Hygiene", "shower", "yes"),
             listOf("meditate", "Meditate", "yesno", "", "", "Activities", "self_improvement", "yes"),
             listOf("read", "Read", "yesno", "", "", "Activities", "menu_book", "yes"),
-            listOf("water", "Water", "count", "glasses", 1, "Nutrition", "water_drop", 8),
-            listOf("walk", "Walk", "count", "min", 10, "Activities", "directions_walk", 30),
+            listOf("water", "Water", "count", "glasses", 1, "Nutrition", "water_drop", "at least 8"),
+            listOf("walk", "Walk", "count", "min", 10, "Activities", "directions_walk", "at least 30"),
             listOf("vitamins", "Vitamins", "yesno", "", "", "Nutrition", "pill", "yes"),
         )
 

@@ -23,24 +23,52 @@ One row for each metric. The row order is the display order in the app.
 | `step`    | number  | No       | > 0                     | Input step for `number` and `count`. Example: `0.1` for weight. Default: `1`. |
 | `group`   | text    | No       | any                     | Groups metrics on the screen. Example: `habits`, `body`. |
 | `icon`    | text    | Yes      | Material Symbols name or emoji | Icon next to the name, and in the title of the detail screen. A lowercase name (`a-z`, `0-9`, `_`) is a [Material Symbols](https://fonts.google.com/icons) icon, for example `water_drop`. Other text shows as it is, for example `💧`. A row without icon is invalid: the app shows a warning and does not show the metric. |
-| `goal`    | text or number | No | `yesno`: `yes`, `no`. `number`, `count`: a number, `>=` number, `<=` number | The day goal. It changes the [score](#score). `yesno`: the value to log. Empty means `yes`. Use `no` for a habit to stop, for example `smoke`. `number` and `count`: `8` or `>= 8` means at least 8. `<= 75` means at most 75. Use a period for decimals: `<= 75.5`. Empty means no goal. An invalid goal makes the row invalid: the app shows a warning and does not show the metric. |
+| `goal`    | text or number | No | `yesno`: `yes`, `no`. `number`, `count`: for example `at least 8`, `at most 80 from 83 trend` | The goal. It gives the points of the metric in the [score](#score). See [Goal](#goal). `yesno`: empty means `yes`. `number` and `count`: empty means no goal: the app tracks the metric, but the metric does not count in the score. An invalid goal makes the row invalid: the app shows a warning and does not show the metric. |
 
 Rules:
 
 - To hide a metric, delete its row. Its `Log` column and values stay in the sheet, and the app ignores them. To show the metric again, add the row again with the same `id`.
 - The app ignores other columns. Older sheets have `per_day` and `active` columns: you can delete them.
 - Older sheets can have no `icon` column. Then the app shows an error. Add the column with an icon in each row.
-- Older sheets can have no `goal` column. Then no metric has a goal. Add the column to set goals.
+- Older sheets can have no `goal` column. Then each `yesno` metric has the goal `yes`, and the `number` and `count` metrics have no goal. Add the column to set goals.
 
 Example:
 
-| id       | name     | kind   | unit    | step | group  | icon             | goal  |
-|----------|----------|--------|---------|------|--------|------------------|-------|
-| weight   | Weight   | number | kg      | 0.1  | body   | monitor_weight   | <= 80 |
-| waist    | Waist    | number | cm      | 0.5  | body   | straighten       |       |
-| meditate | Meditate | yesno  |         |      | habits | self_improvement | yes   |
-| water    | Water    | count  | glasses | 1    | habits | 💧               | 8     |
-| reading  | Reading  | number | min     | 5    | habits | menu_book        | 20    |
+| id       | name     | kind   | unit    | step | group  | icon             | goal               |
+|----------|----------|--------|---------|------|--------|------------------|--------------------|
+| weight   | Weight   | number | kg      | 0.1  | body   | monitor_weight   | at most 80 from 83 |
+| waist    | Waist    | number | cm      | 0.5  | body   | straighten       |                    |
+| meditate | Meditate | yesno  |         |      | habits | self_improvement | yes                |
+| water    | Water    | count  | glasses | 1    | habits | 💧               | at least 8         |
+| reading  | Reading  | count  | min     | 5    | habits | menu_book        | at least 20        |
+
+### Goal
+
+The `goal` cell of a `number` or `count` metric has up to 4 parts, in this order. Case does not matter.
+
+| Part      | Required | Values                         | Description |
+|-----------|----------|--------------------------------|-------------|
+| Direction | No       | `at least`, `at most`          | `at least`: a higher value is better. `at most`: a lower value is better. Empty means `at least`. |
+| Target    | Yes      | a number                       | The value of the goal. A value at the target or better gives 1 point. Use a period for decimals: `at most 75.5`. |
+| Start     | No       | `from` and a number            | The value of 0 points. A value between the start and the target gives a part of 1 point. The start is below the target for `at least`, and above it for `at most`. |
+| Trend     | No       | `trend`                        | Only for `number`. The points come from the trend of the values, not from the value of the day. See [Score](#score). |
+
+Without a start, `at least` starts at 0, and `at most` gives 1 or 0 points. If the target of `at least` is 0 or less, it also gives 1 or 0 points.
+
+Examples:
+
+| Goal                       | Meaning | Points |
+|----------------------------|---------|--------|
+| `at least 8`               | 8 or more, from 0. | 6 gives 0.75. 12 gives 1. |
+| `at least 7 from 5`        | 7 or more, from 5. | 6 gives 0.5. 4 gives 0. |
+| `at most 2`                | 2 or less. | 2 gives 1. 3 gives 0. |
+| `at most 2 from 4`         | 2 or less, from 4. | 3 gives 0.5. |
+| `at most 80 from 83`       | 80 or less, from 83. | 82.1 gives 0.3. 84 gives 0. |
+| `at most 80 from 83 trend` | The same, from the trend. | A trend of 82.1 gives 0.3. |
+
+- A number cell, for example `8`, means `at least 8`.
+- Older app versions wrote `>=` and `<=`. They are the same as `at least` and `at most`. Example: `<= 80` is `at most 80`.
+- When you reach a goal, set a new goal with a new start. Example: change `at most 80 from 83` to `at most 78 from 80`.
 
 ## Tab `Log`
 
@@ -50,7 +78,7 @@ One row for each day, one column for each metric. Rows are not sorted. The app s
 |-----------------|--------|----------|---------------|-------------|
 | A: `date`       | date   | Yes      | a date, shown as `YYYY-MM-DD` | The day. Maximum one row for each day. Can be a past day. |
 | B, C, …: metric `id` | number, or `yes` / `no` | No | number, `yes`, `no` | The value of the metric on that day. Empty means no value. For `yesno`: `yes` or `no`. |
-| `Score`         | number | No       | number ≥ 0    | The [score](#score) of the row. The app writes it. Do not edit it: the app writes it again. |
+| `Score`         | number | No       | 0 to 100      | The [score](#score) of the day of the row. The app writes it. Do not edit it: the app writes it again. |
 
 Rules:
 
@@ -68,43 +96,61 @@ Example:
 
 | date       | weight | meditate | water | reading | Score |
 |------------|--------|----------|-------|---------|-------|
-| 2026-09-29 | 82.4   |          | 8     | 20      | 10    |
-| 2026-09-30 | 82.1   | yes      | 5     | 25      | 8     |
+| 2026-09-29 | 82.4   |          | 8     | 20      | 73.3  |
+| 2026-09-30 | 82.1   | yes      | 5     | 25      | 73.1  |
 
-Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses, reading 25 min, score 8.
+Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses, reading 25 min, score 73.1%.
 
 ## Score
 
-The score of a day is the sum of the points of all metrics on that day. You do not log it: the app calculates it from
-the values and the goals.
+The score of a day is a percentage from 0 to 100. Each metric with a goal gives 0 to 1 point on a day. The score is
+the average of these points, as a percentage with 1 decimal. You do not log it: the app calculates it from the values
+and the goals.
+
+Which metrics count on a day:
+
+- A `number` or `count` metric without a goal does not count: the app only tracks it. A `yesno` metric always has a
+  goal: empty means `yes`.
+- A `yesno` or `count` metric counts on each day from its first value to today. A day without a value gives 0, also a
+  day without a row. So a day that you do not log does not give a better score than a day with `no`.
+- A `number` metric counts only on the days with a value. It is a measurement, not a task for each day. For an amount
+  for each day, for example minutes of reading, use `count`.
+- A day where no metric counts has no score. Example: the days before the first value.
 
 | Kind     | Points | Example |
 |----------|--------|---------|
-| `yesno`  | 1 if the value is the goal. 0 for the other value or for no value. | Goal `yes`: `yes` gives 1. Goal `no`: `no` gives 1. |
-| `count`  | 1 for each `step`, also above the goal. The goal does not change the points. A value below 0 gives 0. | `water` 5 with step 1 gives 5. `walk` 30 min with step 10 gives 3. |
-| `number` | 1 if the value reaches the goal, if it is closer to the goal than the previous log, or if it is the first log. Else 0. Always 0 without goal. | Goal `<= 80`: 83 (first log) gives 1, then 82.6 gives 1 (closer), then 82.8 gives 0 (farther), then 79.9 gives 1 (goal). |
+| `yesno`  | 1 if the value is the goal. Else 0, also for no value. | Goal `yes`: `yes` gives 1. Goal `no`: `no` gives 1. |
+| `count`  | 1 if the value reaches the goal. Else the part of the way from the start to the target. See [Goal](#goal). | `at least 8`: 5 gives 0.625, 10 gives 1. No value gives 0. |
+| `number` | The same as `count`, but only on the days with a value. With `trend`, the points come from the trend of the day. | `at most 80 from 83`: 82.1 gives 0.3. 79.5 gives 1. |
 
-Example, with the metrics above, for 2026-09-30: weight 82.1 is closer to 80 than 82.4 of the previous log (1),
-meditate `yes` (1), water 5 (5), reading 25 ≥ 20 (1). The score is 8.
+Example, with the metrics above, for 2026-09-30: weight 82.1 is 0.3 of the way from 83 to 80 (0.3), meditate `yes`
+(1), water 5 of 8 (0.625), reading 25 for at least 20 (1). The average is (0.3 + 1 + 0.625 + 1) / 4 = 0.73125, so
+the score is 73.1. On 2026-09-29, meditate does not count yet: its first value is on 2026-09-30.
 
-The previous log of a `number` metric is the latest earlier day with a value of that metric. Missed days do not
-matter: a weekly value compares with the value of the week before. If a day has 2 or more rows, its last row is the
-value of the day.
+The trend:
+
+- It is the line of the charts of a `number` metric: an exponential moving average. The trend of the first value is
+  that value. Each new value moves the trend 25% of the way to it, as in the Libra weight app. Example: the trend 82.4
+  and the next value 82.0 give 82.3.
+- Use `trend` for a value that changes much from day to day. Example: water and food change a weight by 1 kg or more.
+  Then the points change only when the weight really changes.
+- The trend of a day comes from all earlier values. So a changed value also changes the points of the later values.
 
 Rules:
 
-- The app writes the score in the `Score` column of each `Log` row. A row without a metric value has an empty score.
-  A score as text, for example `'3`, changes to the number.
-- If a day has 2 or more rows, each row has the score of its own values. The app shows the score of the last row, as
-  it does for the values.
+- The app writes the score in the `Score` column of each `Log` row. A row of a day without a score has an empty
+  score. A score as text, for example `'3`, changes to the number.
+- If a day has 2 or more rows, each row has the score of the day. The app uses the last row of the day, as it does
+  for the values.
+- A day without a row has a score in the app, for example 0, but no `Score` cell: the app does not add rows for it.
 - The app calculates all scores again each time it loads the sheet: when it opens the sheet, after the reload button,
   and after the values that you log in the app (one time for each save or tap). It writes only the cells that
   changed. So the scores follow:
   - a new or changed value, also of a past day, in the app or by hand in the sheet,
-  - a new goal, a new `step` or a new `kind` in the `Metrics` tab,
-  - a deleted metric: its values do not give points,
-  - for a `number` metric, a new, changed or deleted value also changes the score of the next day with a value of
-    that metric, because that day has a new previous log.
+  - a new goal, a new `kind` or a deleted metric in the `Metrics` tab. A new goal also changes the score of the past
+    days.
+  - for a `trend` goal, a new, changed or deleted value also changes the score of the later days with a value,
+  - for a `yesno` or `count` metric, a new first value also changes the score of the days after it.
 - If you change the sheet by hand while the app is open, the scores change at the next load. Use the reload button.
 - If the app cannot write the scores, for example in a view-only sheet or at the request limit of the Sheets API, it
   shows a warning and continues. The next load tries again.
@@ -113,41 +159,42 @@ Rules:
 - In the app, a green bar chart of the score, one bar for each day, is at the top of the "5 days" and "31 days"
   views. A tap on "Score" opens the "Score" view of the bottom navigation bar: the score only, in green. Each part
   shows different data, so that no part shows again the days or the weekdays of another part. It does not show a
-  total: the score of a day does not add up over time. The Today tiles do not show the score.
+  total: the score of a day is a percentage. The Today tiles do not show the score.
   - Key numbers: "per day" (the average of the days with a score), "change", "best day" and "best weekday".
   - "change" compares the first half of the period with the second half. Example: in the 14 days from Oct 1 to Oct
     14, the days from Oct 8 to Oct 14 compare with the days from Oct 1 to Oct 7. With an odd number of days, the
     second half has one day more. The change does not use the days before the period: at "All", there are none.
   - "Average per day": one bar for each week, month or quarter of the period, with the average score of its days
-    with a score.
+    with a score. The scale is 0 to 100%.
   - "This week and the 4 weeks before": for each weekday, the score of this week (a diamond), and a bar from the
     lowest to the highest score of that weekday in the 4 weeks before, with a dot at their average. A day after today
     has only the bar: the usual range of that weekday. "This week" is the week of the end of the period. If you move
     the period back, the chart shows the week of its end, for example "The week of Oct 5 and the 4 weeks before".
-  - "Points per day, by group and week": a table with one row for each group and one column for each week: the 4
-    weeks before and this week (the last column). Each cell has the points per day of the group on the same weekdays
-    as this week. Example: on a Wednesday, each week counts its Monday to Wednesday. The color of a cell shows the
-    change from the week before: green for more, orange for less, darker for a larger change. A cell of the first
-    column, or without change, has no color. A week without a day with a score shows "–".
-  - "Points per day, by group and month": the same table with one column for each month: the 3 months before and
-    this month (the last column), up to the end of the period. Each cell has the points per day of the group in all
-    days of that month with a score. The color shows the change from the month before. Example: on Nov 10, the
-    columns are Aug, Sep, Oct and Nov, and Nov counts Nov 1 to Nov 10.
-  - In these 2 tables, only the days with a score count, and a day without points of a group counts as 0. A group
-    without points on these days has no row. With a group selected, or with only one group, the tables are by metric:
-    "Points per day, by metric and week" and "Points per day, by metric and month", with one row for each metric.
-    "This week" and "this month" are the week and the month of the end of the period.
+  - "Score by group and week": a table with one row for each group and one column for each week: the 4 weeks before
+    and this week (the last column). Each cell has the average score of the group on the same weekdays as this week.
+    Example: on a Wednesday, each week counts its Monday to Wednesday. The color of a cell shows the change from the
+    week before: green for more, orange for less, darker for a larger change. A cell of the first column, or without
+    change, has no color. A week without a score of the group shows "–".
+  - "Score by group and month": the same table with one column for each month: the 3 months before and this month
+    (the last column), up to the end of the period. Each cell has the average score of the group in the days of that
+    month. The color shows the change from the month before. Example: on Nov 10, the columns are Aug, Sep, Oct and
+    Nov, and Nov counts Nov 1 to Nov 10.
+  - In these 2 tables, the score of a group is the average of the points of its metrics on a day, as a percentage.
+    A group without a score in these weeks or months has no row. With a group selected, or with only one group, the
+    tables are by metric: "Score by metric and week" and "Score by metric and month", with one row for each metric.
+    The score of a metric is its points as a percentage. "This week" and "this month" are the week and the month of
+    the end of the period.
   - "Weekday averages": the average score on each weekday. For the score of all metrics, with 2 or more groups,
-    each bar stacks the part of each group, in one color for each group. The colors have the soft tone of the
-    strongest cells of the tables and the calendar, so that they match the other charts. A thin gap separates the
-    parts. The parts of a weekday add up to its average: a day without points of a group adds 0 to that group.
-  - "Score by month": a month calendar with the score of each day. A darker day has a higher score. It is read-only.
-    It shows the month of the end of the period, and its arrows show the other months. The "Score" view has no day
-    heatmap: the calendar shows the same days, with their scores.
+    each bar stacks the part of each group, in one color for each group. The part of a group on a day is the sum of
+    the points of its metrics, divided by the number of metrics that count on that day. So the parts of a weekday add
+    up to its average. The colors have the soft tone of the strongest cells of the tables and the calendar, so that
+    they match the other charts. A thin gap separates the parts.
+  - "Score by month": a month calendar with the score of each day. A darker day has a higher score: 100 has the most
+    color. It is read-only. It shows the month of the end of the period, and its arrows show the other months. The
+    "Score" view has no day heatmap: the calendar shows the same days, with their scores.
 - The group filter of the app (the `group` column) also applies to the score. With a group selected, the chart and
-  the "Score" view show the group score: the sum of the points of the metrics of that group only. The title shows the
-  group, for example "Score · Habits". The sum of the group scores is the score of the day. The `Score` column always
-  has the score of all metrics.
+  the "Score" view show the group score: the average of the points of the metrics of that group only. The title shows
+  the group, for example "Score · Habits". The `Score` column always has the score of all metrics.
 
 ## Consistency
 
@@ -177,13 +224,14 @@ The app adds these rules when it adds a missing tab or a missing `Log` column, a
 | `Log` `yesno` column  | Dropdown: `yes`, `no`                                                              | Enum                  |
 | `Metrics` column `kind`    | Dropdown: `yesno`, `number`, `count`                                          | Enum                  |
 | `Metrics` column `icon`    | Custom formula: `=OR(REGEXMATCH(I2, "^[a-z0-9_]+$"), LEN(I2) <= 16)`          | Check constraint      |
-| `Metrics` column `goal`    | Custom formula: `=OR(ISNUMBER(J2), REGEXMATCH(LOWER(TO_TEXT(J2)), "^ *(yes\|no\|(<=\|>=)? *-?[0-9]+([.][0-9]+)?) *$"))` | Check constraint |
+| `Metrics` column `goal`    | Custom formula: `=OR(ISNUMBER(J2), REGEXMATCH(LOWER(TO_TEXT(J2)), "^ *(yes\|no\|(at +least\|at +most\|<=\|>=)? *-?[0-9]+([.][0-9]+)?( +from +-?[0-9]+([.][0-9]+)?)?( +trend)?) *$"))` | Check constraint |
 
 The `Metrics` rules:
 
 - The app finds the columns by header name. The column letters can change. The `icon` example uses column `I`, the
   `goal` example column `J`.
-- The `goal` rule does not compare the goal with the `kind`. Example: it accepts `yes` for a `number` metric. Then the
+- The `goal` rule does not compare the goal with the `kind`, and it does not compare the start with the target.
+  Examples: it accepts `yes` for a `number` metric, `trend` for a `count` metric, and `at most 80 from 78`. Then the
   app shows a warning when it reads the row.
 - The app sets the rules again each time it opens the sheet. So a sheet from an older app version accepts new values, for example `count`, and a new column gets its rule, for example `icon`.
 - Before that, the app removes all validation rules below row 1 of the `Metrics` tab. So a moved column leaves no old rule behind. Do not add your own rules to this tab: the app removes them.

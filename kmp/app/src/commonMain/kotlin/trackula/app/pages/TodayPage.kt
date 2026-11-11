@@ -49,9 +49,9 @@ import trackula.model.NumberMetric
 import trackula.model.dayScores
 import trackula.model.groupOf
 import trackula.model.groupScoreMetric
-import trackula.model.groupScores
 import trackula.model.metricsOf
 import trackula.model.pointsByMetric
+import trackula.model.pointsOf
 import trackula.model.scoreMetric
 import trackula.sheets.Snapshot
 import trackula.sheets.Store
@@ -197,8 +197,13 @@ fun TodayPage(
     val selectedGroup = group?.takeIf { it in groups }
     val shown = metricsOf(metrics, selectedGroup)
 
-    // The scores of the metrics that the group filter shows.
-    val scores = if (snapshot == null) emptyMap() else dayScores(shown, snapshot.log, pending)
+    // The points of the metrics that the group filter shows, and their scores.
+    val points = if (snapshot == null) {
+        emptyMap()
+    } else {
+        pointsOf(metrics, selectedGroup, pointsByMetric(metrics, snapshot.log, today, pending))
+    }
+    val scores = dayScores(points)
     val score = selectedGroup?.let { groupScoreMetric(it, groupLabel(it)) } ?: scoreMetric
 
     fun openDetail(m: Metric) {
@@ -212,12 +217,7 @@ fun TodayPage(
     }
 
     @Composable
-    fun detail(
-        metric: Metric,
-        onBack: (() -> Unit)?,
-        groupScores: Map<String, Map<Day, Double>> = emptyMap(),
-        scoreMetrics: List<Metric> = emptyList(),
-    ) = key(metric.id) {
+    fun detail(metric: Metric, onBack: (() -> Unit)?) = key(metric.id) {
         MetricDetail(
             metric = metric,
             log = snapshot!!.log,
@@ -228,8 +228,8 @@ fun TodayPage(
             onCount = ::count,
             scores = scores,
             onBack = onBack,
-            groupScores = groupScores,
-            scoreMetrics = scoreMetrics,
+            scoreMetrics = shown,
+            points = points,
         )
     }
 
@@ -272,17 +272,7 @@ fun TodayPage(
                     pending = pending,
                 )
 
-                // The score of all metrics: the weekday bars show the part of each group.
-                MainView.SCORE -> detail(
-                    score,
-                    onBack = null,
-                    groupScores = if (selectedGroup != null || groups.size < 2) {
-                        emptyMap()
-                    } else {
-                        groupScores(metrics, groups, pointsByMetric(metrics, snapshot.log, pending))
-                    },
-                    scoreMetrics = shown,
-                )
+                MainView.SCORE -> detail(score, onBack = null)
 
                 MainView.SHORT, MainView.MONTH -> {
                     val days = view.daysUntil(today)
