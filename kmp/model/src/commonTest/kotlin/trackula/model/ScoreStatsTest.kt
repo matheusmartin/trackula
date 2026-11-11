@@ -39,6 +39,14 @@ class ScoreStatsTest {
     }
 
     @Test
+    fun groupShadesGoFromTheFullColorToTheLightestShade() {
+        assertEquals(listOf(1.0, 0.65, 0.3), groupShades(3))
+        assertEquals(listOf(1.0, LIGHTEST_SHADE), groupShades(2))
+        assertEquals(listOf(1.0), groupShades(1))
+        assertEquals(emptyList(), groupShades(0))
+    }
+
+    @Test
     fun weekdaysInRangeGiveTheScoreOfTheWeekAndTheRangeOfTheWeeksBefore() {
         // day(28) is the Monday of the 5th week, day(30) its Wednesday. The 4 weeks before are day(0) to day(27).
         val values = mapOf(

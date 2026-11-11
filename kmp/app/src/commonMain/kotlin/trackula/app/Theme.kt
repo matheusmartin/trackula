@@ -103,8 +103,6 @@ private val darkColors = darkColorScheme(
  * @property doneCell The green cell fill of the score.
  * @property actionBrush A darker logo gradient for the main buttons, with [onAction] text (5:1 or more).
  * @property headerBrush The logo gradient of the top bar, in both themes.
- * @property groups The colors of the groups in the score charts, in the order of the groups. After the last color,
- *   the first color comes again.
  */
 @Immutable
 data class ExtraColors(
@@ -120,7 +118,6 @@ data class ExtraColors(
     val actionBrush: Brush,
     val onAction: Color,
     val headerBrush: Brush,
-    val groups: List<Color>,
 )
 
 // A linear gradient from the top-left corner to the bottom-right corner. On square cells and buttons, this is the 135°
@@ -142,17 +139,6 @@ private val lightExtra = ExtraColors(
     actionBrush = actionBrush,
     onAction = Color(0xFFFFFFFF),
     headerBrush = headerBrush,
-    // The first 4 colors pass a colorblind check on the chart cards: lightness, chroma and the distance between neighbors.
-    groups = listOf(
-        Color(0xFF2E7D32),
-        Color(0xFF1565C0),
-        Color(0xFFE06A10),
-        Color(0xFF8A3FC0),
-        Color(0xFF00838F),
-        Color(0xFFAD1457),
-        Color(0xFF5D4037),
-        Color(0xFF546E7A),
-    ),
 )
 
 private val darkExtra = lightExtra.copy(
@@ -162,16 +148,6 @@ private val darkExtra = lightExtra.copy(
     onDoneContainer = Color(0xFFC8ECC9),
     // A lighter slate, so that empty cells show the blue of the theme.
     cellEmpty = Color(0xFF323C49),
-    groups = listOf(
-        Color(0xFF4CA352),
-        Color(0xFF3D8FD8),
-        Color(0xFFCC7A22),
-        Color(0xFFA06ACB),
-        Color(0xFF4DD0E1),
-        Color(0xFFF06292),
-        Color(0xFFA1887F),
-        Color(0xFF90A4AE),
-    ),
 )
 
 /** The [ExtraColors] of the current theme. */
