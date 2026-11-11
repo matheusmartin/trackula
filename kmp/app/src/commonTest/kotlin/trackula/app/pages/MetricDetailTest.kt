@@ -200,6 +200,7 @@ class MetricDetailTest {
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Average per day").fetchSemanticsNodes().isNotEmpty() }
         onNodeWithText("Score").assertExists()
         onNodeWithText("Weekday averages").assertExists()
+        onNodeWithText("Strength (%)").assertExists()
         onNodeWithText("best weekday").assertExists()
         // The score does not add up over time: no total and no line chart.
         onNodeWithText("Running total").assertDoesNotExist()

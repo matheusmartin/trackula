@@ -52,6 +52,17 @@ class StatsTest {
     }
 
     @Test
+    fun strengthMovesToTheValueOfEachDayAndStaysTheSameOnADayWithoutAValue() {
+        val s = strength(mapOf(day(-1) to 1.0, day(0) to 0.5, day(2) to 0.0), range(3))
+        val afterDay0 = STRENGTH_WEIGHT + STRENGTH_WEIGHT * (0.5 - STRENGTH_WEIGHT)
+        assertEquals(afterDay0, s[0], 1e-9)
+        assertEquals(afterDay0, s[1], 1e-9)
+        assertEquals(afterDay0 * (1 - STRENGTH_WEIGHT), s[2], 1e-9)
+        // Before the first value, the strength is 0.
+        assertEquals(listOf(0.0, 0.0), strength(mapOf(day(5) to 1.0), range(2)))
+    }
+
+    @Test
     fun yesNoStatsWithNoDaysHasNoStrength() {
         assertEquals(emptyList(), yesNoStats(states, emptyList(), day(6)).strength)
     }

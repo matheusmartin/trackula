@@ -20,7 +20,8 @@ fun yesNoStates(metricId: String, entries: List<LogEntry>): Map<Day, Boolean> =
  * @property streaks The lengths of the runs of `yes` days in the period, oldest first.
  * @property weekdayRates The share of `yes` days for each weekday, Monday first. Null if the period has no such
  *   weekday.
- * @property strength The habit strength of each day of the period, from 0 to 1. See [yesNoStats].
+ * @property strength The habit strength of each day of the period, from 0 to 1: a `yes` day is 1, all other days
+ *   from the first entry are 0. See [strength].
  */
 data class YesNoStats(
     val days: Int,
@@ -42,8 +43,8 @@ data class YesNoStats(
 }
 
 /**
- * The habit strength grows with each `yes` day and goes down slowly on other days, as in Loop Habit Tracker.
- * It is an exponential moving average with this weight for each new day.
+ * The habit strength grows with each good day and goes down slowly on other days, as in Loop Habit Tracker. It is an
+ * exponential moving average with this weight for each new day. See [strength].
  */
 const val STRENGTH_WEIGHT = 0.05
 
@@ -55,7 +56,7 @@ fun yesNoStats(states: Map<Day, Boolean>, days: List<Day>, today: Day): YesNoSta
     currentStreak = currentStreak(states, today),
     streaks = streaks(states, days),
     weekdayRates = (1..7).map { weekdayRate(states, days, it) },
-    strength = strength(states, days),
+    strength = strength(yesDays(states, days.lastOrNull()), days),
 )
 
 /** The lengths of the runs of `yes` days in [days], oldest first. */
@@ -92,26 +93,30 @@ private fun weekdayRate(states: Map<Day, Boolean>, days: List<Day>, weekday: Int
     return onWeekday.count { states[it] == true }.toDouble() / onWeekday.size
 }
 
-/**
- * The habit strength of each day of [days]. See [STRENGTH_WEIGHT].
- *
- * The strength starts at the first entry, so a long period does not start with many empty days at 0. An empty [days]
- * gives an empty list.
- */
-private fun strength(states: Map<Day, Boolean>, days: List<Day>): List<Double> {
-    val first = earliestDay(states.keys) ?: return days.map { 0.0 }
-    var strength = 0.0
-    fun addDay(d: Day) {
-        strength += STRENGTH_WEIGHT * ((if (states[d] == true) 1.0 else 0.0) - strength)
-    }
+/** 1 for each `yes` day of [states] and 0 for each other day, from the first entry to [last]. */
+private fun yesDays(states: Map<Day, Boolean>, last: Day?): Map<Day, Double> {
+    val first = earliestDay(states.keys)
+    if (first == null || last == null) return emptyMap()
+    return daysBetween(first, last).associateWith { if (states[it] == true) 1.0 else 0.0 }
+}
 
-    var d = first
-    while (days.isNotEmpty() && d < days.first()) {
-        addDay(d)
-        d = d.addDays(1)
-    }
-    return days.map {
-        if (it >= first) addDay(it)
+/**
+ * The strength of each day of [days], from 0 to 1. [values]: the result of each day, from 0 (bad) to 1 (good), also
+ * before [days]. Each day with a value moves the strength [STRENGTH_WEIGHT] of the way to the value. A day without a
+ * value does not change it. Before the first value, the strength is 0. So a long period does not start with many
+ * empty days at 0.
+ *
+ * Example: 1 on 20 days gives 0.64 (1 − 0.95^20). Then 0 on one day gives 0.61.
+ */
+fun strength(values: Map<Day, Double>, days: List<Day>): List<Double> {
+    val sorted = values.entries.sortedBy { it.key }
+    var strength = 0.0
+    var next = 0
+    return days.map { day ->
+        while (next < sorted.size && sorted[next].key <= day) {
+            strength += STRENGTH_WEIGHT * (sorted[next].value - strength)
+            next++
+        }
         strength
     }
 }

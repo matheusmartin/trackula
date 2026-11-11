@@ -17,6 +17,7 @@ import trackula.model.Day
 import trackula.model.Metric
 import trackula.model.NumberMetric
 import trackula.model.NumberStats
+import trackula.model.STRENGTH_WEIGHT
 import trackula.model.YesNoMetric
 import trackula.model.YesNoStats
 import trackula.model.ZoomWindow
@@ -42,6 +43,7 @@ import trackula.model.shortDay
 import trackula.model.shortMonth
 import trackula.model.streakLengths
 import trackula.model.streakRanges
+import trackula.model.strength
 import trackula.model.weekMondays
 import trackula.model.weekdayNames
 import trackula.model.weekdaysInRange
@@ -263,9 +265,9 @@ private fun CountCharts(metric: NumberMetric, window: ZoomWindow, values: Map<Da
 }
 
 /**
- * The numbers and charts of the score. Each one answers one question: how the score changes over time, how the week
- * of the window end compares with the 4 weeks before (for each weekday, and for each group or metric), how its month
- * compares with the 3 months before (for each group or metric), and which weekdays are good.
+ * The numbers and charts of the score. Each one answers one question: how the score changes over time, how strong the
+ * habits are, how the week of the window end compares with the 4 weeks before (for each weekday, and for each group or
+ * metric), how its month compares with the 3 months before (for each group or metric), and which weekdays are good.
  * The month calendar below the charts shows the score of each day (see `ScoreCalendar`). The score of a day is a
  * percentage from 0 to 100, so the charts show averages, not totals.
  *
@@ -313,6 +315,19 @@ private fun ScoreCharts(
                 max = 100.0,
                 format = { formatPercent(it / 100) },
             ),
+            ChartItem(wide = true) {
+                LineChart(
+                    title = "Strength (%)",
+                    description = "It goes up on days with a high score and down on days with a low score. Each " +
+                        "day moves it ${formatPercent(STRENGTH_WEIGHT)} of the way to the score of the day.",
+                    days = window.days,
+                    values = strength(values.mapValues { it.value / 100 }, window.days).map { it * 100 },
+                    modifier = it,
+                    dots = false,
+                    decimals = 0,
+                    range = 0.0 to 100.0,
+                )
+            },
             ChartItem(wide = true) { WeekInRange(values, window, it) },
             ChartItem(wide = false) { WeeklyScores(parts, window, it) },
             ChartItem(wide = false) { MonthlyScores(parts, window, it) },

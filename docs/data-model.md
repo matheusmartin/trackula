@@ -166,6 +166,10 @@ Rules:
     second half has one day more. The change does not use the days before the period: at "All", there are none.
   - "Average per day": one bar for each week, month or quarter of the period, with the average score of its days
     with a score. The scale is 0 to 100%.
+  - "Strength (%)": how strong the habits are, as in Loop Habit Tracker. Each day with a score moves the strength 5%
+    of the way to the score of that day. So it goes up slowly on days with a high score and down slowly on days with
+    a low score. One bad day changes it only a little. Example: 20 days at 100% give 64%. The strength uses the days
+    before the period too.
   - "This week and the 4 weeks before": for each weekday, the score of this week (a diamond), and a bar from the
     lowest to the highest score of that weekday in the 4 weeks before, with a dot at their average. A day after today
     has only the bar: the usual range of that weekday. "This week" is the week of the end of the period. If you move
