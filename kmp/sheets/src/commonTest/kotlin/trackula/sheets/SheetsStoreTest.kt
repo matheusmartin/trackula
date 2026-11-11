@@ -9,6 +9,7 @@ import trackula.model.METRICS_TITLE
 import trackula.model.NumberMetric
 import trackula.model.YesNoMetric
 import trackula.model.metricsHeader
+import trackula.model.parseMetrics
 import trackula.model.planCount
 import trackula.model.planYesNo
 import kotlin.test.Test
@@ -24,17 +25,17 @@ class SheetsStoreTest {
     private fun sheetWithoutScore() = FakeSheets(
         metrics = mutableListOf(
             metricsHeader.toMutableList(),
-            mutableListOf("weight", "Weight", "number", "kg", 0.1, "body", "monitor_weight", "<= 80"),
+            mutableListOf("weight", "Weight", "number", "kg", 0.1, "body", "monitor_weight", "at most 80"),
             mutableListOf("meditate", "Meditate", "yesno", "", "", "habits", "self_improvement", "yes"),
-            mutableListOf("water", "Water", "count", "glasses", 1, "habits", "water_drop", 8),
+            mutableListOf("water", "Water", "count", "glasses", 1, "habits", "water_drop", 4),
         ),
         log = mutableListOf(
             mutableListOf("date", "weight", "meditate", "water"),
-            // 1 (weight <= 80) + 1 (yes) + 3 (3 glasses) = 5.
-            mutableListOf(d1.serial, 79.5, "yes", 3),
-            // 0 + 0 = 0.
+            // Weight 1 (at most 80), meditate 1 (yes), water 0.5 (2 of 4): 2.5 / 3 = 83.3.
+            mutableListOf(d1.serial, 79.5, "yes", 2),
+            // Weight 0, meditate 0, water 0 (no value after the first value): 0.
             mutableListOf(d2.serial, 82, "no"),
-            // No value: no score.
+            // Only a date: meditate 0 and water 0. Weight has no value, so it does not count: 0.
             mutableListOf(d3.serial),
         ),
         logColumns = 4,
@@ -49,13 +50,31 @@ class SheetsStoreTest {
 
         assertEquals(emptyList(), snapshot.warnings)
         assertEquals(listOf<Any?>("date", "weight", "meditate", "water", "Score"), fake.log[0])
-        assertEquals(listOf(5.0, 0.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(83.3, 0.0, 0.0), fake.logColumn("Score"))
         assertEquals(5, fake.columnCounts[LOG_TITLE])
         // Only the new Score column gets a rule when the app adds it.
         assertEquals(listOf("E"), fake.numberRuleColumns)
         // The Score column is not a metric.
         assertEquals(listOf("weight", "meditate", "water"), snapshot.log.columns.keys.toList())
         assertEquals(1, fake.scoreWrites.size)
+    }
+
+    @Test
+    fun theGoalRuleAcceptsTheSameGoalsAsTheParser() {
+        val rule = Regex(goalRulePattern)
+        val goals = listOf(
+            "yes", "No", "8", "-5", "at least 8", "At  Most 2 from 4", ">= 7 from 5", "<=75.5",
+            "at most 80 from 83.5 trend", "maybe", "< 75", "trend", "at least", "8 from", "at most 80 trend from 83",
+            "8.", "at least 8 trends",
+        )
+        for (goal in goals) {
+            val parsed = listOf("yesno", "number").any { kind ->
+                parseMetrics(
+                    listOf(metricsHeader, listOf("x", "X", kind, "", "", "", "check", goal)),
+                ).items.isNotEmpty()
+            }
+            assertEquals(parsed, rule.matches(goal.lowercase()), goal)
+        }
     }
 
     @Test
@@ -71,17 +90,18 @@ class SheetsStoreTest {
     }
 
     @Test
-    fun writesOnlyTheStaleScoreCellsAndClearsTheScoreOfARowWithoutValues() = runTest {
+    fun writesOnlyTheStaleScoreCellsAndClearsTheScoreOfARowBeforeTheFirstValue() = runTest {
         val fake = sheetWithoutScore()
         fake.log[0].add("Score")
-        fake.log[1].add(5)
+        fake.log[1].add(83.3)
         fake.log[2].addAll(listOf(null, 7))
-        fake.log[3].addAll(listOf(null, null, null, 4))
+        fake.log[3].addAll(listOf(null, null, null, 0))
+        fake.log.add(mutableListOf(Day(2026, 9, 28).serial, null, null, null, 4))
         fake.columnCounts[LOG_TITLE] = 5
 
         fake.store.load()
-        assertEquals(listOf(listOf("Log!E3", "Log!E4")), fake.scoreWrites)
-        assertEquals(listOf(5.0, 0.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(listOf("Log!E3", "Log!E5")), fake.scoreWrites)
+        assertEquals(listOf(83.3, 0.0, 0.0, null), fake.logColumn("Score"))
     }
 
     @Test
@@ -90,21 +110,26 @@ class SheetsStoreTest {
         fake.store.load()
         fake.scoreWrites.clear()
 
-        // Goal `no` for meditate: row 2 loses 1 point, row 3 gets 1 point.
+        // Goal `no` for meditate: row 2 loses 1 point, rows 3 and 4 get 1 point. Row 4 has no value: a no day.
         fake.metrics[2][7] = "no"
         fake.store.load()
-        assertEquals(listOf(4.0, 1.0, null), fake.logColumn("Score"))
-        assertEquals(listOf(listOf("Log!E2", "Log!E3")), fake.scoreWrites)
+        assertEquals(listOf(50.0, 33.3, 50.0), fake.logColumn("Score"))
+        assertEquals(listOf(listOf("Log!E2", "Log!E3", "Log!E4")), fake.scoreWrites)
 
         // A maximum of 85 for weight: 82 kg reaches it.
         fake.metrics[1][7] = "<= 85"
         fake.store.load()
-        assertEquals(listOf(4.0, 2.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(50.0, 66.7, 50.0), fake.logColumn("Score"))
 
-        // No goal for weight: no points.
+        // From 85 to 80: 82 kg is 0.6 of the way.
+        fake.metrics[1][7] = "at most 80 from 85"
+        fake.store.load()
+        assertEquals(listOf(50.0, 53.3, 50.0), fake.logColumn("Score"))
+
+        // No goal for weight: it does not count.
         fake.metrics[1][7] = ""
         fake.store.load()
-        assertEquals(listOf(3.0, 1.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(25.0, 50.0, 50.0), fake.logColumn("Score"))
     }
 
     @Test
@@ -116,7 +141,7 @@ class SheetsStoreTest {
         fake.log[1][3] = 6
         fake.store.load()
         assertEquals(listOf(listOf("Log!E2")), fake.scoreWrites)
-        assertEquals(listOf(8.0, 0.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(100.0, 0.0, 0.0), fake.logColumn("Score"))
     }
 
     @Test
@@ -127,7 +152,7 @@ class SheetsStoreTest {
         fake.metrics[3][7] = "lots"
         val snapshot = fake.store.load()
         assertTrue("invalid goal" in snapshot.warnings.single())
-        assertEquals(listOf(2.0, 0.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(100.0, 0.0, 0.0), fake.logColumn("Score"))
     }
 
     @Test
@@ -139,11 +164,12 @@ class SheetsStoreTest {
         val d4 = Day(2026, 10, 2)
         val snapshot = fake.store.change { planCount(water, d4, listOf(CountStep(1.0), CountStep(1.0)), it) }
         assertEquals(2.0, snapshot.log.valueAt("water", d4))
-        assertEquals(listOf(5.0, 0.0, null, 2.0), fake.logColumn("Score"))
+        // Meditate 0 and water 0.5: 25.
+        assertEquals(listOf(83.3, 0.0, 0.0, 25.0), fake.logColumn("Score"))
 
         // A change in a past row.
         fake.store.change { planCount(water, d2, listOf(CountStep(1.0)), it) }
-        assertEquals(listOf(5.0, 1.0, null, 2.0), fake.logColumn("Score"))
+        assertEquals(listOf(83.3, 8.3, 0.0, 25.0), fake.logColumn("Score"))
     }
 
     @Test
@@ -151,8 +177,8 @@ class SheetsStoreTest {
         val fake = sheetWithoutScore()
         for (row in fake.metrics) row.removeAt(row.lastIndex)
         fake.store.load()
-        // Weight has no goal (0), meditate has the goal yes, water is a count.
-        assertEquals(listOf(4.0, 0.0, null), fake.logColumn("Score"))
+        // Weight and water have no goal: they do not count. Meditate has the goal yes.
+        assertEquals(listOf(100.0, 0.0, 0.0), fake.logColumn("Score"))
     }
 
     @Test
@@ -193,7 +219,8 @@ class SheetsStoreTest {
             ),
         )
         assertEquals(listOf(listOf("Log!E4")), fake.scoreWrites)
-        assertEquals(listOf(5.0, 0.0, 3.0), fake.logColumn("Score"))
+        // Meditate 1 and water 0.5: 75.
+        assertEquals(listOf(83.3, 0.0, 75.0), fake.logColumn("Score"))
     }
 
     @Test
@@ -209,7 +236,7 @@ class SheetsStoreTest {
                 { planYesNo(meditate, d2, it, done = false) },
             ),
         )
-        assertEquals(listOf(5.0, 4.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(83.3, 33.3, 0.0), fake.logColumn("Score"))
     }
 
     @Test
@@ -219,16 +246,16 @@ class SheetsStoreTest {
         fake.failsScoreWrites = true
 
         val snapshot = fake.store.change { planCount(water, d1, listOf(CountStep(1.0)), it) }
-        assertEquals(4.0, snapshot.log.valueAt("water", d1))
+        assertEquals(3.0, snapshot.log.valueAt("water", d1))
         assertTrue("could not write 1 scores" in snapshot.warnings.single())
         assertTrue("The caller does not have permission" in snapshot.warnings.single())
-        assertEquals(listOf(5.0, 0.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(83.3, 0.0, 0.0), fake.logColumn("Score"))
 
         // The next load tries again.
         fake.failsScoreWrites = false
         val next = fake.store.load()
         assertEquals(emptyList(), next.warnings)
-        assertEquals(listOf(6.0, 0.0, null), fake.logColumn("Score"))
+        assertEquals(listOf(91.7, 0.0, 0.0), fake.logColumn("Score"))
     }
 
     @Test
@@ -276,7 +303,8 @@ class SheetsRequestsTest {
             1,
             7,
             formula(
-                """=OR(ISNUMBER(H2), REGEXMATCH(LOWER(TO_TEXT(H2)), "^ *(yes|no|(<=|>=)? *-?[0-9]+([.][0-9]+)?) *$"))""",
+                "=OR(ISNUMBER(H2), REGEXMATCH(LOWER(TO_TEXT(H2)), \"^ *(yes|no|(at +least|at +most|<=|>=)? *" +
+                    "-?[0-9]+([.][0-9]+)?( +from +-?[0-9]+([.][0-9]+)?)?( +trend)?) *$\"))",
             ),
         ),
     )

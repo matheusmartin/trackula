@@ -51,7 +51,7 @@ import trackula.model.Metric
 import trackula.model.MetricDay
 import trackula.model.NumberMetric
 import trackula.model.YesNoMetric
-import trackula.model.dayValuesWithPending
+import trackula.model.dayValues
 import trackula.model.formatCompact
 import trackula.model.formatNumber
 import trackula.model.nearestDay
@@ -176,7 +176,7 @@ fun HabitTable(
                     }
                     for (m in metrics) {
                         key(m.id) {
-                            val values = dayValuesWithPending(m, log.entries, pending)
+                            val values = dayValues(m, log, pending)
                             HorizontalDivider(
                                 Modifier.width(rowWidth),
                                 color = MaterialTheme.colorScheme.outlineVariant,
@@ -216,7 +216,7 @@ fun HabitTable(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         for (m in row) {
                             key(m.id) {
-                                val values = dayValuesWithPending(m, log.entries, pending)
+                                val values = dayValues(m, log, pending)
                                 AppCard(Modifier.weight(1f)) {
                                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                         if (showsTitle) MetricName(m, onOpen)

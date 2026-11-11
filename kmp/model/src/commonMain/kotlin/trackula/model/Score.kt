@@ -1,16 +1,14 @@
 package trackula.model
 
-import kotlin.math.max
-
 /** The header of the score column of the `Log` tab. It starts with a capital letter, so it cannot be a metric id. */
 const val SCORE_HEADER = "Score"
 
 /**
  * The score as a count metric, for the table, the calendars and the detail screen. It is not a row of the `Metrics`
- * tab, and its cells are read-only: [dayScores] calculates its values. It has no icon: the score card and the score
- * detail screen show only its name.
+ * tab, and its cells are read-only: [dayScores] calculates its values, from 0 to 100. It has no icon: the score card
+ * and the score detail screen show only its name.
  */
-val scoreMetric = NumberMetric(id = SCORE_HEADER, name = "Score", icon = "", unit = "points", isCount = true)
+val scoreMetric = NumberMetric(id = SCORE_HEADER, name = "Score", icon = "", unit = "%", isCount = true)
 
 /**
  * The score of the metrics of one [group], for the group filter. [label] is the group name that the app shows. Its id
@@ -24,113 +22,126 @@ fun groupScoreMetric(group: String, label: String): NumberMetric =
 fun isScore(metric: Metric): Boolean = metric.id == SCORE_HEADER || metric.id.startsWith("$SCORE_HEADER:")
 
 /**
- * The points of [metric] for a day with [value]. [previous] is the value of the previous log of [metric]: the latest
- * earlier day with a value, also after missed days. Null if there is no earlier log. See docs/data-model.md.
- *
- * - Yes/no: 1 if [value] is the goal: `yes` (1), or `no` (0) for the goal `no`.
- * - Count: 1 for each step, also above the goal. Example: 3 glasses with step 1 give 3 points. 30 minutes with
- *   step 10 give 3 points. A value below 0, typed in the sheet, gives 0 points.
- * - Number: 1 if [value] reaches the goal, if it is closer to the goal than [previous], or if it is the first log.
- *   Else 0. Always 0 if the metric has no goal. Example: goal at most 80, 82.6 after 83 gives 1, 82.8 after 82.6
- *   gives 0, 79.9 gives 1.
+ * True if [metric] gives points to the score: a yes/no metric, or a number or count metric with a goal. A metric
+ * without a goal is only tracked: it does not change the score.
  */
-fun metricPoints(metric: Metric, value: Double, previous: Double? = null): Double = when (metric) {
+fun isScored(metric: Metric): Boolean = metric !is NumberMetric || metric.goal != null
+
+/**
+ * True if [metric] counts on each day from its first value: a yes/no or a count metric. A day without a value has the
+ * value 0: `no`, or a count of 0. A number metric is a measurement, not a task for each day: it counts only on the
+ * days with a value.
+ */
+private fun countsEachDay(metric: Metric): Boolean = metric !is NumberMetric || metric.isCount
+
+/**
+ * The points of [metric] for [value], from 0 to 1. See docs/data-model.md.
+ *
+ * - Yes/no: 1 if [value] is the goal: `yes` (1), or `no` (0) for the goal `no`. Else 0.
+ * - Number and count: the points of the goal. See [NumberGoal.points]. For a goal with a trend, [value] is the trend
+ *   of the day. Example: `at least 8` and 6 give 0.75.
+ * - A metric without a goal: 0. It is not in the score: see [isScored].
+ */
+fun metricPoints(metric: Metric, value: Double): Double = when (metric) {
     is YesNoMetric -> if ((value == 1.0) == metric.goalIsYes) 1.0 else 0.0
-
-    is NumberMetric -> {
-        val goal = metric.goal
-        when {
-            metric.isCount -> max(0.0, value) / metric.step
-            goal == null -> 0.0
-            goal.isReachedBy(value) || previous == null || goal.distanceTo(value) < goal.distanceTo(previous) -> 1.0
-            else -> 0.0
-        }
-    }
+    is NumberMetric -> metric.goal?.points(value) ?: 0.0
 }
 
 /**
- * The score of each day of [log]: the sum of the points of the [metrics] on that day. It includes the count taps in
- * [pending] that are not written yet. A day without a value has no score.
+ * The points of each metric of [metrics] that gives points (see [isScored]) on each day that it counts, from 0 to 1,
+ * by metric id. The values come from [metricValues], with the count taps in [pending]. A metric without points is not
+ * in the result.
  *
- * If a day has more than one row, only the last row counts, as in [LogTable.rows]. So the score is the same as the
- * `Score` cell of that row.
- */
-fun dayScores(
-    metrics: List<Metric>,
-    log: LogTable,
-    pending: Map<MetricDay, List<CountStep>> = emptyMap(),
-): Map<Day, Double> {
-    val points = mutableMapOf<Day, MutableList<Double>>()
-    for (days in pointsByMetric(metrics, log, pending).values) {
-        for ((day, p) in days) points.getOrPut(day) { mutableListOf() }.add(p)
-    }
-    return points.mapValues { (_, p) -> total(p) }
-}
-
-/**
- * The points of each metric of [metrics] on each day of [log] with a value of that metric, by metric id. The sum of
- * the points of a day is its score: see [dayScores]. It includes the count taps in [pending]. A metric without a
- * value has an empty map. Example: water 5 glasses with step 1 on Oct 1 gives `water` → (Oct 1 → 5).
+ * - A yes/no or count metric counts on each day from its first value to [today], and on each later day with a row. A
+ *   day without a value, also a day without a row, has the value 0: `no` for yes/no, and 0 for a count. Without
+ *   [today], it counts only on the days with a row, as in the `Score` column.
+ * - A number metric counts only on the days with a value. With a trend goal, its points come from the [trend].
+ *
+ * Examples: water `at least 8`, 6 glasses on Oct 1, and today Oct 2 without a value give `water` → (Oct 1 → 0.75,
+ * Oct 2 → 0). Coffee `at most 2` gives 1 on a day without a value: 0 coffees.
  */
 fun pointsByMetric(
     metrics: List<Metric>,
     log: LogTable,
+    today: Day? = null,
     pending: Map<MetricDay, List<CountStep>> = emptyMap(),
-): Map<String, Map<Day, Double>> {
-    val byId = metrics.associateBy { it.id }
-    val values = lastRowValues(byId, log).toMutableMap()
-    for ((key, steps) in pending) {
-        if (byId[key.metricId] !is NumberMetric) continue
-        val value = applyCountSteps(values[key], steps)
-        if (value != null) values[key] = value else values.remove(key)
-    }
-    val previous = previousValues(values)
-    val points = metrics.associate { it.id to mutableMapOf<Day, Double>() }
-    for ((key, value) in values) {
-        points.getValue(key.metricId)[key.day] = metricPoints(byId.getValue(key.metricId), value, previous[key])
-    }
-    return points
+): Map<String, Map<Day, Double>> = metrics.filter(::isScored).associate { metric ->
+    val values = metricValues(metric, log, pending)
+    val usesTrend = metric is NumberMetric && metric.goal?.usesTrend == true
+    val points = (if (usesTrend) trend(values) else values).mapValues { (_, value) -> metricPoints(metric, value) }
+    metric.id to if (countsEachDay(metric)) withEmptyDays(points, metricPoints(metric, 0.0), log, today) else points
+}.filterValues { it.isNotEmpty() }
+
+/**
+ * [points] with [empty] on each day without points, after the first day of [points]: each day with a row of [log],
+ * and each day up to [today].
+ */
+private fun withEmptyDays(points: Map<Day, Double>, empty: Double, log: LogTable, today: Day?): Map<Day, Double> {
+    val first = points.keys.minOrNull() ?: return points
+    val untilToday = if (today == null) emptyList() else daysBetween(first, today)
+    val days = (log.rows.keys.filter { it > first } + untilToday).filter { it !in points }
+    return points + days.associateWith { empty }
 }
 
 /**
- * The score of each group of [groups] on each day, from the [points] of each metric (see [pointsByMetric]): the sum of
- * the points of the metrics of [metrics] in the group. A day without a value in the group has no group score. The
- * group scores of a day add up to its score.
+ * The score of each day, from 0 to 100: the average of the [points] of the metrics that count on that day (see
+ * [pointsByMetric]), as a percentage with 1 decimal. A day where no metric counts has no score. Example: the points 1,
+ * 0.75 and 0 give 58.3.
+ *
+ * The points of the metrics of one group give the score of that group. See [pointsOf].
+ */
+fun dayScores(points: Map<String, Map<Day, Double>>): Map<Day, Double> {
+    val byDay = mutableMapOf<Day, MutableList<Double>>()
+    for (days in points.values) {
+        for ((day, p) in days) byDay.getOrPut(day) { mutableListOf() }.add(p)
+    }
+    return byDay.mapValues { (_, p) -> roundHalfAwayFromZero(withoutFloatNoise(p.average() * 1000)) / 10 }
+}
+
+/** The [points] of the metrics of [metrics] in [group], for the group filter. Null [group]: all metrics. */
+fun pointsOf(
+    metrics: List<Metric>,
+    group: String?,
+    points: Map<String, Map<Day, Double>>,
+): Map<String, Map<Day, Double>> {
+    val ids = metricsOf(metrics, group).map { it.id }.toSet()
+    return points.filterKeys { it in ids }
+}
+
+/**
+ * The score of each group of [groups] on each day: the [dayScores] of the [points] of the metrics of [metrics] in the
+ * group. A day where no metric of a group counts has no score of that group. Example: habits 1 and 0.5, body 0 give
+ * habits 75 and body 0.
  */
 fun groupScores(
     metrics: List<Metric>,
     groups: List<String>,
     points: Map<String, Map<Day, Double>>,
-): Map<String, Map<Day, Double>> = groups.associateWith { group ->
-    val sums = mutableMapOf<Day, MutableList<Double>>()
-    for (m in metricsOf(metrics, group)) {
-        for ((day, p) in points[m.id].orEmpty()) sums.getOrPut(day) { mutableListOf() }.add(p)
+): Map<String, Map<Day, Double>> = groups.associateWith { dayScores(pointsOf(metrics, it, points)) }
+
+/**
+ * The part of each group of [groups] in the score of each day: the sum of the [points] of the metrics of the group,
+ * divided by the number of metrics that count on that day, as a percentage. So the parts of a day add up to its
+ * score, before the score is rounded. A day without points of a group has no part of that group.
+ *
+ * Example: habits 1 and 0.5, body 0 give habits 50 and body 0. The score is 50.
+ */
+fun groupParts(
+    metrics: List<Metric>,
+    groups: List<String>,
+    points: Map<String, Map<Day, Double>>,
+): Map<String, Map<Day, Double>> {
+    val counted = mutableMapOf<Day, Int>()
+    for (days in points.values) {
+        for (day in days.keys) counted[day] = (counted[day] ?: 0) + 1
     }
-    sums.mapValues { (_, p) -> total(p) }
-}
-
-/**
- * The value of each metric of [byId] on each day of [log]. If a day has more than one row, the value of its last
- * row.
- */
-private fun lastRowValues(byId: Map<String, Metric>, log: LogTable): Map<MetricDay, Double> = log.entries
-    .filter { it.metricId in byId && log.rows[it.date] == it.row }
-    .associate { MetricDay(it.metricId, it.date) to it.value }
-
-/**
- * For each metric and day of [values], the value of the previous log: the latest earlier day of the same metric with
- * a value. Days without an earlier log are not in the result. The rows of the `Log` tab are not sorted, so this
- * sorts the days.
- */
-private fun previousValues(values: Map<MetricDay, Double>): Map<MetricDay, Double> {
-    val previous = mutableMapOf<MetricDay, Double>()
-    for ((id, keys) in values.keys.groupBy { it.metricId }) {
-        val days = keys.map { it.day }.sorted()
-        for (i in 1 until days.size) {
-            previous[MetricDay(id, days[i])] = values.getValue(MetricDay(id, days[i - 1]))
+    return groups.associateWith { group ->
+        val sums = mutableMapOf<Day, Double>()
+        for (days in pointsOf(metrics, group, points).values) {
+            for ((day, p) in days) sums[day] = (sums[day] ?: 0.0) + p
         }
+        sums.mapValues { (day, sum) -> withoutFloatNoise(100 * sum / counted.getValue(day)) }
     }
-    return previous
 }
 
 /** The 0-based index of the score column in the `Log` [header]. Null if the tab has no score column. */
@@ -146,32 +157,23 @@ fun scoreColumn(header: List<Any?>): Int? =
 data class ScoreCell(val row: Int, val score: Double?)
 
 /**
- * The cells of the score [column] of the `Log` tab that do not show the score of their row. [rows] includes the
+ * The cells of the score [column] of the `Log` tab that do not show the score of their day. [rows] includes the
  * header row.
  *
- * The score of a row is the sum of the points of its values. See [metricPoints]. A row without a value, or without a
- * valid date, has no score. The previous log of a value comes from the earlier days, so a changed value can also
- * change the score of the next day with a value of that metric.
+ * Each row has the score of its day: see [dayScores]. If a day has more than one row, each of these rows has the score
+ * of the day, from its last row. A row without a valid date, or of a day without a score, has no score.
+ *
+ * A changed value can also change the score of other days. Examples: the later days of a trend, and the empty days
+ * after a new first value of a yes/no or count metric.
  */
 fun staleScoreCells(rows: List<List<Any?>>, metrics: List<Metric>, column: Int): List<ScoreCell> {
-    val byId = metrics.associateBy { it.id }
-    val log = parseLog(rows, byId).table
-    val previous = previousValues(lastRowValues(byId, log))
-    val pointsByRow = mutableMapOf<Int, MutableList<Double>>()
-    for (e in log.entries) {
-        val metric = byId.getValue(e.metricId)
-        val points = metricPoints(metric, e.value, previous[MetricDay(e.metricId, e.date)])
-        pointsByRow.getOrPut(e.row) { mutableListOf() }.add(points)
-    }
+    val log = parseLog(rows, metrics.associateBy { it.id }).table
+    val scores = dayScores(pointsByMetric(metrics, log))
     return (1 until rows.size).mapNotNull { i ->
-        val row = i + 1
-        val score = pointsByRow[row]?.let(::total)
-        if (shows(rows[i].getOrNull(column), score)) null else ScoreCell(row, score)
+        val score = logDate(rows[i].firstOrNull())?.let { scores[it] }
+        if (shows(rows[i].getOrNull(column), score)) null else ScoreCell(i + 1, score)
     }
 }
-
-/** The sum of [points] without float noise. */
-private fun total(points: List<Double>): Double = withoutFloatNoise(points.sum())
 
 /**
  * True if the score [cell] shows [score]. An empty cell shows no score. Other text never shows a score, also a

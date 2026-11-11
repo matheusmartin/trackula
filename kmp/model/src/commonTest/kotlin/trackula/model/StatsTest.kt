@@ -52,18 +52,35 @@ class StatsTest {
     }
 
     @Test
+    fun strengthMovesToTheValueOfEachDayAndStaysTheSameOnADayWithoutAValue() {
+        val s = strength(mapOf(day(-1) to 1.0, day(0) to 0.5, day(2) to 0.0), range(3))
+        val afterDay0 = STRENGTH_WEIGHT + STRENGTH_WEIGHT * (0.5 - STRENGTH_WEIGHT)
+        assertEquals(afterDay0, s[0], 1e-9)
+        assertEquals(afterDay0, s[1], 1e-9)
+        assertEquals(afterDay0 * (1 - STRENGTH_WEIGHT), s[2], 1e-9)
+        // Before the first value, the strength is 0.
+        assertEquals(listOf(0.0, 0.0), strength(mapOf(day(5) to 1.0), range(2)))
+    }
+
+    @Test
     fun yesNoStatsWithNoDaysHasNoStrength() {
         assertEquals(emptyList(), yesNoStats(states, emptyList(), day(6)).strength)
     }
 
     @Test
-    fun yesNoStatesReadsYesAsTrueAndNoAsFalse() {
-        val entries = listOf(
-            LogEntry(row = 2, date = day(0), metricId = "m", value = 1.0),
-            LogEntry(row = 3, date = day(1), metricId = "m", value = 0.0),
-            LogEntry(row = 3, date = day(1), metricId = "other", value = 1.0),
-        )
-        assertEquals(mapOf(day(0) to true, day(1) to false), yesNoStates("m", entries))
+    fun yesNoStatesReadsYesAsTrueAndNoAsFalseFromTheLastRowOfADay() {
+        val log = parseLog(
+            rows(
+                listOf("date", "meditate"),
+                listOf("2026-09-28", "yes"),
+                listOf("2026-09-29", "yes"),
+                listOf("2026-09-29", "no"),
+                listOf("2026-09-30", "yes"),
+                listOf("2026-09-30", ""),
+            ),
+            byId(meditate),
+        ).table
+        assertEquals(mapOf(day(0) to true, day(1) to false), yesNoStates(meditate, log))
     }
 
     private val counts = mapOf(day(0) to 3.0, day(1) to 5.0, day(3) to 5.0, day(7) to 2.0)
@@ -121,6 +138,19 @@ class StatsTest {
         assertEquals(82.0, s.trend[0])
         assertEquals(82.0, s.trend[1])
         assertEquals(82 + TREND_WEIGHT * (81 - 82), s.trend[2])
+    }
+
+    @Test
+    fun theTrendMovesAQuarterOfTheWayToEachNewValue() {
+        val trend = trend(mapOf(day(9) to 82.0, day(1) to 82.4, day(2) to 82.0))
+        assertEquals(listOf(day(1), day(2), day(9)), trend.keys.toList())
+        assertEquals(listOf(82.4, 82.3, 82.225), trend.values.map(::withoutFloatNoise))
+    }
+
+    @Test
+    fun numberStatsTrendAlsoUsesTheValuesBeforeThePeriod() {
+        val s = numberStats(mapOf(day(-1) to 84.0, day(0) to 80.0), range(2))
+        assertEquals(listOf(83.0, 83.0), s.trend)
     }
 
     @Test

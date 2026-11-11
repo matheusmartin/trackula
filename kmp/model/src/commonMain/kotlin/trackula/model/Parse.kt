@@ -73,7 +73,7 @@ private fun metric(row: MetricRow, id: String): Metric {
             unit = row.text("unit"),
             step = row.number("step")?.takeIf { it > 0 } ?: 1.0,
             isCount = kind == "count",
-            goal = numberGoal(goal),
+            goal = numberGoal(goal, isCount = kind == "count"),
             group = group,
         )
 
@@ -93,22 +93,53 @@ private fun yesNoGoal(cell: Any?): Boolean {
 }
 
 /**
- * The goal of a number or count metric in the `goal` [cell]. Null if the cell is empty.
+ * The goal of a number or count metric in the `goal` [cell]. Null if the cell is empty. See [NumberGoal] and
+ * docs/data-model.md.
  *
- * A number, such as `8`, or `>= 8`, is a minimum. `<= 75` is a maximum. Throws an [InvalidRowException] for other
- * values.
+ * The cell has a direction, a target, an optional start after `from`, and an optional `trend`. Examples: `at least 8`,
+ * `at most 80 from 83`, `at most 80 from 83 trend`. A number without a direction, such as `8`, is a minimum. The
+ * signs `>=` and `<=` of older app versions are the same as `at least` and `at most`. Case does not matter.
+ *
+ * Throws an [InvalidRowException] if the cell has a different form, if the start is not on the other side of the
+ * target, or if a count metric ([isCount]) has `trend`.
  */
-private fun numberGoal(cell: Any?): NumberGoal? {
+private fun numberGoal(cell: Any?, isCount: Boolean): NumberGoal? {
     if (isEmpty(cell)) return null
     numberOf(cell)?.let { return NumberGoal(it) }
-    val match = numberGoalPattern.matchEntire(cellText(cell).trim()) ?: throw InvalidRowException(
-        "invalid goal \"${cellText(cell)}\". Use a number, such as 8 (at least 8), or <= 75 (at most 75).",
+    val text = cellText(cell)
+    val match = numberGoalPattern.matchEntire(text.trim()) ?: throw InvalidRowException(
+        "invalid goal \"$text\". Use for example at least 8, at most 80, or at most 80 from 83 trend.",
     )
-    return NumberGoal(match.groupValues[2].toDouble(), isMaximum = match.groupValues[1] == "<=")
+    val (direction, target, from, trend) = match.destructured
+    val goal = NumberGoal(
+        target = target.toDouble(),
+        isMaximum = direction == "<=" || direction.lowercase().endsWith("most"),
+        from = from.takeIf { it.isNotEmpty() }?.toDouble(),
+        usesTrend = trend.isNotEmpty(),
+    )
+    val start = goal.from
+    if (start != null && goal.isReachedBy(start)) {
+        val side = if (goal.isMaximum) "above" else "below"
+        throw InvalidRowException("invalid goal \"$text\". The value after from must be $side the target.")
+    }
+    if (isCount && goal.usesTrend) {
+        throw InvalidRowException("invalid goal \"$text\". Only a number metric can have a trend.")
+    }
+    return goal
 }
 
-/** A number goal as text: an optional `<=` or `>=`, then a number. Examples: `8`, `>= 8`, `<=75.5`. */
-private val numberGoalPattern = Regex("""^(<=|>=)?\s*(-?\d+(?:\.\d+)?)$""")
+/** A number in a goal: an optional minus sign, digits, and optional decimals after a period. */
+private const val NUMBER = """-?\d+(?:\.\d+)?"""
+
+/**
+ * A number goal as text: an optional direction, the target, an optional `from` and a start, and an optional `trend`.
+ * The groups: the direction, the target, the start and `trend`. Examples: `8`, `>= 8`, `at least 8`, `<=75.5`,
+ * `at most 80 from 83 trend`.
+ */
+private val numberGoalPattern = Regex(
+    """^(at\s+least|at\s+most|>=|<=)?\s*($NUMBER)(?:\s+from\s+($NUMBER))?(\s+trend)?$""",
+    RegexOption.IGNORE_CASE,
+)
 
 /** The `Log` tab and a warning for each invalid cell or row. */
 data class ParsedLog(val table: LogTable, val warnings: List<String>)
@@ -183,7 +214,7 @@ private fun logColumns(
  * The date of a `date` cell. A real date is a serial number. Older app versions wrote the date as text: YYYY-MM-DD.
  * Null if the cell is not a valid date.
  */
-private fun logDate(cell: Any?): Day? = when (cell) {
+internal fun logDate(cell: Any?): Day? = when (cell) {
     is Number -> Day.fromSerial(cell.toDouble())
     is String -> Day.tryParse(cell)
     else -> null

@@ -46,7 +46,7 @@ import trackula.model.MetricDay
 import trackula.model.NumberMetric
 import trackula.model.YesNoMetric
 import trackula.model.applyCountSteps
-import trackula.model.dayValuesWithPending
+import trackula.model.dayValues
 import trackula.model.formatStep
 import trackula.model.nearestDay
 import trackula.model.planClear
@@ -136,7 +136,7 @@ fun TodayTiles(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         for (i in row) {
                             val m = metrics[i]
-                            val values = dayValuesWithPending(m, log.entries, pending)
+                            val values = dayValues(m, log, pending)
                             val saved = values[today]
                             val tileModifier = Modifier.weight(if (isWide(m)) columns.toFloat() else 1f)
                             key(m.id) {

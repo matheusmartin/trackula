@@ -89,7 +89,7 @@ private const val MIN_CHANGE_FILL = 0.2f
  * left, and a cell with no value on it or on its left. A null value shows "–". The legend names the 2 colors [upLabel]
  * and [downLabel]. If [rows] is empty, the card says that there are no values.
  *
- * Example: the points per day of each group in each of the last 5 weeks.
+ * Example: the average score of each group in each of the last 5 weeks.
  */
 @Composable
 fun ChangeTable(

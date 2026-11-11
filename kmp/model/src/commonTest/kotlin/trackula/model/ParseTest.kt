@@ -106,15 +106,26 @@ class ParseTest {
                 listOf("smoke", "Smoke", "yesno", "", "", "", "check", "no"),
                 listOf("read", "Read", "yesno", "", "", "", "check"),
                 listOf("water", "Water", "count", "", "", "", "water_drop", 8),
-                listOf("steps", "Steps", "number", "", "", "", "footprint", ">= 8000"),
-                listOf("weight", "Weight", "number", "kg", 0.1, "", "monitor_weight", "<=75.5"),
+                listOf("steps", "Steps", "count", "", "", "", "footprint", "at least 8000"),
+                listOf("coffee", "Coffee", "count", "", "", "", "coffee", "At  most 2 from 4"),
+                listOf("sleep", "Sleep", "number", "h", "", "", "bedtime", ">= 7 from 5"),
+                listOf("weight", "Weight", "number", "kg", 0.1, "", "monitor_weight", "at most 80 from 83.5 trend"),
+                listOf("fat", "Body fat", "number", "%", "", "", "percent", "<=20"),
                 listOf("waist", "Waist", "number", "cm", 0.5, "", "straighten", ""),
             ),
         )
         assertEquals(emptyList(), p.warnings)
         assertEquals(listOf(true, false, true), p.items.filterIsInstance<YesNoMetric>().map { it.goalIsYes })
         assertEquals(
-            listOf(NumberGoal(8.0), NumberGoal(8000.0), NumberGoal(75.5, isMaximum = true), null),
+            listOf(
+                NumberGoal(8.0),
+                NumberGoal(8000.0),
+                NumberGoal(2.0, isMaximum = true, from = 4.0),
+                NumberGoal(7.0, from = 5.0),
+                NumberGoal(80.0, isMaximum = true, from = 83.5, usesTrend = true),
+                NumberGoal(20.0, isMaximum = true),
+                null,
+            ),
             p.items.filterIsInstance<NumberMetric>().map { it.goal },
         )
     }
@@ -126,12 +137,20 @@ class ParseTest {
                 metricsHeader,
                 listOf("meditate", "Meditate", "yesno", "", "", "", "check", "maybe"),
                 listOf("weight", "Weight", "number", "kg", 0.1, "", "monitor_weight", "< 75"),
+                listOf("waist", "Waist", "number", "cm", 0.5, "", "straighten", "at most 90 from 88"),
+                listOf("sleep", "Sleep", "number", "h", "", "", "bedtime", "at least 7 from 7"),
+                listOf("water", "Water", "count", "", "", "", "water_drop", "at least 8 trend"),
+                listOf("steps", "Steps", "count", "", "", "", "footprint", "trend"),
             ),
         )
         assertEquals(emptyList(), p.items)
-        assertEquals(2, p.warnings.size)
+        assertEquals(6, p.warnings.size)
         assertTrue("use yes or no" in p.warnings[0])
-        assertTrue("<= 75 (at most 75)" in p.warnings[1])
+        assertTrue("at most 80 from 83 trend" in p.warnings[1])
+        assertTrue("must be above the target" in p.warnings[2])
+        assertTrue("must be below the target" in p.warnings[3])
+        assertTrue("Only a number metric can have a trend" in p.warnings[4])
+        assertTrue("invalid goal \"trend\"" in p.warnings[5])
     }
 
     @Test

@@ -49,15 +49,14 @@ internal const val MAX_FILL = 0.7f
 
 /**
  * The score of each day of one [month]: a read-only month calendar with the score of each day, Monday first. A day
- * with a higher score has a darker color: the best day of the month has the most color. A day without a score has the
- * empty color and no number. [onMonth] is called when the arrows change the month. The arrow to the next month stops
- * at the month of [today].
+ * with a higher score has a darker color: a score of 100 has the most color. A day without a score has the empty color
+ * and no number. [onMonth] is called when the arrows change the month. The arrow to the next month stops at the month
+ * of [today].
  */
 @Composable
 fun ScoreCalendar(scores: Map<Day, Double>, today: Day, month: MonthKey, onMonth: (MonthKey) -> Unit) {
     val extra = LocalExtraColors.current
     val days = daysOfMonth(month)
-    val high = days.mapNotNull { scores[it] }.maxOrNull() ?: 0.0
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Score by month", style = MaterialTheme.typography.titleMedium)
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -89,20 +88,8 @@ fun ScoreCalendar(scores: Map<Day, Double>, today: Day, month: MonthKey, onMonth
                         val score = d?.let { scores[it] }
                         val fill = when {
                             d == null -> Color.Transparent
-
                             score == null -> extra.cellEmpty
-
-                            else -> lerp(
-                                extra.cellEmpty,
-                                extra.cell,
-                                if (high <=
-                                    0
-                                ) {
-                                    0f
-                                } else {
-                                    MAX_FILL * (score / high).toFloat()
-                                },
-                            )
+                            else -> lerp(extra.cellEmpty, extra.cell, MAX_FILL * (score / 100).toFloat())
                         }
                         // The text color with the best contrast on the fill, in both themes.
                         val ink = if (fill.luminance() > 0.3f) DARK_INK else LIGHT_INK

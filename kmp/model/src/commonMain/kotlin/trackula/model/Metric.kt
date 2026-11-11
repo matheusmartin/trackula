@@ -1,5 +1,8 @@
 package trackula.model
 
+import kotlin.math.max
+import kotlin.math.min
+
 /** A row of the `Metrics` tab. See docs/data-model.md. */
 sealed class Metric {
     abstract val id: String
@@ -43,16 +46,44 @@ data class NumberMetric(
 ) : Metric()
 
 /**
- * The day goal of a [NumberMetric]: at least [value], or at most [value] if [isMaximum].
+ * The goal of a [NumberMetric]: at least [target], or at most [target] if [isMaximum]. It gives the points of a day,
+ * from 0 to 1. See [points] and docs/data-model.md. Example: the goal cell `at most 80 from 83 trend` gives the
+ * target 80, a maximum, the start 83 and the trend.
  *
- * @property isMaximum True if the goal is a maximum, for example a weight of at most 75 kg. Else it is a minimum.
+ * @property isMaximum True if the goal is a maximum, for example a weight of at most 80 kg. Else it is a minimum.
+ * @property from The value of 0 points, after `from` in the goal cell. It is below [target] for a minimum and above
+ *   it for a maximum. Null if the cell has no `from`: see [start].
+ * @property usesTrend True if the points come from the trend of the values, not from the value of the day. For
+ *   values that change much from day to day, for example a weight. See [trend].
  */
-data class NumberGoal(val value: Double, val isMaximum: Boolean = false) {
-    /** True if [dayValue] reaches the goal. The goal value itself reaches it. */
-    fun isReachedBy(dayValue: Double): Boolean = if (isMaximum) dayValue <= value else dayValue >= value
+data class NumberGoal(
+    val target: Double,
+    val isMaximum: Boolean = false,
+    val from: Double? = null,
+    val usesTrend: Boolean = false,
+) {
+    /**
+     * The value of 0 points: [from], or 0 for a minimum above 0. Null for the other goals without `from`: they give
+     * 1 or 0 points.
+     */
+    val start: Double? get() = from ?: if (!isMaximum && target > 0) 0.0 else null
 
-    /** How far [dayValue] is from the goal: 0 if it reaches the goal. Example: goal at most 80, 82.5 → 2.5. */
-    fun distanceTo(dayValue: Double): Double = if (isReachedBy(dayValue)) 0.0 else kotlin.math.abs(dayValue - value)
+    /** True if [value] reaches the goal. The target itself reaches it. */
+    fun isReachedBy(value: Double): Boolean = if (isMaximum) value <= target else value >= target
+
+    /**
+     * The points of [value], from 0 to 1. A value that reaches the goal gives 1. Else the points are the part of the
+     * way from [start] to the target, or 0 if there is no start.
+     *
+     * Examples: `at least 8` (from 0): 6 gives 0.75. `at most 80 from 83`: 82.1 gives 0.3, 84 gives 0. `at most 80`:
+     * 82.1 gives 0.
+     */
+    fun points(value: Double): Double {
+        if (isReachedBy(value)) return 1.0
+        val start = start ?: return 0.0
+        // max() and not coerceIn(): at the start of a maximum, the part is -0.0, and max() gives 0.0.
+        return max(0.0, min(1.0, (value - start) / (target - start)))
+    }
 }
 
 /** The group of the metrics without a group. */

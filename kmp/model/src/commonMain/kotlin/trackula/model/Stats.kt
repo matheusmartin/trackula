@@ -6,9 +6,12 @@ import kotlin.math.min
 /** A value on a day, for example the best day of a count. */
 data class DayValue(val day: Day, val value: Double)
 
-/** The yes/no states of [metricId] in [entries]: true for `yes`, false for `no`. Days without entry are left out. */
-fun yesNoStates(metricId: String, entries: List<LogEntry>): Map<Day, Boolean> =
-    entries.filter { it.metricId == metricId }.associate { it.date to (it.value == 1.0) }
+/**
+ * The yes/no states of [metric] in [log]: true for `yes`, false for `no`. Days without entry are left out. See
+ * [metricValues].
+ */
+fun yesNoStates(metric: YesNoMetric, log: LogTable): Map<Day, Boolean> =
+    metricValues(metric, log).mapValues { it.value == 1.0 }
 
 /**
  * The numbers and charts of a yes/no metric in a period.
@@ -20,7 +23,8 @@ fun yesNoStates(metricId: String, entries: List<LogEntry>): Map<Day, Boolean> =
  * @property streaks The lengths of the runs of `yes` days in the period, oldest first.
  * @property weekdayRates The share of `yes` days for each weekday, Monday first. Null if the period has no such
  *   weekday.
- * @property strength The habit strength of each day of the period, from 0 to 1. See [yesNoStats].
+ * @property strength The habit strength of each day of the period, from 0 to 1: a `yes` day is 1, all other days
+ *   from the first entry are 0. See [strength].
  */
 data class YesNoStats(
     val days: Int,
@@ -42,8 +46,8 @@ data class YesNoStats(
 }
 
 /**
- * The habit strength grows with each `yes` day and goes down slowly on other days, as in Loop Habit Tracker.
- * It is an exponential moving average with this weight for each new day.
+ * The habit strength grows with each good day and goes down slowly on other days, as in Loop Habit Tracker. It is an
+ * exponential moving average with this weight for each new day. See [strength].
  */
 const val STRENGTH_WEIGHT = 0.05
 
@@ -55,7 +59,7 @@ fun yesNoStats(states: Map<Day, Boolean>, days: List<Day>, today: Day): YesNoSta
     currentStreak = currentStreak(states, today),
     streaks = streaks(states, days),
     weekdayRates = (1..7).map { weekdayRate(states, days, it) },
-    strength = strength(states, days),
+    strength = strength(yesDays(states, days.lastOrNull()), days),
 )
 
 /** The lengths of the runs of `yes` days in [days], oldest first. */
@@ -92,26 +96,29 @@ private fun weekdayRate(states: Map<Day, Boolean>, days: List<Day>, weekday: Int
     return onWeekday.count { states[it] == true }.toDouble() / onWeekday.size
 }
 
-/**
- * The habit strength of each day of [days]. See [STRENGTH_WEIGHT].
- *
- * The strength starts at the first entry, so a long period does not start with many empty days at 0. An empty [days]
- * gives an empty list.
- */
-private fun strength(states: Map<Day, Boolean>, days: List<Day>): List<Double> {
-    val first = earliestDay(states.keys) ?: return days.map { 0.0 }
-    var strength = 0.0
-    fun addDay(d: Day) {
-        strength += STRENGTH_WEIGHT * ((if (states[d] == true) 1.0 else 0.0) - strength)
-    }
+/** 1 for each `yes` day of [states] and 0 for each other day, from the first entry to [last]. */
+private fun yesDays(states: Map<Day, Boolean>, last: Day?): Map<Day, Double> {
+    val first = earliestDay(states.keys)
+    if (first == null || last == null) return emptyMap()
+    return daysBetween(first, last).associateWith { if (states[it] == true) 1.0 else 0.0 }
+}
 
-    var d = first
-    while (days.isNotEmpty() && d < days.first()) {
-        addDay(d)
-        d = d.addDays(1)
-    }
-    return days.map {
-        if (it >= first) addDay(it)
+/**
+ * The strength of each day of [days], from 0 to 1. [values]: the result of each day, from 0 (bad) to 1 (good), also
+ * before [days]. Each day with a value moves the strength [STRENGTH_WEIGHT] of the way to the value. A day without a
+ * value does not change it. Before the first value, the strength is 0.
+ *
+ * Example: 1 on 20 days gives 0.64 (1 − 0.95^20). Then 0 on one day gives 0.61.
+ */
+fun strength(values: Map<Day, Double>, days: List<Day>): List<Double> {
+    val sorted = values.entries.sortedBy { it.key }
+    var strength = 0.0
+    var next = 0
+    return days.map { day ->
+        while (next < sorted.size && sorted[next].key <= day) {
+            strength += STRENGTH_WEIGHT * (sorted[next].value - strength)
+            next++
+        }
         strength
     }
 }
@@ -182,8 +189,8 @@ data class Bin(val from: Double, val to: Double, val days: Int)
  * @property low The first day with the lowest value. Null if no day has a value.
  * @property high The first day with the highest value. Null if no day has a value.
  * @property values The value of each day of the period. Null if the day has no value.
- * @property trend The smooth trend of each day: an exponential moving average. Null before the first value. See
- *   [TREND_WEIGHT].
+ * @property trend The trend of each day, also from the values before the period. Null before the first value. See
+ *   [trend].
  * @property histogram The values in [HISTOGRAM_BINS] ranges of the same width, from the lowest value.
  */
 data class NumberStats(
@@ -205,6 +212,21 @@ data class NumberStats(
 /** The weight of each new value in the trend: a 7-day smoothing, as in the Libra weight app (2 / (7 + 1)). */
 const val TREND_WEIGHT = 0.25
 
+/**
+ * The trend of [values] on each day of [values]: an exponential moving average. The trend of the first day is its
+ * value. Each later value moves the trend [TREND_WEIGHT] of the way to it. The number charts show it as a line, and a
+ * goal with `trend` gives its points from it (see [NumberGoal.usesTrend]).
+ *
+ * Example: the trend 82.4 and the next value 82.0 give 82.3.
+ */
+fun trend(values: Map<Day, Double>): Map<Day, Double> {
+    var trend: Double? = null
+    return values.keys.sorted().associateWith { day ->
+        val value = values.getValue(day)
+        (trend?.let { it + TREND_WEIGHT * (value - it) } ?: value).also { trend = it }
+    }
+}
+
 /** The number of ranges in [NumberStats.histogram]. */
 const val HISTOGRAM_BINS = 8
 
@@ -222,12 +244,14 @@ fun numberStats(values: Map<Day, Double>, days: List<Day>): NumberStats {
     )
 }
 
-/** The trend of each day of [days]. See [NumberStats.trend]. */
+/** The trend of each day of [days]: the [trend] of the last day with a value. See [NumberStats.trend]. */
 private fun trend(values: Map<Day, Double>, days: List<Day>): List<Double?> {
-    var trend: Double? = null
-    return days.map { d ->
-        values[d]?.let { v -> trend = trend?.let { it + TREND_WEIGHT * (v - it) } ?: v }
-        trend
+    val trends = trend(values).entries.toList()
+    var next = 0
+    var current: Double? = null
+    return days.map { day ->
+        while (next < trends.size && trends[next].key <= day) current = trends[next++].value
+        current
     }
 }
 
