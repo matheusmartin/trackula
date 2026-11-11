@@ -31,17 +31,6 @@ fun groupWeekdayParts(
     }
 }
 
-/** The share of the full color in the lightest group shade of the score charts. */
-const val LIGHTEST_SHADE = 0.3
-
-/**
- * The shade of each of [count] groups in the score charts, from 1 (the full color) for the first group to
- * [LIGHTEST_SHADE] for the last, in equal steps. The score charts use shades of one color, so that the groups do not
- * have the colors that mean more and less in the other charts. Example: 3 groups give 1, 0.65 and 0.3.
- */
-fun groupShades(count: Int): List<Double> =
-    if (count == 1) listOf(1.0) else List(count) { withoutFloatNoise(1 - (1 - LIGHTEST_SHADE) * it / (count - 1)) }
-
 /** The number of weeks before the week of the window end that the week charts of the score view show. */
 const val COMPARED_WEEKS = 4
 
