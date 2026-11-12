@@ -5,8 +5,8 @@ import trackula.services.Config
 import trackula.sheets.Store
 
 /**
- * The parts of the app that need the browser: the URL, the clock, local storage, the Google sign-in and the Google
- * Picker. `BrowserPlatform` in wasmJsMain uses the browser. The UI tests use a fake.
+ * The parts of the app that need the browser: the URL, the clock, local storage, the history, the Google sign-in and
+ * the Google Picker. `BrowserPlatform` in wasmJsMain uses the browser. The UI tests use a fake.
  */
 interface Platform {
     val config: Config
@@ -22,6 +22,9 @@ interface Platform {
 
     /** Sets the setting [key] in local storage. A null [value] removes it. */
     fun writePref(key: String, value: String?)
+
+    /** The history of the browser tab, for the Back button. See [BackDispatcher]. */
+    val history: BrowserHistory
 
     /**
      * Opens the Google sign-in popup. Call it from a click handler, or the browser can block the popup. With

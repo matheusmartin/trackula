@@ -1,13 +1,17 @@
 package trackula.app.pages
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -26,14 +30,18 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import trackula.app.OnBack
 import trackula.app.components.DayLayout
 import trackula.app.components.HabitTable
+import trackula.app.components.Notice
+import trackula.app.components.NoticeKind
 import trackula.app.components.ScoreChart
 import trackula.app.components.Symbol
 import trackula.app.components.TodayTiles
@@ -276,10 +284,12 @@ fun TodayPage(
     LaunchedEffect(detailId, detailMetric == null, snapshot == null) {
         if (detailId != null && snapshot != null && detailMetric == null) closeDetail()
     }
+    // The Back button of the browser closes the detail screen, as its back button does.
+    OnBack(enabled = snapshot != null && detailMetric != null) { closeDetail() }
     if (snapshot != null && detailMetric != null) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            error?.let { Notice(it, kind = NoticeKind.ERROR) }
             detail(detailMetric, ::closeDetail)
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }
         return
     }
@@ -291,43 +301,51 @@ fun TodayPage(
                 writePref("group", it)
             }
         }
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        if (snapshot == null) return@Column
+        // Above the content, so that the error of a save shows next to the top of the page. Try again loads the sheet.
+        error?.let { Notice(it, kind = NoticeKind.ERROR, action = "Try again", onAction = { run { store.load() } }) }
+        if (snapshot == null) {
+            if (error == null) Loading()
+            return@Column
+        }
         if (metrics.isEmpty()) {
-            Text("No metrics.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Button(onClick = { currentOnManaging(true) }) { Text("Add a metric") }
+            NoMetrics { currentOnManaging(true) }
         } else {
-            when (view) {
-                MainView.TODAY -> TodayTiles(
-                    metrics = shown,
-                    log = snapshot.log,
-                    today = today,
-                    busy = busy,
-                    onWriteAll = ::writeAll,
-                    pending = pending,
-                )
+            // A short fade between the views of the navigation.
+            Crossfade(view, animationSpec = tween(VIEW_FADE_MILLIS)) { shownView ->
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    when (shownView) {
+                        MainView.TODAY -> TodayTiles(
+                            metrics = shown,
+                            log = snapshot.log,
+                            today = today,
+                            busy = busy,
+                            onWriteAll = ::writeAll,
+                            pending = pending,
+                        )
 
-                MainView.SCORE -> detail(score, onBack = null)
+                        MainView.SCORE -> detail(score, onBack = null)
 
-                MainView.SHORT, MainView.MONTH -> {
-                    val days = view.daysUntil(today)
-                    ScoreChart(score, days, scores) { currentOnView(MainView.SCORE) }
-                    HabitTable(
-                        metrics = shown,
-                        log = snapshot.log,
-                        today = today,
-                        days = days,
-                        layout = if (view == MainView.MONTH) DayLayout.CALENDARS else DayLayout.TABLE,
-                        busy = busy,
-                        onWrite = ::write,
-                        pending = pending,
-                        onCount = ::count,
-                        onOpen = ::openDetail,
-                        // Number metrics also get a line chart of the same days.
-                        calendarExtra = { m, values ->
-                            if (m is NumberMetric) TrendChart(days, values, m.unit, showsBars = m.isCount)
-                        },
-                    )
+                        MainView.SHORT, MainView.MONTH -> {
+                            val days = shownView.daysUntil(today)
+                            ScoreChart(score, days, scores) { currentOnView(MainView.SCORE) }
+                            HabitTable(
+                                metrics = shown,
+                                log = snapshot.log,
+                                today = today,
+                                days = days,
+                                layout = if (shownView == MainView.MONTH) DayLayout.CALENDARS else DayLayout.TABLE,
+                                busy = busy,
+                                onWrite = ::write,
+                                pending = pending,
+                                onCount = ::count,
+                                onOpen = ::openDetail,
+                                // Number metrics also get a line chart of the same days.
+                                calendarExtra = { m, values ->
+                                    if (m is NumberMetric) TrendChart(days, values, m.unit, showsBars = m.isCount)
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -335,6 +353,42 @@ fun TodayPage(
             val onFix = if (snapshot.metricsTable.invalid.isEmpty()) null else ({ currentOnManaging(true) })
             Warnings(snapshot.warnings, onFix)
         }
+    }
+}
+
+/** The time of the fade between two views of the navigation. */
+private const val VIEW_FADE_MILLIS = 150
+
+/** The first load of the sheet: a progress circle in the page. The app bar also shows a small one. */
+@Composable
+private fun Loading() {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        CircularProgressIndicator()
+        Text("Loading your data…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/** A sheet without metrics: what the app needs, and the button that opens the metrics screen. */
+@Composable
+private fun NoMetrics(onAdd: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 48.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Symbol("tune", size = 40.dp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("No metrics yet", style = MaterialTheme.typography.titleLarge)
+        Text(
+            "A metric is a thing that you record each day, for example your weight or a habit.",
+            modifier = Modifier.widthIn(max = 360.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        Button(onClick = onAdd) { Text("Add a metric") }
     }
 }
 

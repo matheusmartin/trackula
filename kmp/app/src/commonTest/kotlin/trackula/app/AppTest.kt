@@ -34,7 +34,7 @@ class AppTest {
         waitForIdle()
         assertEquals(listOf(true), platform.signIns)
         onNodeWithText("Choose a sheet").assertExists()
-        onNodeWithContentDescription("Sign out").assertExists()
+        onNodeWithContentDescription("More").assertExists()
 
         onNodeWithText("Choose sheet").performClick()
         waitUntil(timeoutMillis = TIMEOUT) { platform.savedSpreadsheetId != null }
@@ -42,7 +42,9 @@ class AppTest {
         assertEquals("sheet-1", platform.savedSpreadsheetId)
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weight").fetchSemanticsNodes().isNotEmpty() }
         onNodeWithText("5 days").assertExists()
-        onNodeWithContentDescription("Change sheet").assertExists()
+        onNodeWithContentDescription("More").performClick()
+        onNodeWithText("Change sheet").assertExists()
+        onNodeWithText("Sign out").assertExists()
     }
 
     @Test
@@ -61,6 +63,25 @@ class AppTest {
         waitForIdle()
         onNodeWithText("5 days").assertExists()
         onNodeWithText("Add metric").assertDoesNotExist()
+        assertEquals(0, platform.history.entries)
+    }
+
+    @Test
+    fun theBackButtonOfTheBrowserClosesTheMetricsScreen() = runComposeUiTest {
+        val platform = FakePlatform(savedSpreadsheetId = "sheet-1")
+        setContent { App(platform) }
+        onNodeWithText("Sign in with Google").performClick()
+        waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weight").fetchSemanticsNodes().isNotEmpty() }
+        onNodeWithContentDescription("Metrics").performClick()
+        waitForIdle()
+        assertEquals(1, platform.history.entries)
+
+        platform.history.userBack()
+        waitForIdle()
+
+        onNodeWithText("5 days").assertExists()
+        onNodeWithText("Add metric").assertDoesNotExist()
+        assertEquals(0, platform.history.entries)
     }
 
     @Test
@@ -70,7 +91,8 @@ class AppTest {
         onNodeWithText("Sign in with Google").performClick()
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weight").fetchSemanticsNodes().isNotEmpty() }
 
-        onNodeWithContentDescription("Change sheet").performClick()
+        onNodeWithContentDescription("More").performClick()
+        onNodeWithText("Change sheet").performClick()
         waitForIdle()
         assertNull(platform.savedSpreadsheetId)
         onNodeWithText("Choose a sheet").assertExists()
@@ -102,7 +124,8 @@ class AppTest {
         onNodeWithText("Sign in with Google").performClick()
         waitUntil(timeoutMillis = TIMEOUT) { onAllNodesWithText("Weight").fetchSemanticsNodes().isNotEmpty() }
 
-        onNodeWithContentDescription("Sign out").performClick()
+        onNodeWithContentDescription("More").performClick()
+        onNodeWithText("Sign out").performClick()
         waitForIdle()
         onNodeWithText("Sign in with Google").assertExists()
         onNodeWithText("Google access lasts 1 hour. Sign in again to continue.").assertDoesNotExist()
