@@ -132,6 +132,9 @@ fun TodayTiles(
     }
 
     val unsaved = metrics.filter { it.id in drafts }.map { it.name }
+    // The day values of each metric. Each move of a ruler changes a draft and composes the tiles again: the values
+    // change only with new data.
+    val valuesById = remember(metrics, log, pending) { metrics.associate { it.id to dayValues(it, log, pending) } }
     Column {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val columns = if (maxWidth >= WIDE_CONTENT) 4 else 2
@@ -141,7 +144,7 @@ fun TodayTiles(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         for (i in row) {
                             val m = metrics[i]
-                            val values = dayValues(m, log, pending)
+                            val values = valuesById.getValue(m.id)
                             val saved = values[today]
                             val tileModifier = Modifier.weight(if (isWide(m)) columns.toFloat() else 1f)
                             key(m.id) {
