@@ -5,9 +5,11 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 class MetricTest {
+    private val goal8 = NumberGoal(8.0)
     private val water =
-        NumberMetric(id = "water", name = "Water", icon = "water_drop", isCount = true, group = "habits")
-    private val weight = NumberMetric(id = "weight", name = "Weight", icon = "monitor_weight", group = "body")
+        NumberMetric(id = "water", name = "Water", icon = "water_drop", goal = goal8, isCount = true, group = "habits")
+    private val weight =
+        NumberMetric(id = "weight", name = "Weight", icon = "monitor_weight", goal = goal8, group = "body")
     private val read = YesNoMetric(id = "read", name = "Read", icon = "menu_book")
 
     @Test

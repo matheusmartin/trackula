@@ -82,6 +82,16 @@ class MetricFormTest {
     }
 
     @Test
+    fun aNumberMetricMustHaveAGoal() = runComposeUiTest {
+        showForm(FormSetup("Add metric", MetricDraft(name = "Steps", icon = "footprint", kind = MetricKind.COUNT)))
+        onNodeWithText("At least").performScrollTo().assertExists()
+        onNodeWithText("No goal").assertDoesNotExist()
+        onNodeWithText("Save").performScrollTo().performClick()
+        onNodeWithText("Enter a number.").performScrollTo().assertExists()
+        assertEquals(emptyList(), saved)
+    }
+
+    @Test
     fun aGroupChipSetsTheGroupAndSaveGivesTheMetric() = runComposeUiTest {
         showForm(FormSetup("Edit metric", weight, id = "weight"))
         onNodeWithText("Health").performScrollTo().performClick()

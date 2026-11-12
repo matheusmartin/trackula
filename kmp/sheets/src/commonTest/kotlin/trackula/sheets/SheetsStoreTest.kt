@@ -144,9 +144,9 @@ class SheetsStoreTest {
         fake.store.load()
         assertEquals(listOf(50.0, 53.3, 50.0), fake.logColumn("Score"))
 
-        // No goal for weight: it does not count.
+        // No goal for weight: the row is invalid, so weight does not count.
         fake.metrics[1][7] = ""
-        fake.store.load()
+        assertTrue("no goal" in fake.store.load().warnings.single())
         assertEquals(listOf(25.0, 50.0, 50.0), fake.logColumn("Score"))
     }
 
@@ -191,12 +191,14 @@ class SheetsStoreTest {
     }
 
     @Test
-    fun aSheetWithoutTheGoalColumnGetsScoresWithTheDefaultGoals() = runTest {
+    fun aSheetWithoutTheGoalColumnHasNoValidMetricAndNoScores() = runTest {
         val fake = sheetWithoutScore()
         for (row in fake.metrics) row.removeAt(row.lastIndex)
-        fake.store.load()
-        // Weight and water have no goal: they do not count. Meditate has the goal yes.
-        assertEquals(listOf(100.0, 0.0, 0.0), fake.logColumn("Score"))
+        val snapshot = fake.store.load()
+        // Without the goal column, no row has a goal: each row is invalid, and no metric counts.
+        assertEquals(emptyList(), snapshot.metrics.map { it.id })
+        assertEquals(3, snapshot.warnings.count { "no goal" in it })
+        assertEquals(listOf(null, null, null), fake.logColumn("Score"))
     }
 
     @Test

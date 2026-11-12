@@ -38,7 +38,7 @@ fun metricCells(metric: Metric): Map<String, Any> {
         is NumberMetric -> mapOf(
             "unit" to metric.unit.orEmpty(),
             "step" to metric.step,
-            "goal" to (metric.goal?.let(::goalText) ?: ""),
+            "goal" to goalText(metric.goal),
         )
     }
 }

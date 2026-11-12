@@ -14,7 +14,14 @@ class MetricCellsTest {
             goal = NumberGoal(80.0, isMaximum = true, from = 84.0, usesTrend = true),
             group = "Health",
         ),
-        NumberMetric(id = "waist", name = "Waist", icon = "straighten", unit = "cm", step = 0.5),
+        NumberMetric(
+            id = "waist",
+            name = "Waist",
+            icon = "straighten",
+            goal = NumberGoal(90.0, isMaximum = true),
+            unit = "cm",
+            step = 0.5,
+        ),
         NumberMetric(id = "water", name = "Water", icon = "💧", isCount = true, goal = NumberGoal(8.0)),
         NumberMetric(id = "sugar", name = "Sugar", icon = "cake", isCount = true, goal = NumberGoal(-2.5, true, -1.0)),
         YesNoMetric(id = "teeth", name = "Morning teeth", icon = "dentistry", group = "Hygiene"),
@@ -35,7 +42,7 @@ class MetricCellsTest {
     }
 
     @Test
-    fun aYesNoMetricHasNoUnitAndNoStepAndAMetricWithoutGoalHasAnEmptyGoal() {
+    fun aYesNoMetricHasNoUnitAndNoStep() {
         assertEquals(
             mapOf(
                 "id" to "teeth",
@@ -49,7 +56,7 @@ class MetricCellsTest {
             ),
             metricCells(samples[4]),
         )
-        assertEquals("", metricCells(samples[1])["goal"])
+        assertEquals("at most 90", metricCells(samples[1])["goal"])
         assertEquals("number", metricCells(samples[1])["kind"])
         assertEquals("count", metricCells(samples[2])["kind"])
     }

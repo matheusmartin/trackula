@@ -98,7 +98,7 @@ class MetricsPageTest {
         onNodeWithText("Save").performScrollTo().performClick()
         waitFor("Add metric")
         assertEquals(
-            NumberMetric(id = "pages", name = "Pages", icon = "menu_book", isCount = true, goal = NumberGoal(20.0)),
+            NumberMetric(id = "pages", name = "Pages", icon = "menu_book", goal = NumberGoal(20.0), isCount = true),
             store.last!!.metrics.last(),
         )
 
@@ -159,6 +159,10 @@ class MetricsPageTest {
         onNodeWithText("Restore metric").assertExists()
         field("Icon").performTextReplacement("water_drop")
         onNodeWithText("Count").performClick()
+        // A restored metric needs a goal.
+        onNodeWithText("Save").performScrollTo().performClick()
+        onNodeWithText("Enter a number.").performScrollTo().assertExists()
+        field("Target").performScrollTo().performTextReplacement("8")
         onNodeWithText("Save").performScrollTo().performClick()
         waitFor("Add metric")
         val water = store.last!!.metrics.last()
@@ -178,6 +182,22 @@ class MetricsPageTest {
         onNodeWithText("Save").performScrollTo().performClick()
         waitFor("Add metric")
         assertEquals("stretch", store.last!!.metrics.last().id)
+        assertEquals(emptyList(), store.last!!.metricsTable.invalid)
+    }
+
+    @Test
+    fun fixARowWithoutGoal() = runComposeUiTest {
+        showPage(before = SetMetricCells(11, mapOf(0 to "steps", 1 to "Steps", 2 to "count", 6 to "footprint")))
+        onNodeWithText("Fix").performScrollTo().performClick()
+        onNodeWithText("Fix row 11").assertExists()
+        onNodeWithText("No goal. Use for example at least 8, at most 80, or at most 80 from 83 trend.").assertExists()
+
+        onNodeWithText("Save").performScrollTo().performClick()
+        onNodeWithText("Enter a number.").performScrollTo().assertExists()
+        field("Target").performScrollTo().performTextReplacement("8000")
+        onNodeWithText("Save").performScrollTo().performClick()
+        waitFor("Add metric")
+        assertEquals(NumberGoal(8000.0), (store.last!!.metrics.last() as NumberMetric).goal)
         assertEquals(emptyList(), store.last!!.metricsTable.invalid)
     }
 

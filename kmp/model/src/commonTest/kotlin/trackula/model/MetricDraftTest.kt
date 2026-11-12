@@ -63,7 +63,7 @@ class MetricDraftTest {
         val count = water.copy(usesTrend = true, target = "7,5").check("w").metric as NumberMetric
         assertEquals(NumberGoal(7.5), count.goal)
         val number = water.copy(kind = MetricKind.NUMBER, usesTrend = true).check("w").metric as NumberMetric
-        assertTrue(number.goal!!.usesTrend)
+        assertTrue(number.goal.usesTrend)
     }
 
     @Test
@@ -76,8 +76,8 @@ class MetricDraftTest {
     @Test
     fun theDraftOfAMetricGivesTheSameMetricBack() {
         val metrics = listOf(
-            NumberMetric("weight", "Weight", "monitor_weight", "kg", 0.1, goal = NumberGoal(80.0, true, 84.0, true)),
-            NumberMetric("waist", "Waist", "straighten", "cm", 0.5),
+            NumberMetric("weight", "Weight", "monitor_weight", NumberGoal(80.0, true, 84.0, true), "kg", 0.1),
+            NumberMetric("waist", "Waist", "straighten", NumberGoal(90.0, isMaximum = true), "cm", 0.5),
             YesNoMetric("teeth", "Teeth", "dentistry", "Hygiene", goalIsYes = false),
         )
         for (m in metrics) assertEquals(m, draftOf(m).check(m.id).metric, m.id)
@@ -110,11 +110,36 @@ class MetricDraftTest {
     }
 
     @Test
+    fun theDraftOfARowWithoutGoalAsksForTheGoal() {
+        val table = parseMetrics(
+            rows(
+                metricsHeader,
+                listOf("waist", "Waist", "number", "cm", 0.5, "", "straighten"),
+                listOf("read", "Read", "yesno", "", "", "", "menu_book", ""),
+            ),
+        )
+        val waist = draftOf(table.invalid[0])
+        assertEquals(GoalDirection.AT_LEAST, waist.direction)
+        assertEquals("Enter a number.", waist.check("waist").errors[DraftField.TARGET])
+        val read = draftOf(table.invalid[1])
+        assertEquals(YesNoMetric("read", "Read", "menu_book", goalIsYes = true), read.check("read").metric)
+    }
+
+    @Test
     fun theDraftOfADeletedMetricHasANameFromTheId() {
         val draft = draftOf(DeletedMetric("morning_teeth", 3, null, isYesNo = true))
         assertEquals("Morning teeth", draft.name)
         assertEquals(MetricKind.YES_NO, draft.kind)
-        assertEquals(MetricKind.NUMBER, draftOf(DeletedMetric("steps", 3, null, isYesNo = false)).kind)
+        val steps = draftOf(DeletedMetric("steps", 3, null, isYesNo = false))
+        assertEquals(MetricKind.NUMBER, steps.kind)
+        assertEquals("Enter a number.", steps.check("steps").errors[DraftField.TARGET])
+    }
+
+    @Test
+    fun aNewNumberDraftWithoutTargetGivesAnError() {
+        val check = water.copy(target = " ").check("water")
+        assertNull(check.metric)
+        assertEquals(mapOf(DraftField.TARGET to "Enter a number."), check.errors)
     }
 
     @Test
@@ -126,9 +151,10 @@ class MetricDraftTest {
 
     @Test
     fun theSummariesShowTheKindTheUnitTheGroupAndTheGoal() {
-        val weight = NumberMetric("weight", "Weight", "monitor_weight", "kg", group = "Health")
+        val goal = NumberGoal(80.0, isMaximum = true, from = 83.0)
+        val weight = NumberMetric("weight", "Weight", "monitor_weight", goal, "kg", group = "Health")
         assertEquals("Number · kg · Health", metricSummary(weight))
-        assertEquals("No goal", goalSummary(weight))
+        assertEquals("at most 80 from 83", goalSummary(weight))
         assertEquals("Yes/no", metricSummary(YesNoMetric("read", "Read", "menu_book")))
         assertEquals("no", goalSummary(YesNoMetric("smoke", "Smoke", "smoking_rooms", goalIsYes = false)))
     }
@@ -152,7 +178,6 @@ class MetricDraftTest {
         assertEquals(NumberGoal(8.0, from = 2.0), water.copy(start = "2").previewGoal())
         assertNull(water.copy(start = "9").previewGoal())
         assertNull(water.copy(target = "").previewGoal())
-        assertNull(water.copy(direction = GoalDirection.NONE).previewGoal())
         assertNull(water.copy(kind = MetricKind.YES_NO).previewGoal())
     }
 

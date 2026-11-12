@@ -24,21 +24,21 @@ One row for each metric. The row order is the display order in the app.
 | `step`    | number  | No       | > 0                     | Input step for `number` and `count`. Example: `0.1` for weight. Default: `1`. |
 | `group`   | text    | No       | any                     | Groups metrics on the screen. Example: `habits`, `body`. |
 | `icon`    | text    | Yes      | Material Symbols name or emoji | Icon next to the name, and in the title of the detail screen. A lowercase name (`a-z`, `0-9`, `_`) is a [Material Symbols](https://fonts.google.com/icons) icon, for example `water_drop`. Other text shows as it is, for example `💧`. A row without icon is invalid: the app shows a warning and does not show the metric. |
-| `goal`    | text or number | No | `yesno`: `yes`, `no`. `number`, `count`: for example `at least 8`, `at most 80 from 83 trend` | The goal. It gives the points of the metric in the [score](#score). See [Goal](#goal). `yesno`: empty means `yes`. `number` and `count`: empty means no goal: the app tracks the metric, but the metric does not count in the score. An invalid goal makes the row invalid: the app shows a warning and does not show the metric. |
+| `goal`    | text or number | Yes | `yesno`: `yes`, `no`. `number`, `count`: for example `at least 8`, `at most 80 from 83 trend` | The goal. It gives the points of the metric in the [score](#score). See [Goal](#goal). Each metric must have a goal. A row without goal or with an invalid goal is invalid: the app shows a warning and does not show the metric. |
 
 Rules:
 
 - To hide a metric, delete its row. Its `Log` column and values stay in the sheet, and the app ignores them. To show the metric again, add the row again with the same `id`. The metrics screen does both: Delete and Restore.
 - The app ignores other columns. Older sheets have `per_day` and `active` columns: you can delete them.
 - Older sheets can have no `icon` column. Then the app shows an error. Add the column with an icon in each row.
-- Older sheets can have no `goal` column. Then each `yesno` metric has the goal `yes`, and the `number` and `count` metrics have no goal. Add the column to set goals.
+- Older sheets can have no `goal` column, or rows without goal. Older app versions accepted them: an empty goal was `yes` for `yesno`, and no goal for `number` and `count`. Now these rows are invalid. Fix them in the [metrics screen](#metrics-screen): "Fix" opens each row, and the first save adds the `goal` column. Or add the goals in the sheet.
 
 Example:
 
 | id       | name     | kind   | unit    | step | group  | icon             | goal               |
 |----------|----------|--------|---------|------|--------|------------------|--------------------|
 | weight   | Weight   | number | kg      | 0.1  | body   | monitor_weight   | at most 80 from 83 |
-| waist    | Waist    | number | cm      | 0.5  | body   | straighten       |                    |
+| waist    | Waist    | number | cm      | 0.5  | body   | straighten       | at most 90 from 95 |
 | meditate | Meditate | yesno  |         |      | habits | self_improvement | yes                |
 | water    | Water    | count  | glasses | 1    | habits | 💧               | at least 8         |
 | reading  | Reading  | count  | min     | 5    | habits | menu_book        | at least 20        |
@@ -61,9 +61,9 @@ The metrics screen of the app changes the `Metrics` tab, so you do not need to o
 - Delete removes the row of the metric. Its `Log` column and values stay. "Deleted metrics" lists the `Log` columns
   without a metric, with their number of values and the last day. Restore writes a new row with the `id` of the
   column, so the metric shows again with all its values.
-- "Rows with problems" lists the rows that the app cannot read, with the problem. Examples: no icon, an invalid goal,
-  a duplicate `id`. "Fix" opens the row in the form, and Save writes the same row. A row with an invalid or a
-  duplicate `id` gets a new `id` from its name.
+- "Rows with problems" lists the rows that the app cannot read, with the problem. Examples: no icon, no goal, an
+  invalid goal, a duplicate `id`. "Fix" opens the row in the form, and Save writes the same row. A row with an
+  invalid or a duplicate `id` gets a new `id` from its name.
 - If the `Metrics` tab has no `goal` column, the first save adds it.
 - Each change reads the tab first and finds the row by its `id`, so manual edits in the sheet do not break it. After
   the change, the app sets the rules again and loads the sheet: a new metric gets its `Log` column, and a new goal
@@ -130,14 +130,12 @@ Result in the app for 2026-09-30: weight 82.1 kg, meditate done, water 5 glasses
 
 ## Score
 
-The score of a day is a percentage from 0 to 100. Each metric with a goal gives 0 to 1 point on a day. The score is
-the average of these points, as a percentage with 1 decimal. You do not log it: the app calculates it from the values
-and the goals.
+The score of a day is a percentage from 0 to 100. Each metric has a goal, and gives 0 to 1 point on a day. The score
+is the average of these points, as a percentage with 1 decimal. You do not log it: the app calculates it from the
+values and the goals.
 
 Which metrics count on a day:
 
-- A `number` or `count` metric without a goal does not count: the app only tracks it. A `yesno` metric always has a
-  goal: empty means `yes`.
 - A `yesno` or `count` metric counts on each day from its first value to today, and on each later day with a row,
   for example a row of a day after today. A day without a value has the value 0: `no` for `yesno`, and 0 for
   `count`. This is also true for a day without a row. So a day that you do not log gives the same points as a day
@@ -266,6 +264,8 @@ The `Metrics` rules:
 - The `goal` rule does not compare the goal with the `kind`, and it does not compare the start with the target.
   Examples: it accepts `yes` for a `number` metric, `trend` for a `count` metric, and `at most 80 from 78`. Then the
   app shows a warning when it reads the row.
+- Sheets does not check empty cells, so the `goal` rule accepts an empty goal. Then the app shows a warning when it
+  reads the row.
 - The app sets the rules again each time it opens the sheet. So a sheet from an older app version accepts new values, for example `count`, and a new column gets its rule, for example `icon`.
 - Before that, the app removes all validation rules below row 1 of the `Metrics` tab. So a moved column leaves no old rule behind. Do not add your own rules to this tab: the app removes them.
 
@@ -293,4 +293,5 @@ Limits:
 - The app ignores a `Log` cell that is not a number (or not `yes` or `no` for `yesno`), and shows a warning.
 - The app ignores a `Log` column with no metric, for example of a deleted metric. It shows no warning.
 - If a day has 2 or more rows, the app uses the last row and shows a warning. Sheets does not block a second row for the same day: a cell can have only one rule, and the date column uses the valid-date rule.
-- The app ignores a `Metrics` row with a missing or invalid `id` or `kind`, and shows a warning.
+- The app ignores a `Metrics` row with a missing or invalid `id`, `kind` or `goal`, or without `icon`, and shows a
+  warning.

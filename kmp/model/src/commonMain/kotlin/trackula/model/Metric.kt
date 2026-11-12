@@ -16,8 +16,7 @@ sealed class Metric {
 /**
  * A habit that is done or not done. One value per day: `yes` or `no`.
  *
- * @property goalIsYes True if the goal is `yes`, the default. False if the goal is `no`: a habit to stop, for example
- *   smoking.
+ * @property goalIsYes True if the goal is `yes`. False if the goal is `no`: a habit to stop, for example smoking.
  */
 data class YesNoMetric(
     override val id: String,
@@ -32,16 +31,16 @@ data class YesNoMetric(
  *
  * @property isCount True if the metric is kind `count`: the same as `number`, but the chart shows bars from 0 instead
  *   of a line.
- * @property goal The day goal. Null if the metric has no goal.
+ * @property goal The day goal. Required: it gives the points of the metric in the score.
  */
 data class NumberMetric(
     override val id: String,
     override val name: String,
     override val icon: String,
+    val goal: NumberGoal,
     val unit: String? = null,
     val step: Double = 1.0,
     val isCount: Boolean = false,
-    val goal: NumberGoal? = null,
     override val group: String? = null,
 ) : Metric()
 

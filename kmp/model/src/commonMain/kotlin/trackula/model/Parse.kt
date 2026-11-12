@@ -6,7 +6,9 @@ const val LOG_TITLE = "Log"
 
 /**
  * Column names of the `Metrics` tab, in the order the app creates them. All are required, except `goal`: older sheets
- * do not have it. The app ignores other columns, for example `per_day` and `active` of older sheets.
+ * do not have it. Without the column, each row has no goal, so each row is invalid: the metrics screen can fix the
+ * rows, and its first save adds the column. The app ignores other columns, for example `per_day` and `active` of
+ * older sheets.
  */
 val metricsHeader = listOf("id", "name", "kind", "unit", "step", "group", "icon", "goal")
 
@@ -109,33 +111,32 @@ private fun metric(row: MetricRow, id: String): Metric {
 }
 
 /**
- * The goal of a yesno metric in the `goal` [cell]: true for `yes`, false for `no`. An empty cell is `yes`.
- * Throws an [InvalidMetricException] for other values.
+ * The goal of a yesno metric in the `goal` [cell]: true for `yes`, false for `no`. Throws an [InvalidMetricException]
+ * if the cell is empty or has other values.
  */
 private fun yesNoGoal(cell: Any?): Boolean {
-    if (isEmpty(cell)) return true
+    if (isEmpty(cell)) throw InvalidMetricException("no goal. For a yesno metric, use yes or no.")
     val value = yesNoValue(cell)
         ?: throw InvalidMetricException("invalid goal \"${cellText(cell)}\". For a yesno metric, use yes or no.")
     return value == 1.0
 }
 
 /**
- * The goal of a number or count metric in the `goal` [cell]. Null if the cell is empty. See [NumberGoal] and
- * docs/data-model.md.
+ * The goal of a number or count metric in the `goal` [cell]. See [NumberGoal] and docs/data-model.md.
  *
  * The cell has a direction, a target, an optional start after `from`, and an optional `trend`. Examples: `at least 8`,
  * `at most 80 from 83`, `at most 80 from 83 trend`. A number without a direction, such as `8`, is a minimum. The
  * signs `>=` and `<=` of older app versions are the same as `at least` and `at most`. Case does not matter.
  *
- * Throws an [InvalidMetricException] if the cell has a different form, if the start is not on the other side of the
- * target, or if a count metric ([isCount]) has `trend`.
+ * Throws an [InvalidMetricException] if the cell is empty or has a different form, if the start is not on the other
+ * side of the target, or if a count metric ([isCount]) has `trend`.
  */
-private fun numberGoal(cell: Any?, isCount: Boolean): NumberGoal? {
-    if (isEmpty(cell)) return null
+private fun numberGoal(cell: Any?, isCount: Boolean): NumberGoal {
+    if (isEmpty(cell)) throw InvalidMetricException("no goal. $NUMBER_GOAL_EXAMPLES")
     numberOf(cell)?.let { return NumberGoal(it) }
     val text = cellText(cell)
     val match = numberGoalPattern.matchEntire(text.trim()) ?: throw InvalidMetricException(
-        "invalid goal \"$text\". Use for example at least 8, at most 80, or at most 80 from 83 trend.",
+        "invalid goal \"$text\". $NUMBER_GOAL_EXAMPLES",
     )
     val (direction, target, from, trend) = match.destructured
     val goal = NumberGoal(
@@ -154,6 +155,9 @@ private fun numberGoal(cell: Any?, isCount: Boolean): NumberGoal? {
     }
     return goal
 }
+
+/** Examples of number goals, for the problems of a goal cell. */
+private const val NUMBER_GOAL_EXAMPLES = "Use for example at least 8, at most 80, or at most 80 from 83 trend."
 
 /** A number in a goal: an optional minus sign, digits, and optional decimals after a period. */
 private const val NUMBER = """-?\d+(?:\.\d+)?"""
