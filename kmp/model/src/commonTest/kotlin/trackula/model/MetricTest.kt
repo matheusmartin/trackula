@@ -37,6 +37,21 @@ class MetricTest {
     }
 
     @Test
+    fun yesIsOverTheLimitOfTheGoalNo() {
+        val coffee = YesNoMetric(id = "coffee", name = "Coffee", icon = "coffee", goalIsYes = false)
+        assertEquals(listOf(true, false), listOf(1.0, 0.0).map { isOverLimit(coffee, it) })
+        assertEquals(listOf(false, false), listOf(1.0, 0.0).map { isOverLimit(read, it) })
+    }
+
+    @Test
+    fun aValueAboveTheTargetOfAtMostIsOverTheLimit() {
+        val coffee = water.copy(goal = NumberGoal(2.0, isMaximum = true, from = 4.0))
+        assertEquals(listOf(false, false, true, true), listOf(0.0, 2.0, 3.0, 5.0).map { isOverLimit(coffee, it) })
+        // A value below the target of at least is not over a limit: it is on the way to the goal.
+        assertEquals(listOf(false, false), listOf(5.0, 12.0).map { isOverLimit(water, it) })
+    }
+
+    @Test
     fun groupOfIsOtherForAMetricWithoutGroup() {
         assertEquals(listOf("habits", "body", OTHER_GROUP), listOf(water, weight, read).map(::groupOf))
     }

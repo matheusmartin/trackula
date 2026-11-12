@@ -96,6 +96,9 @@ Examples:
 - A number cell, for example `8`, means `at least 8`.
 - Older app versions wrote `>=` and `<=`. They are the same as `at least` and `at most`. Example: `<= 80` is `at most 80`.
 - When you reach a goal, set a new goal with a new start. Example: change `at most 80 from 83` to `at most 78 from 80`.
+- The goal `no` of a `yesno` metric and the goal `at most` of a `count` metric are limits. On the Today screen, a tile
+  with a value over the limit is orange, not green. Examples: Coffee with the goal `no` and the value `yes`. Coffee
+  with the goal `at most 2` and the value 3.
 
 ## Tab `Log`
 

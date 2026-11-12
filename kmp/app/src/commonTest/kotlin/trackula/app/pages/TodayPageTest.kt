@@ -8,6 +8,8 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.click
@@ -29,6 +31,11 @@ import trackula.app.CountingStore
 import trackula.app.TrackulaTheme
 import trackula.model.Day
 import trackula.model.MainView
+import trackula.model.Metric
+import trackula.model.NumberGoal
+import trackula.model.NumberMetric
+import trackula.model.YesNoMetric
+import trackula.model.planEditMetric
 import trackula.sheets.DemoStore
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -91,6 +98,39 @@ class TodayPageTest {
         onNodeWithText("Meditate").performClick()
         onNodeWithText("Meditate").performClick()
         onNodeWithContentDescription("No changes").assertExists()
+    }
+
+    /** Changes the metric [id] of the store with [change], before the page shows. */
+    private suspend fun <T : Metric> changeMetric(id: String, change: (T) -> T) {
+        @Suppress("UNCHECKED_CAST")
+        val metric = store.load().metrics.first { it.id == id } as T
+        store.changeMetrics { planEditMetric(it, change(metric)) }
+    }
+
+    /** A matcher of the state description [text]. */
+    private fun hasState(text: String) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, text)
+
+    @Test
+    fun aYesTileOfTheGoalNoIsOverTheLimit() = runComposeUiTest {
+        changeMetric<YesNoMetric>("vitamins") { it.copy(goalIsYes = false) }
+        showPage()
+        onNodeWithText("Vitamins").performClick()
+        onNodeWithText("Vitamins").assert(hasState("Yes, over the limit (goal: no)"))
+        // A yes tile of the goal yes is done, not over the limit.
+        onNodeWithText("Meditate").performClick()
+        onNodeWithText("Meditate").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
+    }
+
+    @Test
+    fun aCountTileAboveTheTargetOfAtMostIsOverTheLimit() = runComposeUiTest {
+        changeMetric<NumberMetric>("water") { it.copy(goal = NumberGoal(2.0, isMaximum = true)) }
+        showPage()
+        val tile = onNodeWithContentDescription("Water")
+        tile.performMouseInput { click() }
+        tile.performMouseInput { click() }
+        tile.assert(hasState("2. Tap or click: +1. Double-tap or right-click: −1."))
+        tile.performMouseInput { click() }
+        tile.assert(hasState("3, over the limit (goal: at most 2). Tap or click: +1. Double-tap or right-click: −1."))
     }
 
     @Test

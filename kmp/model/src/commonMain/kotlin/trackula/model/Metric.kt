@@ -85,6 +85,17 @@ data class NumberGoal(
     }
 }
 
+/**
+ * True if [value], the value of a day, is over the limit of the goal of [metric]. A goal is a limit if it is `no` or
+ * `at most`. So the value is `yes` for the goal `no`, or a value above the target of `at most`. The Today tile of
+ * this value is orange, not green. Examples: Coffee with the goal `no` and the value `yes` (1). Coffee with the goal
+ * `at most 2` and the value 3.
+ */
+fun isOverLimit(metric: Metric, value: Double): Boolean = when (metric) {
+    is YesNoMetric -> !metric.goalIsYes && value == 1.0
+    is NumberMetric -> metric.goal.isMaximum && !metric.goal.isReachedBy(value)
+}
+
 /** The group of the metrics without a group. */
 const val OTHER_GROUP = "other"
 
