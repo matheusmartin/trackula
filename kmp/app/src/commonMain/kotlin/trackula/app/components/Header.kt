@@ -43,7 +43,7 @@ import trackula.app.resources.logo
  *
  * - [onReload] reloads the sheet data. Null: no reload button, for example before the user chooses a sheet.
  * - [busy] is true while data loads or saves: a progress circle shows instead of the reload button.
- * - [onMetrics] opens or closes the metrics screen. Null: no metrics button.
+ * - [onMetrics] opens the metrics screen. Its back button closes it. Null: no metrics button.
  * - [onDisconnect] (Change sheet) and [onSignOut] are in the "More" menu. Both null: no menu.
  */
 @Composable

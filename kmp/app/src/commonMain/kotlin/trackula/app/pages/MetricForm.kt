@@ -28,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +48,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import trackula.app.LocalPageScroll
+import trackula.app.OnBack
 import trackula.app.components.AppCard
 import trackula.app.components.AppIconButton
 import trackula.app.components.FORM_WIDTH
@@ -141,6 +144,12 @@ internal fun MetricForm(
     fun close() {
         if (draft == setup.initial) onClose() else confirmsDiscard = true
     }
+
+    // The Back button of the browser closes the form, as its close button does.
+    OnBack { close() }
+    // The form takes the place of the list: it starts at the top, also when the list was scrolled.
+    val scroll = LocalPageScroll.current
+    LaunchedEffect(scroll) { scroll?.scrollTo(0) }
 
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         Column(Modifier.widthIn(max = FORM_WIDTH).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {

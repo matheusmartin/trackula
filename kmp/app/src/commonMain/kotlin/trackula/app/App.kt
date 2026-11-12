@@ -117,7 +117,7 @@ private fun AppContent(platform: Platform) {
 
     if (demo != null) {
         Layout(
-            header = { Header(onReload = { reload.run?.invoke() }, busy = busy, onMetrics = { managing = !managing }) },
+            header = { Header(onReload = { reload.run?.invoke() }, busy = busy, onMetrics = { managing = true }) },
             showsNavigation = !showsDetail && !managing,
             view = view,
             onView = { view = it },
@@ -148,7 +148,7 @@ private fun AppContent(platform: Platform) {
             Header(
                 onReload = if (connected) ({ reload.run?.invoke() }) else null,
                 busy = busy,
-                onMetrics = if (connected) ({ managing = !managing }) else null,
+                onMetrics = if (connected) ({ managing = true }) else null,
                 onSignOut = if (currentSession == null) {
                     null
                 } else {
