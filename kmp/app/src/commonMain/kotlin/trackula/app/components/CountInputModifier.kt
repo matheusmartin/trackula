@@ -1,10 +1,16 @@
 package trackula.app.components
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
@@ -30,16 +36,33 @@ import trackula.services.CountInput
  * - A touch press that is longer than the long-press time, or that becomes a scroll, does nothing, as a long-press on
  *   Android.
  * - Enter and Space are a keyboard click. `+`, `=` and `-` add and subtract.
+ *
+ * The cell shows the hover, the focus and each press with the indication of the theme, as a button does.
+ * [interactionSource] gets these interactions, for example to draw a focus ring. Null: the modifier makes its own.
  */
 @Composable
-fun <K> Modifier.countInput(input: CountInput<K>, key: K, add: (sign: Int) -> Unit): Modifier {
+fun <K> Modifier.countInput(
+    input: CountInput<K>,
+    key: K,
+    interactionSource: MutableInteractionSource? = null,
+    add: (sign: Int) -> Unit,
+): Modifier {
     // The latest add: the pointer handler lives longer than one composition, and a touch tap runs after a wait.
     val currentAdd by rememberUpdatedState(add)
     val latestAdd: (Int) -> Unit = { sign -> currentAdd(sign) }
-    return countInputModifier(input, key, latestAdd)
+    val interactions = interactionSource ?: remember { MutableInteractionSource() }
+    return this
+        .hoverable(interactions)
+        .indication(interactions, LocalIndication.current)
+        .countInputModifier(input, key, interactions, latestAdd)
 }
 
-private fun <K> Modifier.countInputModifier(input: CountInput<K>, key: K, add: (sign: Int) -> Unit): Modifier = this
+private fun <K> Modifier.countInputModifier(
+    input: CountInput<K>,
+    key: K,
+    interactions: MutableInteractionSource,
+    add: (sign: Int) -> Unit,
+): Modifier = this
     .semantics {
         role = Role.Button
         // A screen reader click: as a keyboard click, it adds a step at once.
@@ -55,21 +78,31 @@ private fun <K> Modifier.countInputModifier(input: CountInput<K>, key: K, add: (
             while (press.type != PointerEventType.Press) press = awaitPointerEvent()
             val down = press.changes.first()
             input.pointerDown(pointerTypeName(down.type))
+            // The press shows at once, also for a right-click. tryEmit: this scope cannot wait for the source.
+            val pressed = PressInteraction.Press(down.position)
+            interactions.tryEmit(pressed)
             if (press.buttons.isSecondaryPressed) {
                 press.changes.forEach { it.consume() }
                 input.contextMenu(add)
                 do {
                     val event = awaitPointerEvent()
                 } while (event.type != PointerEventType.Release && event.changes.any { it.pressed })
+                interactions.tryEmit(PressInteraction.Release(pressed))
                 return@awaitEachGesture
             }
             val touch = down.type == PointerType.Touch || down.type == PointerType.Stylus
             val up = if (touch) {
                 withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) { waitForUpOrCancellation() }
-                    ?: return@awaitEachGesture input.contextMenu(add)
             } else {
-                waitForUpOrCancellation() ?: return@awaitEachGesture
+                waitForUpOrCancellation()
             }
+            if (up == null) {
+                interactions.tryEmit(PressInteraction.Cancel(pressed))
+                // A long touch press is a context menu. A press that ended in another way does nothing.
+                if (touch) input.contextMenu(add)
+                return@awaitEachGesture
+            }
+            interactions.tryEmit(PressInteraction.Release(pressed))
             up.consume()
             input.click(key, add)
         }
@@ -89,7 +122,7 @@ private fun <K> Modifier.countInputModifier(input: CountInput<K>, key: K, add: (
             else -> false
         }
     }
-    .focusable()
+    .focusable(interactionSource = interactions)
 
 /** The name of [type] as in the `pointerType` of a browser event: `mouse`, `touch` or `pen`. */
 private fun pointerTypeName(type: PointerType): String = when (type) {

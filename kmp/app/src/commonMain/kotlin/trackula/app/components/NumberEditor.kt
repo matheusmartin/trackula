@@ -8,19 +8,23 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +42,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.key.Key
@@ -89,8 +94,10 @@ private const val TICKS = 60
  *
  * - Ruler: drag it with a finger or the mouse, or scroll on it. It snaps to the metric step. One tick is one step.
  *   With [onChange] (the Today tiles), only a side scroll moves it: a vertical scroll scrolls the page.
- * - Text field: exact values, for example a first value. "81.9" and "81,9" both work.
+ * - Text field: exact values, for example a first value. "81.9" and "81,9" both work. It has a frame as the ruler, so
+ *   that it shows as a field.
  * - Save: saves the value. With an empty text field, Save clears the day.
+ * - Cancel: closes the editor without a change. Clear: shows only when the day has a value, and clears the day.
  * - Keys: Enter saves, Escape closes. Arrow keys: one step. On the ruler, Page Up and Page Down: 10 steps.
  *
  * An empty day starts at [start], the value of the nearest other day.
@@ -101,8 +108,8 @@ private const val TICKS = 60
  * - [autofocus]: true if the ruler gets the focus at the start. False when many editors show at the same time, as on
  *   the Today tiles.
  * - [onChange]: called with the value at each change, and when the user presses the ruler without a move: that
- *   confirms the value. Null after the text field is emptied. With [onChange], the editor shows no Save button, and
- *   Enter does nothing: the parent saves.
+ *   confirms the value. Null after the text field is emptied. With [onChange], the editor shows no Save, Cancel and
+ *   Clear buttons, and Enter does nothing: the parent saves.
  * - [compact]: a smaller value and ruler, for the Today tiles.
  */
 @Composable
@@ -204,22 +211,40 @@ fun NumberEditor(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             val fontSize = if (compact) 22.sp else 28.sp
+            val fieldShape = RoundedCornerShape(8.dp)
+            val fieldInteractions = remember { MutableInteractionSource() }
+            val fieldFocused by fieldInteractions.collectIsFocusedAsState()
             BasicTextField(
                 value = text,
                 onValueChange = ::type,
                 modifier = Modifier
-                    .width(if (compact) 96.dp else 120.dp)
+                    .width(if (compact) 104.dp else 128.dp)
                     .semantics { contentDescription = withUnit(metric.name, metric.unit) }
                     .onPreviewKeyEvent(::fieldKey),
                 textStyle = TextStyle(
-                    color = LocalContentColor.current,
+                    color = colors.onSurface,
                     fontSize = fontSize,
                     fontWeight = FontWeight.Medium,
                     textAlign = TextAlign.Center,
                 ),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                interactionSource = fieldInteractions,
                 cursorBrush = SolidColor(colors.primary),
+                // The frame of the ruler: the two inputs of the editor look the same.
+                decorationBox = { field ->
+                    Box(
+                        modifier = Modifier
+                            .background(colors.surfaceContainerLowest, fieldShape)
+                            .border(
+                                width = if (fieldFocused) 2.dp else 1.dp,
+                                color = if (fieldFocused) colors.primary else quietBorder(),
+                                shape = fieldShape,
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        contentAlignment = Alignment.Center,
+                    ) { field() }
+                },
             )
             metric.unit?.let { Text(it, color = colors.onSurfaceVariant) }
         }
@@ -234,11 +259,31 @@ fun NumberEditor(
             onSet = ::set,
             onKey = ::rulerKey,
         )
+        error?.let { Text(it, color = colors.error, style = MaterialTheme.typography.bodyMedium) }
         if (onChange == null) {
-            Button(onClick = ::saveValue, enabled = !busy) { Text("Save") }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = ::saveValue, enabled = !busy) { Text("Save") }
+                TextButton(onClick = { close() }) { Text("Cancel") }
+                if (current != null) {
+                    TextButton(onClick = { clear() }, enabled = !busy) { Text("Clear", color = clearColor(!busy)) }
+                }
+            }
         }
-        error?.let { Text(it, color = colors.error) }
     }
+}
+
+/** The border of an input that does not have the focus: a little of the app color on the outline color. */
+@Composable
+private fun quietBorder(): Color {
+    val colors = MaterialTheme.colorScheme
+    return colors.primary.copy(alpha = 0.12f).compositeOver(colors.outline)
+}
+
+/** The text color of the Clear button: the error color, because Clear removes the value of the day. */
+@Composable
+private fun clearColor(enabled: Boolean): Color {
+    val colors = MaterialTheme.colorScheme
+    return if (enabled) colors.error else colors.onSurface.copy(alpha = 0.38f)
 }
 
 /** The time that the strip takes to settle on the nearest tick after a drag or a side scroll. */
@@ -296,7 +341,7 @@ private fun Ruler(
     // A wide ruler shows up to 13 labels. The default cache keeps 8 texts: then each frame measures the texts again.
     val measurer = rememberTextMeasurer(cacheSize = 2 * TICKS / 10 + 4)
     val shape = RoundedCornerShape(8.dp)
-    val labelStyle = TextStyle(color = colors.onSurfaceVariant, fontSize = 11.sp)
+    val labelStyle = TextStyle(color = colors.onSurfaceVariant, fontSize = SMALL_TEXT)
     val valueText = withUnit(formatStep(value, step), metric.unit)
 
     // Moves the strip to [position], in ticks: the value snaps to the nearest tick, and the offset keeps the rest. At
@@ -333,11 +378,7 @@ private fun Ruler(
             .background(colors.surfaceContainerLowest)
             .border(
                 width = if (focused) 2.dp else 1.dp,
-                color = if (focused) {
-                    colors.primary
-                } else {
-                    colors.primary.copy(alpha = 0.12f).compositeOver(colors.outlineVariant)
-                },
+                color = if (focused) colors.primary else quietBorder(),
                 shape = shape,
             )
             .focusRequester(focus)

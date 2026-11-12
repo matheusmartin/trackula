@@ -1,9 +1,12 @@
 package trackula.app.components
 
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -11,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -39,7 +43,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import trackula.app.LocalExtraColors
@@ -80,6 +86,9 @@ enum class DayLayout {
  * - Count: see [CountInput]. A count has no reset: it goes to empty with subtractions.
  * - Number: a cell click opens the [NumberEditor] for that metric and day, below the metric. A second click closes
  *   it.
+ *
+ * The table cells are as large as the width allows, from 28 dp to 36 dp, and each row is 48 dp high or more. So the
+ * days and a name column of 136 dp fit a phone without a side scroll.
  *
  * - [days]: the days of the table or of the calendars, oldest first.
  * - [pending]: count taps that are not written yet. The table shows them at once.
@@ -160,17 +169,19 @@ fun HabitTable(
 
     when (layout) {
         DayLayout.TABLE -> BoxWithConstraints(Modifier.fillMaxWidth()) {
-            // Phones: smaller cells, so the 5 days and the metric icons fit without scrolling.
+            // Phones: smaller cells, so that the days and the metric names fit without scrolling. Whole dp, so that the
+            // cells keep sharp edges.
             val narrow = maxWidth <= 480.dp
-            val cellSize = if (narrow) 30.dp else 34.dp
-            val columnWidth = cellSize + 4.dp
+            val fitting = ((maxWidth - 8.dp - NAME_WIDTH) / days.size - CELL_GAP).value.toInt().dp
+            val cellSize = fitting.coerceIn(MIN_CELL, MAX_CELL)
+            val columnWidth = cellSize + CELL_GAP
             // The name column takes the space that the day columns leave, but at least 120 dp: the table scrolls
             // sideways on very narrow screens.
             val nameWidth = maxOf(120.dp, maxWidth - columnWidth * days.size - 8.dp)
             val rowWidth = nameWidth + columnWidth * days.size
             AppCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.horizontalScroll(rememberScrollState())) {
-                    Row(Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Spacer(Modifier.width(nameWidth))
                         for (d in days) DayHeader(d, d == today, columnWidth)
                     }
@@ -181,7 +192,10 @@ fun HabitTable(
                                 Modifier.width(rowWidth),
                                 color = MaterialTheme.colorScheme.outlineVariant,
                             )
-                            Row(Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(
+                                modifier = Modifier.heightIn(min = TOUCH_TARGET).padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
                                 Box(
                                     Modifier.width(nameWidth).padding(start = if (narrow) 12.dp else 16.dp, end = 4.dp),
                                 ) {
@@ -238,12 +252,30 @@ fun HabitTable(
     }
 }
 
-/** The weekday and the day number of a table column. Today is bold. */
+/** The smallest and the largest size of a table cell, and the space between two cells. */
+private val MIN_CELL = 28.dp
+private val MAX_CELL = 36.dp
+private val CELL_GAP = 4.dp
+
+/** The width of the name column that the cell size leaves when the window allows it. */
+private val NAME_WIDTH = 136.dp
+
+/** The weekday and the day number of a table column. Today is bold, in the app color. */
 @Composable
 private fun DayHeader(day: Day, isToday: Boolean, width: Dp) {
+    val colors = MaterialTheme.colorScheme
     Column(Modifier.width(width), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(weekdayNames[day.weekday - 1], fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("${day.day}", fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal)
+        Text(
+            weekdayNames[day.weekday - 1],
+            fontSize = SMALL_TEXT,
+            lineHeight = 16.sp,
+            color = if (isToday) colors.primary else colors.onSurfaceVariant,
+        )
+        Text(
+            "${day.day}",
+            color = if (isToday) colors.primary else colors.onSurface,
+            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+        )
     }
 }
 
@@ -261,14 +293,14 @@ fun MonthGrid(days: List<Day>, cell: @Composable (Day) -> Unit) {
             Spacer(Modifier.width(48.dp))
             for (name in weekdayNames) {
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Text(name.take(1), fontSize = 11.sp, color = small)
+                    Text(name.take(1), fontSize = SMALL_TEXT, lineHeight = 16.sp, color = small)
                 }
             }
         }
         weeks.forEachIndexed { i, week ->
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.width(48.dp).padding(end = 4.dp), contentAlignment = Alignment.CenterEnd) {
-                    Text(labels[i], fontSize = 11.sp, color = small, maxLines = 1)
+                    Text(labels[i], fontSize = SMALL_TEXT, lineHeight = 16.sp, color = small, maxLines = 1)
                 }
                 for (day in week) {
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { if (day != null) cell(day) }
@@ -298,13 +330,15 @@ fun MetricName(m: Metric, onOpen: ((Metric) -> Unit)?, modifier: Modifier = Modi
         verticalAlignment = Alignment.CenterVertically,
     ) {
         MetricIcon(m)
-        Text(m.name, maxLines = 2)
+        Text(m.name, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 
 /**
- * A day cell. A cell with a value has one fixed color, whatever the value: the logo gradient. A day after today is a
- * faded cell that does nothing. Today has a soft ring, and the cell of the open editor has a frame.
+ * A day cell. A cell with a value has one fixed color, whatever the value: the logo gradient. A cell without a value
+ * has the empty color and a thin border, so that it shows as a cell on the card. A day after today has only a thin
+ * outline and does nothing. Today has a ring in the cell. The cell of the open editor and the cell with the keyboard
+ * focus have a ring around the cell: it does not change the size of the cell.
  *
  * With [countInput], the cell is a count cell: it is not disabled during a write, because taps queue and show at once.
  */
@@ -324,40 +358,52 @@ fun DayCell(
     val colors = MaterialTheme.colorScheme
     val extra = LocalExtraColors.current
     val shape = RoundedCornerShape(8.dp)
+    val quiet = colors.outline.copy(alpha = 0.45f)
     if (day > today) {
-        Box(
-            Modifier.size(size).background(extra.cellEmpty.copy(alpha = 0.4f), shape).semantics {
-                contentDescription =
-                    "$day"
-            },
-        )
+        Box(Modifier.size(size).border(1.dp, quiet.copy(alpha = 0.3f), shape).semantics { contentDescription = "$day" })
         return
     }
-    val fill = if (value !=
-        null
-    ) {
+    val fill = if (value != null) {
         Modifier.background(extra.cellBrush, shape)
     } else {
-        Modifier.background(extra.cellEmpty, shape)
+        Modifier.background(extra.cellEmpty, shape).border(1.dp, quiet, shape)
     }
-    val ring = colors.onSurface.copy(alpha = 0.4f)
+    val interactions = remember { MutableInteractionSource() }
+    val focused by interactions.collectIsFocusedAsState()
+    val todayRing = colors.onSurface.copy(alpha = 0.55f)
+    // The open editor: a strong ring. The keyboard focus: a ring in the app color.
+    val outerRing = when {
+        selected -> colors.onSurface
+        focused -> colors.primary
+        else -> null
+    }
     val input = when {
-        countInput != null -> Modifier.countInput(countInput, MetricDay(metric.id, day), onAdd)
-        else -> Modifier.clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+        countInput != null -> Modifier.countInput(countInput, MetricDay(metric.id, day), interactions, onAdd)
+
+        else -> Modifier.clickable(
+            interactionSource = interactions,
+            indication = LocalIndication.current,
+            enabled = enabled,
+            role = Role.Button,
+            onClick = onClick,
+        )
     }
     Box(
         modifier = Modifier
-            .then(
-                if (selected) {
-                    Modifier.border(
-                        2.dp,
-                        colors.tertiary,
-                        RoundedCornerShape(10.dp),
-                    ).padding(3.dp)
-                } else {
-                    Modifier
-                },
-            )
+            .drawBehind {
+                // Around the cell, in the space between the cells.
+                if (outerRing != null) {
+                    val stroke = 2.dp.toPx()
+                    val out = 1.dp.toPx() + stroke / 2
+                    drawRoundRect(
+                        outerRing,
+                        topLeft = Offset(-out, -out),
+                        size = Size(this.size.width + 2 * out, this.size.height + 2 * out),
+                        cornerRadius = CornerRadius(8.dp.toPx() + out),
+                        style = Stroke(stroke),
+                    )
+                }
+            }
             .size(size)
             .clip(shape)
             .then(fill)
@@ -365,7 +411,7 @@ fun DayCell(
                 if (day == today) {
                     val inset = 1.dp.toPx()
                     drawRoundRect(
-                        ring,
+                        todayRing,
                         topLeft = Offset(inset, inset),
                         size = Size(this.size.width - 2 * inset, this.size.height - 2 * inset),
                         cornerRadius = CornerRadius(7.dp.toPx()),
@@ -378,7 +424,18 @@ fun DayCell(
         contentAlignment = Alignment.Center,
     ) {
         if (metric is NumberMetric && value != null) {
-            Text(formatCompact(value), color = extra.onCell, fontSize = 11.sp, maxLines = 1)
+            // No letter spacing and no wrap: 4 characters such as "82.6" fit the smallest cell.
+            Text(
+                formatCompact(value),
+                color = extra.onCell,
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                letterSpacing = 0.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Visible,
+            )
         }
     }
 }
