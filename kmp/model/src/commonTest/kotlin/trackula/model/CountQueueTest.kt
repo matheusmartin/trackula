@@ -7,8 +7,16 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class CountQueueTest {
-    private val water = NumberMetric(id = "water", name = "Water", icon = "water_drop", isCount = true)
-    private val walk = NumberMetric(id = "walk", name = "Walk", icon = "directions_walk", step = 10.0, isCount = true)
+    private val water =
+        NumberMetric(id = "water", name = "Water", icon = "water_drop", goal = NumberGoal(8.0), isCount = true)
+    private val walk = NumberMetric(
+        id = "walk",
+        name = "Walk",
+        icon = "directions_walk",
+        goal = NumberGoal(30.0),
+        step = 10.0,
+        isCount = true,
+    )
     private val metrics = byId(water, walk, meditate)
     private val d30 = Day(2026, 9, 30)
     private val d01 = Day(2026, 10, 1)

@@ -16,10 +16,8 @@ class ScoreTest {
         goal = NumberGoal(80.0, isMaximum = true, from = 83.0),
     )
     private val weightTrend = weight.copy(goal = NumberGoal(80.0, isMaximum = true, from = 83.0, usesTrend = true))
-    private val waist = NumberMetric(id = "waist", name = "Waist", icon = "straighten")
     private val water =
         NumberMetric(id = "water", name = "Water", icon = "water_drop", isCount = true, goal = NumberGoal(8.0))
-    private val walk = NumberMetric(id = "walk", name = "Walk", icon = "directions_walk", isCount = true, step = 10.0)
     private val smoke = YesNoMetric(id = "smoke", name = "Smoke", icon = "smoking_rooms", goalIsYes = false)
     private val meditateNo = meditate.copy(goalIsYes = false)
     private val d28 = Day(2026, 9, 28)
@@ -40,15 +38,6 @@ class ScoreTest {
     fun metricPointsNumberAndCountGiveThePointsOfTheGoal() {
         assertEquals(listOf(0.75, 1.0, 0.0), listOf(6.0, 12.0, -3.0).map { metricPoints(water, it) })
         assertEquals(listOf(0.3, 1.0), listOf(82.1, 79.5).map { withoutFloatNoise(metricPoints(weight, it)) })
-        assertEquals(0.0, metricPoints(waist, 90.0))
-    }
-
-    @Test
-    fun onlyAMetricWithAGoalGivesPoints() {
-        assertTrue(isScored(meditate))
-        assertTrue(isScored(water))
-        assertFalse(isScored(waist))
-        assertFalse(isScored(walk))
     }
 
     /** Sep 29: weight 82.1, water 6, meditate yes, smoke no. Sep 30: weight 81, meditate no. */
@@ -148,14 +137,7 @@ class ScoreTest {
         val chartTrend = numberStats(metricValues(weightTrend, log), listOf(d28, d29, d30)).trend
         val points = pointsByMetric(listOf(weightTrend), log).getValue("weight")
         assertEquals(listOf(d28, d30), points.keys.toList())
-        assertEquals(weightTrend.goal?.points(chartTrend.last()!!), points[d30])
-    }
-
-    @Test
-    fun pointsByMetricLeavesOutTheMetricsWithoutAGoal() {
-        val log = parseLog(rows(listOf("date", "waist", "walk"), listOf("2026-09-29", 90, 30)), byId(waist, walk)).table
-        assertEquals(emptyMap(), pointsByMetric(listOf(waist, walk), log))
-        assertEquals(emptyMap(), dayScores(pointsByMetric(listOf(waist, walk), log)))
+        assertEquals(weightTrend.goal.points(chartTrend.last()!!), points[d30])
     }
 
     @Test

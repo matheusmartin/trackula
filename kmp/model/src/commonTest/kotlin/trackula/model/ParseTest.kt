@@ -18,10 +18,10 @@ class ParseTest {
         val p = parseMetrics(
             rows(
                 metricsHeader,
-                listOf("weight", "Weight", "number", "kg", 0.1, "body", "monitor_weight"),
-                listOf("meditate", "Meditate", "yesno", "", "", "habits", "self_improvement"),
-                listOf("morning-shower", "Morning shower", "yesno", "", "", "habits", "🚿"),
-                listOf("water", "Water", "number", "glasses", 1, "habits", "water_drop"),
+                listOf("weight", "Weight", "number", "kg", 0.1, "body", "monitor_weight", "at most 80 from 83"),
+                listOf("meditate", "Meditate", "yesno", "", "", "habits", "self_improvement", "yes"),
+                listOf("morning-shower", "Morning shower", "yesno", "", "", "habits", "🚿", "yes"),
+                listOf("water", "Water", "number", "glasses", 1, "habits", "water_drop", "at least 8"),
             ),
         )
         assertEquals(emptyList(), p.warnings)
@@ -34,8 +34,8 @@ class ParseTest {
     fun parseMetricsFindsColumnsByHeaderNameAndIgnoresOtherColumnsSuchAsPerDayAndActive() {
         val p = parseMetrics(
             rows(
-                listOf("kind", "id", "per_day", "name", "unit", "step", "group", "active", "icon"),
-                listOf("yesno", "read", "one", "Read", "", "", "", false, "📖"),
+                listOf("kind", "id", "per_day", "name", "unit", "step", "group", "active", "icon", "goal"),
+                listOf("yesno", "read", "one", "Read", "", "", "", false, "📖", "yes"),
             ),
         )
         assertEquals("read", p.items.single().id)
@@ -49,8 +49,8 @@ class ParseTest {
                 listOf("Bad Id", "x", "number"),
                 listOf("a", "A", "text"),
                 listOf("", "B", "number"),
-                listOf("c", "C", "yesno", "", "", "", "check"),
-                listOf("c", "C", "yesno", "", "", "", "check"),
+                listOf("c", "C", "yesno", "", "", "", "check", "yes"),
+                listOf("c", "C", "yesno", "", "", "", "check", "yes"),
                 listOf(),
             ),
         )
@@ -63,7 +63,7 @@ class ParseTest {
         val p = parseMetrics(
             rows(
                 metricsHeader + "active",
-                listOf("c", "C", "yesno", "", "", "", "check", "", true),
+                listOf("c", "C", "yesno", "", "", "", "check", "yes", true),
                 listOf("", "", "", "", "", "", "", "", false),
             ),
         )
@@ -76,9 +76,9 @@ class ParseTest {
         val p = parseMetrics(
             rows(
                 metricsHeader,
-                listOf("water", "Water", "number", "glasses", 1, "habits", "water_drop"),
-                listOf("read", "Read", "yesno", "", "", "habits", "📚"),
-                listOf("walk", "Walk", "yesno", "", "", "habits"),
+                listOf("water", "Water", "number", "glasses", 1, "habits", "water_drop", "at least 8"),
+                listOf("read", "Read", "yesno", "", "", "habits", "📚", "yes"),
+                listOf("walk", "Walk", "yesno", "", "", "habits", "", "yes"),
             ),
         )
         assertEquals(listOf("water_drop", "📚"), p.items.map { it.icon })
@@ -105,18 +105,16 @@ class ParseTest {
                 metricsHeader,
                 listOf("meditate", "Meditate", "yesno", "", "", "", "check", "Yes"),
                 listOf("smoke", "Smoke", "yesno", "", "", "", "check", "no"),
-                listOf("read", "Read", "yesno", "", "", "", "check"),
                 listOf("water", "Water", "count", "", "", "", "water_drop", 8),
                 listOf("steps", "Steps", "count", "", "", "", "footprint", "at least 8000"),
                 listOf("coffee", "Coffee", "count", "", "", "", "coffee", "At  most 2 from 4"),
                 listOf("sleep", "Sleep", "number", "h", "", "", "bedtime", ">= 7 from 5"),
                 listOf("weight", "Weight", "number", "kg", 0.1, "", "monitor_weight", "at most 80 from 83.5 trend"),
                 listOf("fat", "Body fat", "number", "%", "", "", "percent", "<=20"),
-                listOf("waist", "Waist", "number", "cm", 0.5, "", "straighten", ""),
             ),
         )
         assertEquals(emptyList(), p.warnings)
-        assertEquals(listOf(true, false, true), p.items.filterIsInstance<YesNoMetric>().map { it.goalIsYes })
+        assertEquals(listOf(true, false), p.items.filterIsInstance<YesNoMetric>().map { it.goalIsYes })
         assertEquals(
             listOf(
                 NumberGoal(8.0),
@@ -125,7 +123,6 @@ class ParseTest {
                 NumberGoal(7.0, from = 5.0),
                 NumberGoal(80.0, isMaximum = true, from = 83.5, usesTrend = true),
                 NumberGoal(20.0, isMaximum = true),
-                null,
             ),
             p.items.filterIsInstance<NumberMetric>().map { it.goal },
         )
@@ -155,7 +152,24 @@ class ParseTest {
     }
 
     @Test
-    fun parseMetricsReadsASheetWithoutTheGoalColumn() {
+    fun parseMetricsSkipsARowWithoutGoalWithAWarning() {
+        val p = parseMetrics(
+            rows(
+                metricsHeader,
+                listOf("read", "Read", "yesno", "", "", "", "check", ""),
+                listOf("waist", "Waist", "number", "cm", 0.5, "", "straighten"),
+                listOf("water", "Water", "count", "", "", "", "water_drop", " "),
+            ),
+        )
+        assertEquals(emptyList(), p.items)
+        assertEquals(listOf(2, 3, 4), p.invalid.map { it.row })
+        assertEquals("no goal. For a yesno metric, use yes or no.", p.invalid[0].problem)
+        val numberProblem = "no goal. Use for example at least 8, at most 80, or at most 80 from 83 trend."
+        assertEquals(listOf(numberProblem, numberProblem), p.invalid.drop(1).map { it.problem })
+    }
+
+    @Test
+    fun parseMetricsReadsASheetWithoutTheGoalColumnAsRowsWithoutGoal() {
         val p = parseMetrics(
             rows(
                 listOf("id", "name", "kind", "unit", "step", "group", "icon"),
@@ -163,20 +177,20 @@ class ParseTest {
                 listOf("water", "Water", "count", "", "", "", "water_drop"),
             ),
         )
-        assertEquals(emptyList(), p.warnings)
-        assertTrue(assertIs<YesNoMetric>(p.items[0]).goalIsYes)
-        assertNull(assertIs<NumberMetric>(p.items[1]).goal)
+        assertEquals(emptyList(), p.items)
+        assertEquals(listOf("meditate", "water"), p.invalid.map { it.id })
+        assertTrue(p.invalid.all { it.problem.startsWith("no goal") })
     }
 
     @Test
     fun parseMetricsReadsKindCountAsANumberMetricWithBars() {
-        val p = parseMetrics(rows(metricsHeader, listOf("steps", "Steps", "count", "", 100, "", "footprint")))
+        val p = parseMetrics(rows(metricsHeader, listOf("steps", "Steps", "count", "", 100, "", "footprint", 8000)))
         assertTrue(assertIs<NumberMetric>(p.items.single()).isCount)
     }
 
     @Test
     fun parseMetricsReadsNumbersInTextCellsWithoutZerosAtTheEnd() {
-        val p = parseMetrics(rows(metricsHeader, listOf("year", 2026, "number", "", "0.5", "", 7)))
+        val p = parseMetrics(rows(metricsHeader, listOf("year", 2026, "number", "", "0.5", "", 7, 1)))
         val metric = assertIs<NumberMetric>(p.items.single())
         assertEquals(Triple("2026", 0.5, "7"), Triple(metric.name, metric.step, metric.icon))
         val small = parseMetrics(rows(metricsHeader, listOf("x", 0.1234567, "yesno", "", "", "", "check", 1e-7)))
@@ -322,16 +336,16 @@ class ParseTest {
     fun parseMetricsGivesTheRowOfEachMetricAndTheColumnOfEachHeader() {
         val t = parseMetrics(
             rows(
-                listOf("kind", "id", "per_day", "name", "unit", "step", "group", "icon"),
-                listOf("yesno", "read", "one", "Read", "", "", "", "menu_book"),
+                listOf("kind", "id", "per_day", "name", "unit", "step", "group", "icon", "goal"),
+                listOf("yesno", "read", "one", "Read", "", "", "", "menu_book", "yes"),
                 listOf(),
-                listOf("number", "weight", "", "Weight", "kg", 0.1, "", "monitor_weight"),
+                listOf("number", "weight", "", "Weight", "kg", 0.1, "", "monitor_weight", "at most 80"),
             ),
         )
         assertEquals(mapOf("read" to 2, "weight" to 4), t.rows)
         assertEquals(1, t.columns["id"])
         assertEquals(2, t.columns["per_day"])
-        assertEquals(8, t.width)
+        assertEquals(9, t.width)
         assertEquals(4, t.lastRow)
     }
 
@@ -340,9 +354,9 @@ class ParseTest {
         val t = parseMetrics(
             rows(
                 metricsHeader,
-                listOf("walk", "Walk", "yesno", "", "", "habits"),
-                listOf("read", "Read", "yesno", "", "", "", "menu_book"),
-                listOf("read", "Read again", "yesno", "", "", "", "menu_book"),
+                listOf("walk", "Walk", "yesno", "", "", "habits", "", "yes"),
+                listOf("read", "Read", "yesno", "", "", "", "menu_book", "yes"),
+                listOf("read", "Read again", "yesno", "", "", "", "menu_book", "yes"),
             ),
         )
         assertEquals(listOf("read"), t.items.map { it.id })
@@ -366,11 +380,20 @@ class ParseTest {
     fun parseMetricRowChecksTheCellsOfOneRow() {
         val cells = mapOf("name" to "Water", "kind" to "count", "unit" to "glasses", "icon" to "water_drop")
         assertEquals(
-            NumberMetric(id = "water", name = "Water", icon = "water_drop", unit = "glasses", isCount = true),
-            parseMetricRow("water", cells + ("goal" to "")),
+            NumberMetric(
+                id = "water",
+                name = "Water",
+                icon = "water_drop",
+                goal = NumberGoal(8.0),
+                unit = "glasses",
+                isCount = true,
+            ),
+            parseMetricRow("water", cells + ("goal" to "at least 8")),
         )
         val e = assertFailsWith<InvalidMetricException> { parseMetricRow("water", cells + ("goal" to "lots")) }
         assertTrue(e.message!!.startsWith("invalid goal \"lots\""))
+        val empty = assertFailsWith<InvalidMetricException> { parseMetricRow("water", cells + ("goal" to "")) }
+        assertTrue(empty.message!!.startsWith("no goal"))
     }
 
     @Test

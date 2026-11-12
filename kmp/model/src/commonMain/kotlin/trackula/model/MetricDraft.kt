@@ -23,7 +23,6 @@ fun canChangeKind(from: MetricKind, to: MetricKind, hasValues: Boolean): Boolean
 
 /** The goal direction of a `number` or `count` metric in the metrics form. */
 enum class GoalDirection(val label: String) {
-    NONE("No goal"),
     AT_LEAST("At least"),
     AT_MOST("At most"),
 }
@@ -100,11 +99,11 @@ data class MetricDraft(
     }
 
     /**
-     * The number goal of the form, for the preview of its points. Null for a `yesno` metric, without a goal, or if the
-     * target or the start is not valid.
+     * The number goal of the form, for the preview of its points. Null for a `yesno` metric, or if the target or the
+     * start is not valid.
      */
     fun previewGoal(): NumberGoal? {
-        if (kind == MetricKind.YES_NO || direction == GoalDirection.NONE) return null
+        if (kind == MetricKind.YES_NO) return null
         val targetValue = numberOf(target) ?: return null
         val from = if (start.isBlank()) null else numberOf(start) ?: return null
         val trend = usesTrend && kind == MetricKind.NUMBER
@@ -114,7 +113,6 @@ data class MetricDraft(
 
     /** The text of the goal cell of a `number` or `count` metric. Adds an error to [errors] for each invalid field. */
     private fun numberGoal(errors: MutableMap<DraftField, String>): String {
-        if (direction == GoalDirection.NONE) return ""
         val targetValue = numberOf(target)
         if (targetValue == null) errors[DraftField.TARGET] = "Enter a number."
         val from = if (start.isBlank()) null else numberOf(start)
@@ -154,14 +152,10 @@ fun draftOf(metric: Metric): MetricDraft {
             base.copy(
                 unit = metric.unit.orEmpty(),
                 step = formatTrimmed(metric.step),
-                direction = when {
-                    goal == null -> GoalDirection.NONE
-                    goal.isMaximum -> GoalDirection.AT_MOST
-                    else -> GoalDirection.AT_LEAST
-                },
-                target = goal?.let { formatTrimmed(it.target) }.orEmpty(),
-                start = goal?.from?.let(::formatTrimmed).orEmpty(),
-                usesTrend = goal?.usesTrend == true,
+                direction = if (goal.isMaximum) GoalDirection.AT_MOST else GoalDirection.AT_LEAST,
+                target = formatTrimmed(goal.target),
+                start = goal.from?.let(::formatTrimmed).orEmpty(),
+                usesTrend = goal.usesTrend,
             )
         }
     }
@@ -169,7 +163,8 @@ fun draftOf(metric: Metric): MetricDraft {
 
 /**
  * The form values of the invalid row [row], to fix it. The values that the app can read go in their fields. A goal
- * that the app cannot read goes in the target field, so that the form shows the error.
+ * that the app cannot read goes in the target field, so that the form shows the error. A `number` or `count` row
+ * without a goal gets an empty target, so that Save asks for one. A `yesno` row without a goal gets `yes`.
  */
 fun draftOf(row: InvalidMetricRow): MetricDraft {
     fun text(name: String) = cellText(row.cells[name]).trim()
@@ -193,12 +188,12 @@ fun draftOf(row: InvalidMetricRow): MetricDraft {
 
 /**
  * The form values of the deleted metric [deleted], to restore it. The name comes from the id: `morning_teeth` gives
- * "Morning teeth". The kind is `yesno` if all values are `yes` or `no`, else `number`.
+ * "Morning teeth". The kind is `yesno` if all values are `yes` or `no`, else `number`. The target is empty: the user
+ * must enter the goal.
  */
 fun draftOf(deleted: DeletedMetric): MetricDraft = MetricDraft(
     name = deleted.id.replace('_', ' ').replace('-', ' ').replaceFirstChar { it.uppercaseChar() },
     kind = if (deleted.isYesNo) MetricKind.YES_NO else MetricKind.NUMBER,
-    direction = GoalDirection.NONE,
 )
 
 /**
@@ -210,10 +205,10 @@ fun metricSummary(metric: Metric): String {
     return listOfNotNull(kindOf(metric).label, unit, metric.group).joinToString(" · ")
 }
 
-/** The goal of [metric] as in the `goal` cell, for the metrics list. Examples: "at least 8", "yes", "No goal". */
+/** The goal of [metric] as in the `goal` cell, for the metrics list. Examples: "at least 8", "yes". */
 fun goalSummary(metric: Metric): String = when (metric) {
     is YesNoMetric -> if (metric.goalIsYes) "yes" else "no"
-    is NumberMetric -> metric.goal?.let(::goalText) ?: "No goal"
+    is NumberMetric -> goalText(metric.goal)
 }
 
 /**

@@ -63,7 +63,7 @@ class LogEntryTest {
 
     @Test
     fun throwsIfTheMetricHasNoColumn() {
-        val steps = NumberMetric(id = "steps", name = "Steps", icon = "footprint")
+        val steps = NumberMetric(id = "steps", name = "Steps", icon = "footprint", goal = NumberGoal(8000.0))
         assertFailsWith<MissingColumnException> { planNumber(steps, d30, 1.0, log) }
     }
 

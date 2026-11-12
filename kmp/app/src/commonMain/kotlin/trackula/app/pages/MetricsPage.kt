@@ -26,7 +26,6 @@ import trackula.app.components.AppIconButton
 import trackula.app.components.MetricIcon
 import trackula.app.components.Symbol
 import trackula.model.DeletedMetric
-import trackula.model.GoalDirection
 import trackula.model.InvalidMetricRow
 import trackula.model.Metric
 import trackula.model.MetricDraft
@@ -174,7 +173,7 @@ fun MetricsPage(
 
 /** The form of [target]. [edited] is the metric of a [FormTarget.Edit]. */
 private fun setupOf(target: FormTarget, edited: Metric?, data: Snapshot): FormSetup = when (target) {
-    FormTarget.New -> FormSetup(title = "Add metric", initial = MetricDraft(direction = GoalDirection.NONE))
+    FormTarget.New -> FormSetup(title = "Add metric", initial = MetricDraft())
 
     is FormTarget.Edit -> {
         val metric = edited!!

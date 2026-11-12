@@ -1,8 +1,16 @@
 package trackula.model
 
 /** Metrics that many tests use, as in the Dart tests. */
-internal val weight = NumberMetric(id = "weight", name = "Weight", icon = "monitor_weight", unit = "kg", step = 0.1)
-internal val water = NumberMetric(id = "water", name = "Water", icon = "water_drop", unit = "glasses")
+internal val weight = NumberMetric(
+    id = "weight",
+    name = "Weight",
+    icon = "monitor_weight",
+    goal = NumberGoal(80.0, isMaximum = true),
+    unit = "kg",
+    step = 0.1,
+)
+internal val water =
+    NumberMetric(id = "water", name = "Water", icon = "water_drop", goal = NumberGoal(8.0), unit = "glasses")
 internal val meditate = YesNoMetric(id = "meditate", name = "Meditate", icon = "self_improvement")
 
 /** [metrics] by id. */

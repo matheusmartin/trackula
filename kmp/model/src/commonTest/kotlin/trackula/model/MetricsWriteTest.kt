@@ -10,8 +10,8 @@ class MetricsWriteTest {
     private val table = parseMetrics(
         rows(
             metricsHeader + "notes",
-            listOf("weight", "Weight", "number", "kg", 0.1, "", "monitor_weight", "", "mine"),
-            listOf("meditate", "Meditate", "yesno", "", "", "", "self_improvement"),
+            listOf("weight", "Weight", "number", "kg", 0.1, "", "monitor_weight", "at most 80", "mine"),
+            listOf("meditate", "Meditate", "yesno", "", "", "", "self_improvement", "yes"),
             listOf(),
             listOf("walk", "Walk", "yesno"),
             listOf("water", "Water", "count", "glasses", 1, "", "water_drop", "at least 8"),
@@ -25,7 +25,7 @@ class MetricsWriteTest {
         assertEquals(6, write.row)
         assertEquals("Drinks", write.cells[1])
         assertEquals("count", write.cells[2])
-        assertEquals("", write.cells[7])
+        assertEquals("at least 8", write.cells[7])
         // The other columns do not change.
         assertEquals(setOf(0, 1, 2, 3, 4, 5, 6, 7), write.cells.keys)
     }
@@ -38,10 +38,12 @@ class MetricsWriteTest {
     }
 
     @Test
-    fun saveAddsTheGoalColumnOfAnOlderSheetFirst() {
+    fun aFixOfARowOfAnOlderSheetAddsTheGoalColumnFirst() {
+        // Without the goal column, the row has no goal: it is invalid.
         val old = parseMetrics(rows(metricsHeader - "goal", listOf("read", "Read", "yesno", "", "", "", "menu_book")))
-        val writes = planSaveMetric(old, YesNoMetric("read", "Read", "menu_book", goalIsYes = false))
+        val writes = planFixRow(old, old.invalid.single(), YesNoMetric("read", "Read", "menu_book", goalIsYes = false))
         assertEquals(AddMetricsColumns(7, listOf("goal")), writes[0])
+        assertEquals(2, (writes[1] as SetMetricCells).row)
         assertEquals("no", (writes[1] as SetMetricCells).cells[7])
     }
 

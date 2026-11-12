@@ -2,6 +2,7 @@ package trackula.sheets
 
 import kotlinx.coroutines.test.runTest
 import trackula.model.Day
+import trackula.model.NumberGoal
 import trackula.model.NumberMetric
 import trackula.model.YesNoMetric
 import trackula.model.planClear
@@ -64,7 +65,8 @@ class DemoStoreTest {
     @Test
     fun aNewMetricGetsALogColumnSoThatItTakesValues() = runTest {
         val st = store()
-        val read = NumberMetric(id = "pages", name = "Pages", icon = "menu_book", isCount = true)
+        val read =
+            NumberMetric(id = "pages", name = "Pages", icon = "menu_book", goal = NumberGoal(20.0), isCount = true)
         val added = st.changeMetrics { planSaveMetric(it, read) }
         assertEquals(read, added.metrics.last())
 

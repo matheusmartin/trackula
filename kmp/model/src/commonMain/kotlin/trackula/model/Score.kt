@@ -6,9 +6,11 @@ const val SCORE_HEADER = "Score"
 /**
  * The score as a count metric, for the table, the calendars and the detail screen. It is not a row of the `Metrics`
  * tab, and its cells are read-only: [dayScores] calculates its values, from 0 to 100. It has no icon: the score card
- * and the score detail screen show only its name.
+ * and the score detail screen show only its name. Its goal is 100% because each [NumberMetric] has a goal. The app
+ * does not use this goal: the score does not give points to itself.
  */
-val scoreMetric = NumberMetric(id = SCORE_HEADER, name = "Score", icon = "", unit = "%", isCount = true)
+val scoreMetric =
+    NumberMetric(id = SCORE_HEADER, name = "Score", icon = "", goal = NumberGoal(100.0), unit = "%", isCount = true)
 
 /**
  * The score of the metrics of one [group], for the group filter. [label] is the group name that the app shows. Its id
@@ -20,12 +22,6 @@ fun groupScoreMetric(group: String, label: String): NumberMetric =
 
 /** True if [metric] is [scoreMetric] or a [groupScoreMetric]. */
 fun isScore(metric: Metric): Boolean = metric.id == SCORE_HEADER || metric.id.startsWith("$SCORE_HEADER:")
-
-/**
- * True if [metric] gives points to the score: a yes/no metric, or a number or count metric with a goal. A metric
- * without a goal is only tracked: it does not change the score.
- */
-fun isScored(metric: Metric): Boolean = metric !is NumberMetric || metric.goal != null
 
 /**
  * True if [metric] counts on each day from its first value: a yes/no or a count metric. A day without a value has the
@@ -40,17 +36,16 @@ private fun countsEachDay(metric: Metric): Boolean = metric !is NumberMetric || 
  * - Yes/no: 1 if [value] is the goal: `yes` (1), or `no` (0) for the goal `no`. Else 0.
  * - Number and count: the points of the goal. See [NumberGoal.points]. For a goal with a trend, [value] is the trend
  *   of the day. Example: `at least 8` and 6 give 0.75.
- * - A metric without a goal: 0. It is not in the score: see [isScored].
  */
 fun metricPoints(metric: Metric, value: Double): Double = when (metric) {
     is YesNoMetric -> if ((value == 1.0) == metric.goalIsYes) 1.0 else 0.0
-    is NumberMetric -> metric.goal?.points(value) ?: 0.0
+    is NumberMetric -> metric.goal.points(value)
 }
 
 /**
- * The points of each metric of [metrics] that gives points (see [isScored]) on each day that it counts, from 0 to 1,
- * by metric id. The values come from [metricValues], with the count taps in [pending]. A metric without points is not
- * in the result.
+ * The points of each metric of [metrics] on each day that it counts, from 0 to 1, by metric id. Each metric has a
+ * goal, so each metric gives points. The values come from [metricValues], with the count taps in [pending]. A metric
+ * without points, for example without values, is not in the result.
  *
  * - A yes/no or count metric counts on each day from its first value to [today], and on each later day with a row. A
  *   day without a value, also a day without a row, has the value 0: `no` for yes/no, and 0 for a count. Without
@@ -65,9 +60,9 @@ fun pointsByMetric(
     log: LogTable,
     today: Day? = null,
     pending: Map<MetricDay, List<CountStep>> = emptyMap(),
-): Map<String, Map<Day, Double>> = metrics.filter(::isScored).associate { metric ->
+): Map<String, Map<Day, Double>> = metrics.associate { metric ->
     val values = metricValues(metric, log, pending)
-    val usesTrend = metric is NumberMetric && metric.goal?.usesTrend == true
+    val usesTrend = metric is NumberMetric && metric.goal.usesTrend
     val points = (if (usesTrend) trend(values) else values).mapValues { (_, value) -> metricPoints(metric, value) }
     metric.id to if (countsEachDay(metric)) withEmptyDays(points, metricPoints(metric, 0.0), log, today) else points
 }.filterValues { it.isNotEmpty() }

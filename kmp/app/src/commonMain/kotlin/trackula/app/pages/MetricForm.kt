@@ -270,25 +270,21 @@ private fun Goal(draft: MetricDraft, errors: Map<DraftField, String>, onChange: 
                     }
                 }
             }
-            if (draft.direction == GoalDirection.NONE) {
-                Help("Without a goal, the metric does not count in the score.")
-            } else {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Box(Modifier.weight(1f)) {
-                        Field("Target", draft.target, errors[DraftField.TARGET], isNumber = true) {
-                            onChange(draft.copy(target = it))
-                        }
-                    }
-                    Box(Modifier.weight(1f)) {
-                        Field("Start (optional)", draft.start, errors[DraftField.START], isNumber = true) {
-                            onChange(draft.copy(start = it))
-                        }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.weight(1f)) {
+                    Field("Target", draft.target, errors[DraftField.TARGET], isNumber = true) {
+                        onChange(draft.copy(target = it))
                     }
                 }
-                Help("The start gives 0 points. A value between the start and the target gives a part of 1 point.")
-                Trend(draft, onChange)
-                draft.previewGoal()?.let { GoalPreview(it, draft.unit.trim().ifEmpty { null }) }
+                Box(Modifier.weight(1f)) {
+                    Field("Start (optional)", draft.start, errors[DraftField.START], isNumber = true) {
+                        onChange(draft.copy(start = it))
+                    }
+                }
             }
+            Help("The start gives 0 points. A value between the start and the target gives a part of 1 point.")
+            Trend(draft, onChange)
+            draft.previewGoal()?.let { GoalPreview(it, draft.unit.trim().ifEmpty { null }) }
         }
         Help("A new goal also changes the score of past days.")
     }
