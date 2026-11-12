@@ -1,21 +1,20 @@
 package trackula.app.pages
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,11 +26,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -40,18 +39,28 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
-import trackula.app.LocalExtraColors
 import trackula.app.Platform
 import trackula.app.Session
-import trackula.app.components.Symbol
+import trackula.app.components.Notice
+import trackula.app.components.NoticeKind
+import trackula.app.components.PrimaryButton
 import trackula.app.errorText
 import trackula.app.resources.Res
 import trackula.app.resources.logo
 import kotlin.math.hypot
 
+/** The padding of the sign-in page on the left and on the right. */
+private val SIDE_PADDING = 24.dp
+
+/** The padding of the sign-in page at the top and at the bottom. */
+private val END_PADDING = 32.dp
+
 /**
- * The full-screen sign-in page: a large logo in the center and a Google sign-in button at the bottom. Sizes use the
- * smaller of the width and the height, so the page fits portrait and landscape screens.
+ * The full-screen sign-in page: the logo, the app name and a short text in the middle, and the Google sign-in button
+ * at the bottom. Sizes use the smaller of the width and the height, so the page fits portrait and landscape screens.
+ * If the screen is too small for all parts, for example a phone in landscape, the page scrolls.
+ *
+ * While the Google window is open, the button is disabled and a progress circle shows.
  *
  * [expired] is true if the user was signed out because the 1-hour token expired.
  */
@@ -61,7 +70,6 @@ fun SignInPage(platform: Platform, expired: Boolean, onSignedIn: (Session) -> Un
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val colors = MaterialTheme.colorScheme
-    val extra = LocalExtraColors.current
 
     // The latest parameters: Compose can keep a function reference of an earlier composition, with its values.
     val isExpired by rememberUpdatedState(expired)
@@ -98,65 +106,82 @@ fun SignInPage(platform: Platform, expired: Boolean, onSignedIn: (Session) -> Un
                         radius = radius,
                     ),
                 )
-            }
-            .padding(horizontal = 24.dp, vertical = 32.dp),
+            },
     ) {
         val short = min(maxWidth, maxHeight)
-        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        // At least as high as the screen: the logo is in the middle and the button is at the bottom. A higher
+        // content scrolls.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .heightIn(min = maxHeight)
+                .padding(horizontal = SIDE_PADDING, vertical = END_PADDING),
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // An empty first part: then the logo part is in the middle of the page.
+            Spacer(Modifier.size(0.dp))
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+                modifier = Modifier.padding(vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Image(
                     painterResource(Res.drawable.logo),
                     contentDescription = null,
-                    modifier = Modifier.size(min(short * 0.55f, 352.dp)),
+                    modifier = Modifier.size(min(short * 0.4f, 280.dp)),
                 )
                 Text(
                     "Trackula",
+                    modifier = Modifier.semantics { heading() },
                     color = colors.primary,
-                    fontSize = (short.value * 0.13f).coerceIn(44f, 112f).sp,
+                    fontSize = (short.value * 0.12f).coerceIn(36f, 96f).sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = (-0.02).sp,
+                )
+                Text(
+                    "Track your habits and your body measurements.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = colors.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
             }
             Column(
                 modifier = Modifier.widthIn(max = 384.dp).fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (expired) {
-                    Text(
-                        "Google access lasts 1 hour. Sign in again to continue.",
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
-                    )
-                }
-                // The main button of the app, with the darker logo gradient.
-                val buttonBackground = if (busy) Modifier else Modifier.background(extra.actionBrush)
-                Box(Modifier.clip(CircleShape).then(buttonBackground)) {
-                    Button(
-                        onClick = ::signIn,
-                        enabled = !busy,
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.Transparent,
-                            contentColor = extra.onAction,
-                        ),
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Symbol("login")
-                            Text("Sign in with Google", fontSize = 16.sp)
-                        }
-                    }
-                }
-                error?.let {
-                    Text(it, color = colors.error, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-                }
+                if (expired) Notice("Google access lasts 1 hour. Sign in again to continue.")
+                error?.let { Notice(it, kind = NoticeKind.ERROR) }
+                if (busy) Progress("Continue in the Google window.")
+                PrimaryButton(
+                    text = "Sign in with Google",
+                    onClick = ::signIn,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !busy,
+                    icon = "login",
+                )
+                Text(
+                    "Your data stays in your own Google Sheet. The app has no server.",
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                )
             }
         }
+    }
+}
+
+/** A progress circle and a [text] that tells what the app waits for. */
+@Composable
+internal fun Progress(text: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
