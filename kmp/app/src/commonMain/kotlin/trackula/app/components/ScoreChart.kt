@@ -36,9 +36,11 @@ fun ScoreChart(score: NumberMetric, days: List<Day>, scores: Map<Day, Double>, o
             Text(
                 score.name,
                 modifier = Modifier
+                    .outset(8.dp, 4.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .semantics { contentDescription = "Show the score only" }
-                    .clickable(role = Role.Button, onClick = onOpen),
+                    .clickable(role = Role.Button, onClick = onOpen)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             )
             if (days.any { it in scores }) {
                 // Room above the chart for the value labels.

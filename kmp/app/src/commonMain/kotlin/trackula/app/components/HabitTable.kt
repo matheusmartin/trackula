@@ -284,10 +284,13 @@ fun MetricName(m: Metric, onOpen: ((Metric) -> Unit)?, modifier: Modifier = Modi
     val link = if (onOpen == null) {
         Modifier
     } else {
+        // 4 dp, not more: the end padding of the name column is 4 dp, and the day cells come after it.
         Modifier
+            .outset(4.dp, 4.dp)
             .clip(RoundedCornerShape(8.dp))
             .semantics { contentDescription = "Show all data of ${m.name}" }
             .clickable(role = Role.Button) { onOpen(m) }
+            .padding(4.dp)
     }
     Row(
         modifier = modifier.then(link),

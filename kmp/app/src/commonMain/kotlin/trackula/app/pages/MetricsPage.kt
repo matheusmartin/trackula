@@ -219,7 +219,10 @@ private fun planSave(target: FormTarget, table: MetricsTable, metric: Metric): L
     FormTarget.New, is FormTarget.Restore -> planSaveMetric(table, metric)
 }
 
-/** A metric in the list: a tap opens its form. The arrows move it up or down. */
+/**
+ * A metric in the list: a tap opens its form. The arrows move it up or down. The tap area is the full row, from edge
+ * to edge of the card, so that its highlight has no gaps. The arrows are buttons on it.
+ */
 @Composable
 private fun MetricRow(
     metric: Metric,
@@ -229,9 +232,15 @@ private fun MetricRow(
     onEdit: () -> Unit,
     onMove: (up: Boolean) -> Unit,
 ) {
-    Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = "Edit", onClick = onEdit)
+            .padding(start = 16.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Row(
-            modifier = Modifier.weight(1f).clickable(onClickLabel = "Edit", onClick = onEdit).padding(vertical = 10.dp),
+            modifier = Modifier.weight(1f).padding(vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

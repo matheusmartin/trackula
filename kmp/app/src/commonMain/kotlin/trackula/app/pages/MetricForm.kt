@@ -32,6 +32,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -47,6 +48,7 @@ import trackula.app.components.AppIconButton
 import trackula.app.components.MetricIcon
 import trackula.app.components.Symbol
 import trackula.app.components.groupLabel
+import trackula.app.components.outset
 import trackula.model.DraftField
 import trackula.model.GoalDirection
 import trackula.model.Metric
@@ -293,10 +295,14 @@ private fun Goal(draft: MetricDraft, errors: Map<DraftField, String>, onChange: 
 @Composable
 private fun Trend(draft: MetricDraft, onChange: (MetricDraft) -> Unit) {
     val enabled = draft.kind == MetricKind.NUMBER
+    // The highlight goes 8 dp past the checkbox and the text, and the checkbox stays aligned with the fields.
     Row(
-        modifier = Modifier.clickable(enabled = enabled, role = Role.Checkbox) {
-            onChange(draft.copy(usesTrend = !draft.usesTrend))
-        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .outset(8.dp, 4.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(enabled = enabled, role = Role.Checkbox) { onChange(draft.copy(usesTrend = !draft.usesTrend)) }
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = enabled && draft.usesTrend, onCheckedChange = null, enabled = enabled)
@@ -425,6 +431,7 @@ private fun IconChoice(name: String, selected: Boolean, onClick: () -> Unit) {
             .size(44.dp)
             .background(if (selected) colors.primaryContainer else colors.surfaceContainerLowest, shape)
             .border(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant, shape)
+            .clip(shape)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics {
                 contentDescription = name
