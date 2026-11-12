@@ -26,7 +26,6 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import trackula.model.Day
 import trackula.model.chartBars
 import trackula.model.chartPoints
@@ -64,8 +63,9 @@ fun TrendChart(
     if (points.isEmpty()) return
     val high = points.maxOf { it.value }
     val low = if (showsBars || fromZero) 0.0 else points.minOf { it.value }
-    val textStyle = TextStyle(fontSize = 10.sp, lineHeight = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    val valueStyle = TextStyle(fontSize = 11.sp, lineHeight = 11.sp, fontWeight = FontWeight.SemiBold, color = color)
+    val textStyle = labelStyle()
+    val valueStyle =
+        TextStyle(fontSize = SMALL_TEXT, lineHeight = SMALL_TEXT, fontWeight = FontWeight.SemiBold, color = color)
     val measurer = rememberTextMeasurer()
     val bars = if (showsBars) chartBars(days, values, CHART_WIDTH, CHART_HEIGHT) else emptyList()
     val sidePadding = if (showsValues && !showsBars) 12.dp else 0.dp
@@ -76,7 +76,7 @@ fun TrendChart(
     // Screen readers get one text for the whole chart: the range and the days. Not each axis label again.
     Row(
         Modifier.fillMaxWidth().padding(top = 12.dp).clearAndSetSemantics { contentDescription = label },
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         // All values 0 on a scale from 0: the only label is at the bottom, with the line or the bars.
         val onlyBottom = high == 0.0 && (showsBars || fromZero)
@@ -133,7 +133,7 @@ fun TrendChart(
                 }
             }
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = sidePadding),
+                Modifier.fillMaxWidth().padding(horizontal = sidePadding).padding(top = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(shortDay(days.first()), style = textStyle)

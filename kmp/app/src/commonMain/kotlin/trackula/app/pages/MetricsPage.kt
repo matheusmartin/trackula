@@ -2,10 +2,13 @@ package trackula.app.pages
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -19,12 +22,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import trackula.app.components.AppCard
 import trackula.app.components.AppIconButton
+import trackula.app.components.FORM_WIDTH
 import trackula.app.components.MetricIcon
+import trackula.app.components.Notice
+import trackula.app.components.NoticeKind
 import trackula.app.components.Symbol
+import trackula.app.components.TOUCH_TARGET
 import trackula.model.DeletedMetric
 import trackula.model.InvalidMetricRow
 import trackula.model.Metric
@@ -60,7 +70,8 @@ private sealed interface FormTarget {
 /**
  * The metrics screen. It shows the metrics in the order of the sheet, which is also the order in the app, the rows of
  * the `Metrics` tab that are not valid, and the deleted metrics: the `Log` columns without a metric. A tap on a
- * metric, Add metric, Fix or Restore opens the form (see [MetricForm]). The arrows move a metric up or down.
+ * metric, Add metric, Fix or Restore opens the form (see [MetricForm]). The arrows move a metric up or down. Wide
+ * screens: the screen is at most [FORM_WIDTH] wide and centered.
  *
  * - [data]: the latest data of the sheet.
  * - [busy]: true while data loads or saves. The buttons that write are disabled.
@@ -112,61 +123,98 @@ fun MetricsPage(
         return
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AppIconButton(icon = "arrow_back", title = "Back", onClick = onClose)
-            Text("Metrics", Modifier.weight(1f), style = MaterialTheme.typography.headlineSmall)
-            Button(onClick = { form = FormTarget.New }, enabled = !busy) {
-                Symbol("add", size = 20.dp)
-                Text("Add metric", Modifier.padding(start = 8.dp))
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        Column(Modifier.widthIn(max = FORM_WIDTH).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AppIconButton(icon = "arrow_back", title = "Back", onClick = onClose)
+                Text(
+                    "Metrics",
+                    modifier = Modifier.weight(1f).padding(start = 4.dp).semantics { heading() },
+                    style = MaterialTheme.typography.headlineSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                // Without metrics, the button is in the empty state.
+                if (metrics.isNotEmpty()) AddButton(enabled = !busy) { form = FormTarget.New }
             }
-        }
-        Help("Changes go to the Metrics tab of your sheet. The order here is the order in the app.")
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            Help("Changes go to the Metrics tab of your sheet. The order here is the order in the app.")
+            error?.let { Notice(it, kind = NoticeKind.ERROR) }
 
-        if (metrics.isEmpty()) {
-            Text("No metrics yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        } else {
-            AppCard(Modifier.fillMaxWidth()) {
-                metrics.forEachIndexed { i, m ->
-                    if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    MetricRow(
-                        metric = m,
-                        busy = busy,
-                        isFirst = i == 0,
-                        isLast = i == metrics.lastIndex,
-                        onEdit = { form = FormTarget.Edit(m.id) },
-                        onMove = { up -> onWrite({ t -> listOfNotNull(planMoveMetric(t, m.id, up)) }, {}) },
-                    )
-                }
-            }
-        }
-
-        if (table.invalid.isNotEmpty()) {
-            OtherRows("warning", "Rows with problems", help = null) {
-                for (row in table.invalid) {
-                    OtherRow(
-                        title = "Row ${row.row} · ${row.id.ifEmpty { "no id" }}",
-                        text = row.problem.replaceFirstChar { it.uppercaseChar() },
-                        button = "Fix",
-                        enabled = !busy,
-                    ) { form = FormTarget.Fix(row) }
-                }
-            }
-        }
-
-        if (data.deleted.isNotEmpty()) {
-            OtherRows(
-                icon = "history",
-                title = "Deleted metrics",
-                help = "Their values stay in the Log tab. Restore a metric to show it again with all its values.",
-            ) {
-                for (deleted in data.deleted) {
-                    OtherRow(deleted.id, deletedSummary(deleted), "Restore", !busy) {
-                        form = FormTarget.Restore(deleted)
+            if (metrics.isEmpty()) {
+                EmptyState(enabled = !busy) { form = FormTarget.New }
+            } else {
+                AppCard(Modifier.fillMaxWidth()) {
+                    metrics.forEachIndexed { i, m ->
+                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        MetricRow(
+                            metric = m,
+                            busy = busy,
+                            isFirst = i == 0,
+                            isLast = i == metrics.lastIndex,
+                            onEdit = { form = FormTarget.Edit(m.id) },
+                            onMove = { up -> onWrite({ t -> listOfNotNull(planMoveMetric(t, m.id, up)) }, {}) },
+                        )
                     }
                 }
             }
+
+            if (table.invalid.isNotEmpty()) {
+                OtherRows("warning", "Rows with problems", help = null) {
+                    for (row in table.invalid) {
+                        OtherRow(
+                            title = "Row ${row.row} · ${row.id.ifEmpty { "no id" }}",
+                            text = row.problem.replaceFirstChar { it.uppercaseChar() },
+                            button = "Fix",
+                            enabled = !busy,
+                        ) { form = FormTarget.Fix(row) }
+                    }
+                }
+            }
+
+            if (data.deleted.isNotEmpty()) {
+                OtherRows(
+                    icon = "history",
+                    title = "Deleted metrics",
+                    help = "Their values stay in the Log tab. Restore a metric to show it again with all its values.",
+                ) {
+                    for (deleted in data.deleted) {
+                        OtherRow(deleted.id, deletedSummary(deleted), "Restore", !busy) {
+                            form = FormTarget.Restore(deleted)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** The button that opens the form of a new metric. */
+@Composable
+private fun AddButton(enabled: Boolean, onClick: () -> Unit) {
+    Button(onClick = onClick, enabled = enabled, modifier = Modifier.heightIn(min = TOUCH_TARGET)) {
+        Symbol("add", size = 20.dp)
+        Text("Add metric", Modifier.padding(start = 8.dp))
+    }
+}
+
+/** The screen without metrics: an icon, a short text and the Add metric button. */
+@Composable
+private fun EmptyState(enabled: Boolean, onAdd: () -> Unit) {
+    AppCard(Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Symbol("playlist_add", size = 40.dp, color = MaterialTheme.colorScheme.primary)
+            Text("No metrics yet", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Add a metric to record it each day, for example a habit or your weight.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            AddButton(enabled, onAdd)
         }
     }
 }
@@ -245,8 +293,8 @@ private fun MetricRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MetricIcon(metric)
-            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(metric.name, fontSize = 16.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(metric.name, style = MaterialTheme.typography.bodyLarge)
                 Help(metricSummary(metric))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -274,7 +322,7 @@ private fun OtherRows(icon: String, title: String, help: String?, content: @Comp
                     MaterialTheme.colorScheme.onSurfaceVariant
                 }
                 Symbol(icon, color = color)
-                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(title, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
             }
             help?.let { Help(it) }
             content()
@@ -287,10 +335,12 @@ private fun OtherRows(icon: String, title: String, help: String?, content: @Comp
 private fun OtherRow(title: String, text: String, button: String, enabled: Boolean, onClick: () -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(title, fontSize = 16.sp)
+            Text(title, style = MaterialTheme.typography.bodyLarge)
             Help(text)
         }
-        OutlinedButton(onClick = onClick, enabled = enabled) { Text(button) }
+        OutlinedButton(onClick = onClick, enabled = enabled, modifier = Modifier.heightIn(min = TOUCH_TARGET)) {
+            Text(button)
+        }
     }
 }
 

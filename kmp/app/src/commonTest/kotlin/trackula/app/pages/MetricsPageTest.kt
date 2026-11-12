@@ -12,8 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -151,7 +153,7 @@ class MetricsPageTest {
         showPage()
         onNodeWithText("Water").performClick()
         onNodeWithText("Delete metric").performScrollTo().performClick()
-        onNodeWithText("Delete").performClick()
+        onNode(hasText("Delete metric") and hasAnyAncestor(isDialog())).performClick()
         waitFor("Deleted metrics")
         assertTrue(store.last!!.metrics.none { it.id == "water" })
 
@@ -199,6 +201,18 @@ class MetricsPageTest {
         waitFor("Add metric")
         assertEquals(NumberGoal(8000.0), (store.last!!.metrics.last() as NumberMetric).goal)
         assertEquals(emptyList(), store.last!!.metricsTable.invalid)
+    }
+
+    @Test
+    fun cancelOfAChangedFormAsksAndDiscardGoesBackToTheList() = runComposeUiTest {
+        showPage()
+        onNodeWithText("Water").performClick()
+        field("Name").performTextReplacement("Drinks")
+        onNodeWithText("Cancel").performScrollTo().performClick()
+        onNodeWithText("Discard").performClick()
+        waitFor("Add metric")
+        onNodeWithText("Drinks").assertDoesNotExist()
+        assertEquals(emptyList(), store.metricsWrites)
     }
 
     @Test

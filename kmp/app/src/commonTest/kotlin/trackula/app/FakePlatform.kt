@@ -21,6 +21,8 @@ class FakePlatform(
         if (value == null) prefs.remove(key) else prefs[key] = value
     }
 
+    override val history = FakeHistory()
+
     val today = Day(2026, 10, 3)
 
     /** The selectAccount argument of each sign-in. */
@@ -33,6 +35,32 @@ class FakePlatform(
         signIns.add(selectAccount)
         return session
     }
+}
+
+/**
+ * A [BrowserHistory] in memory. [entries] is the number of entries that the app added and that are still there.
+ * [userBack] is the Back button of the browser.
+ */
+class FakeHistory : BrowserHistory {
+    var entries = 0
+    private var handler: () -> Unit = {}
+
+    override fun push() {
+        entries++
+    }
+
+    override fun back() {
+        if (entries == 0) return
+        entries--
+        handler()
+    }
+
+    override fun onBack(handler: () -> Unit) {
+        this.handler = handler
+    }
+
+    /** The user presses the Back button of the browser. */
+    fun userBack() = back()
 }
 
 /** A [Session] that picks the spreadsheet `sheet-1` and stores demo data in memory. */

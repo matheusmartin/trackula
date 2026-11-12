@@ -9,6 +9,7 @@
 - Score: the app calculates a score for each day, from 0 to 100%, and writes it in the `Score` column of the sheet. Each metric must have a `goal`. It gives 0 to 1 point on a day, and the score is the average of these points. A goal is in words, for example `yes`, `at least 8` or `at most 80 from 83 trend`. A green bar chart of the score, one bar for each day, is at the top of the "5 days" and "31 days" views. The "Score" view of the bottom navigation bar shows only the score for a period, and each part shows different data. Key numbers: the average per day, its change from the first half of the period to the second half, the best day and the best weekday. Charts: the average per day over time, the strength (it goes up slowly on days with a high score and down slowly on days with a low score), each weekday of this week in the range of the 4 weeks before, the score of each group (or of each metric of one group) in this week and in each of the 4 weeks before, the same in this month and in each of the 3 months before, and the average on each weekday (with the part of each group). A month calendar shows the score of each day. The group filter also applies to the score: with a group selected, the chart and the "Score" view show the score of the metrics of that group only. Rules: [docs/data-model.md](docs/data-model.md#score).
 - Charts over time have zoom buttons: 1 month to 5 years. Short spans show weeks, middle spans months, long spans quarters. A small chart below shows all data, but not when the period is all data: then the first chart shows the same bars. Drag or use the mouse wheel to move.
 - Metrics screen: the `tune` button in the app bar opens it. It lists the metrics in the order of the app, and the arrows move a metric up or down. A tap on a metric opens its form: name, icon, kind, unit, step, group and goal. The form shows the points of the goal. "Add metric" adds a new metric. Delete hides a metric, and its values stay in the sheet: "Deleted metrics" can restore it with all its values. "Rows with problems" lists the rows of the `Metrics` tab that the app cannot read, for example a row without icon or without goal, and "Fix" opens them in the form. So you do not need to open the sheet to change the metrics. Rules: [docs/data-model.md](docs/data-model.md#metrics-screen).
+- Navigation: a narrow window has a bottom navigation bar with the views Today, 5 days, 31 days and Score. A window of 840 dp or more has a navigation rail on the left. The Back button of the browser, and the back gesture of a phone, close a detail screen, the metrics screen or a form, and do not leave the app. "Change sheet" and "Sign out" are in the "More" menu of the app bar. The Save button of the Today view stays above the navigation bar while the page scrolls.
 - Storage: one Google Sheet in your Google Drive. You pick it with the Google Picker. You can edit the data by hand.
 - If the picked sheet has no `Metrics` and `Log` tabs, the app adds them.
 - Frontend only. No backend. The browser signs in with Google and calls the Sheets API.
@@ -33,7 +34,8 @@
 - The app is a web app that you can install. On Android (Chrome): menu → "Install app" or "Add to Home screen". On
   iOS (Safari): Share → "Add to Home Screen". On a computer (Chrome or Edge): the install icon in the address bar.
 - Files: in `kmp/app/src/wasmJsMain/resources/`: `manifest.webmanifest` (name, colors, icons), `register-sw.js` and
-  the icons. The service worker is `kmp/app/web/sw.js`. It is a template: the production build writes `sw.js` with the
+  the icons. `index.html` shows a start screen with the logo while the browser loads the app, and `splash.js` shows a
+  message there if the app cannot start, for example in a browser without WebAssembly GC. The service worker is `kmp/app/web/sw.js`. It is a template: the production build writes `sw.js` with the
   list of the app files, because the names of the `.wasm` files change with each build.
 - The service worker lets the app open without a network. It uses the network first and keeps the last good copy of
   each app file. So a new deploy shows at the next open. Each build has its own cache, and a new build deletes the
@@ -88,9 +90,11 @@ all targets), `src/commonTest/` (tests), and can have `src/wasmJsMain/` (browser
 - `sheets/`: Google Sheets access (`SheetsStore`, with Ktor and the Sheets REST API) and the demo mode data
   (`DemoStore`). Both implement `Store`.
 - `services/`: the build values (`Config`), the count input and the double tap logic. Browser code in `wasmJsMain`:
-  Google sign-in (`Session`), the Google Picker, browser storage (`Prefs`) and today's date.
+  Google sign-in (`Session`), the Google Picker, browser storage (`Prefs`), the browser history (`History`) and
+  today's date.
 - `app/`: the UI in Compose. `pages/`, `components/`, the theme (`Theme.kt`) and `App.kt`. `Platform` holds the
-  browser parts, so the UI tests on the JVM use a fake. `Main.kt` in `wasmJsMain` starts the app in the browser.
+  browser parts, so the UI tests on the JVM use a fake. `Back.kt` sends the Back button of the browser to the screen
+  on top. `Main.kt` in `wasmJsMain` starts the app in the browser.
   `wasmJsMain/resources/`: the page (`index.html`), the icons and the manifest. `web/sw.js`: the service worker.
 - `build-logic/`: the convention plugins, in a separate Gradle build. `trackula.kotlin-multiplatform` has the
   settings of all modules: JDK 21, the JVM target, warnings as errors, `kotlin.test` and ktlint. Each module adds its

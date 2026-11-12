@@ -1,16 +1,20 @@
 package trackula.app.pages
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitHorizontalTouchSlopOrCancellation
 import androidx.compose.foundation.gestures.horizontalDrag
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,7 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import trackula.app.ScoreTheme
 import trackula.app.components.AppIconButton
@@ -36,6 +42,7 @@ import trackula.app.components.MetricIcon
 import trackula.app.components.MonthCalendar
 import trackula.app.components.Overview
 import trackula.app.components.ScoreCalendar
+import trackula.app.components.WIDE_CONTENT
 import trackula.model.Aggregate
 import trackula.model.BarUnit
 import trackula.model.CountStep
@@ -67,6 +74,9 @@ import kotlin.math.truncate
 
 /** The side wheel movement for one bar, in pixels. */
 private const val WHEEL_STEP = 40f
+
+/** The smallest width of the zoom label on wide screens. The longest label, "3 months", fits. */
+private val ZOOM_LABEL_WIDTH = 96.dp
 
 /**
  * All data of one metric: key numbers, charts and a day heatmap for one time window, and a month calendar to edit
@@ -160,51 +170,55 @@ private fun DetailContent(
         beforeAll = all
     }
 
-    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        // Wide screens: at most 960 dp wide and centered, so that the cards keep their shape.
-        Column(Modifier.widthIn(max = 960.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (onBack != null) AppIconButton("arrow_back", "Back", onBack)
-                if (!isScore(metric)) MetricIcon(metric, large = true)
-                Text(metric.name, style = MaterialTheme.typography.headlineSmall)
-            }
-            WindowBar(metric, window, steps, index, beforeAll, values, ::zoom, ::moveTo)
-            ChartsArea(window, ::moveTo) {
-                MetricCharts(
-                    metric = metric,
-                    window = window,
-                    values = values,
-                    states = states,
-                    scoreMetrics = scoreMetrics,
-                    points = points,
-                )
-                // The score has no heatmap: its month calendar shows the same days, with the score of each day.
-                if (!isScore(metric)) {
-                    DayHeatmap(
-                        title = if (metric is YesNoMetric) "Yes days" else "Days with a value",
-                        from = window.from,
-                        to = window.to,
-                        today = today,
-                        filled = { d -> if (metric is YesNoMetric) states[d] == true else d in values },
-                        onDay = { d -> month = monthOf(d) },
-                    )
-                }
-            }
-            if (isScore(metric)) {
-                ScoreCalendar(values, today, month ?: monthOf(window.to)) { month = it }
-            } else {
-                MonthCalendar(
-                    metric = metric,
-                    log = log,
+    // The full width of the page, as the group chips above the Score view. On wide screens, the chart grid has
+    // more columns, so that the cards keep their shape.
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (onBack != null) AppIconButton("arrow_back", "Back", onBack)
+            if (!isScore(metric)) MetricIcon(metric, large = true)
+            Text(
+                metric.name,
+                modifier = Modifier.weight(1f).semantics { heading() },
+                style = MaterialTheme.typography.headlineSmall,
+                maxLines = 2,
+            )
+        }
+        WindowBar(metric, window, steps, index, beforeAll, values, ::zoom, ::moveTo)
+        ChartsArea(window, ::moveTo) {
+            MetricCharts(
+                metric = metric,
+                window = window,
+                values = values,
+                states = states,
+                scoreMetrics = scoreMetrics,
+                points = points,
+            )
+            // The score has no heatmap: its month calendar shows the same days, with the score of each day.
+            if (!isScore(metric)) {
+                DayHeatmap(
+                    title = if (metric is YesNoMetric) "Yes days" else "Days with a value",
+                    from = window.from,
+                    to = window.to,
                     today = today,
-                    busy = busy,
-                    onWrite = onWrite,
-                    pending = pending,
-                    onCount = onCount,
-                    month = month ?: monthOf(window.to),
-                    onMonth = { month = it },
+                    filled = { d -> if (metric is YesNoMetric) states[d] == true else d in values },
+                    onDay = { d -> month = monthOf(d) },
                 )
             }
+        }
+        if (isScore(metric)) {
+            ScoreCalendar(values, today, month ?: monthOf(window.to)) { month = it }
+        } else {
+            MonthCalendar(
+                metric = metric,
+                log = log,
+                today = today,
+                busy = busy,
+                onWrite = onWrite,
+                pending = pending,
+                onCount = onCount,
+                month = month ?: monthOf(window.to),
+                onMonth = { month = it },
+            )
         }
     }
 }
@@ -236,28 +250,47 @@ private fun WindowBar(
     val back = min(beforeAll ?: threeMonthsStepIndex(steps), last)
     val count = window.starts.size
     val box = window.boxOn(BarUnit.WEEK)
+    val zoomButtons: @Composable RowScope.(Modifier) -> Unit = { label ->
+        AppIconButton("zoom_in", "Zoom in", { zoom(index - 1, null) }, enabled = index > 0)
+        TextButton(
+            onClick = { if (atAll) zoom(back, null) else zoom(last, index) },
+            modifier = label.semantics {
+                contentDescription = if (atAll) "Back to ${steps[back].label}" else "Show all"
+            },
+        ) { Text(if (atAll) "All" else steps[index].label, maxLines = 1) }
+        AppIconButton("zoom_out", "Zoom out", { zoom(index + 1, null) }, enabled = !atAll)
+    }
+    val dateButtons: @Composable RowScope.(Modifier) -> Unit = { label ->
+        AppIconButton("chevron_left", "Earlier", { moveTo(window.endMovedBy(-count)) }, enabled = !window.atStart)
+        Text(
+            formatDateRange(window.from, window.to),
+            modifier = label,
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+        )
+        AppIconButton("chevron_right", "Later", { moveTo(window.endMovedBy(count)) }, enabled = !window.atEnd)
+    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // Zoom buttons on the left, dates with arrows on the right. Narrow screens: the dates go below the zoom buttons.
-        FlowRow(horizontalArrangement = Arrangement.SpaceBetween, verticalArrangement = Arrangement.Center) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AppIconButton("zoom_in", "Zoom in", { zoom(index - 1, null) }, enabled = index > 0, small = true)
-                // A fixed width, so that the zoom buttons do not move when the label changes.
-                TextButton(
-                    onClick = { if (atAll) zoom(back, null) else zoom(last, index) },
-                    modifier = Modifier
-                        .widthIn(min = 88.dp)
-                        .semantics { contentDescription = if (atAll) "Back to ${steps[back].label}" else "Show all" },
-                ) { Text(if (atAll) "All" else steps[index].label) }
-                AppIconButton("zoom_out", "Zoom out", { zoom(index + 1, null) }, enabled = !atAll, small = true)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AppIconButton("chevron_left", "Earlier", {
-                    moveTo(window.endMovedBy(-count))
-                }, enabled = !window.atStart, small = true)
-                Text(formatDateRange(window.from, window.to), style = MaterialTheme.typography.bodyMedium)
-                AppIconButton("chevron_right", "Later", {
-                    moveTo(window.endMovedBy(count))
-                }, enabled = !window.atEnd, small = true)
+        // One tool bar in a soft color. Wide screens: the zoom buttons on the left and the dates on the right, in one
+        // row. Phones: 2 rows, each with its buttons at the edges and its label in the center.
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val bar = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
+                .padding(horizontal = 4.dp)
+            if (maxWidth >= WIDE_CONTENT) {
+                Row(bar, verticalAlignment = Alignment.CenterVertically) {
+                    // A fixed width, so that the zoom buttons do not move when the label changes.
+                    zoomButtons(Modifier.widthIn(min = ZOOM_LABEL_WIDTH))
+                    Spacer(Modifier.weight(1f))
+                    dateButtons(Modifier.padding(horizontal = 4.dp))
+                }
+            } else {
+                Column(bar) {
+                    Row(verticalAlignment = Alignment.CenterVertically) { zoomButtons(Modifier.weight(1f)) }
+                    Row(verticalAlignment = Alignment.CenterVertically) { dateButtons(Modifier.weight(1f)) }
+                }
             }
         }
         if (!window.showsAll) {

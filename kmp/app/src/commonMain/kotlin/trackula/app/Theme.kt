@@ -102,7 +102,8 @@ private val darkColors = darkColorScheme(
  * @property cellEmpty The fill of a day with no value.
  * @property doneCell The green cell fill of the score.
  * @property actionBrush A darker logo gradient for the main buttons, with [onAction] text (5:1 or more).
- * @property headerBrush The logo gradient of the top bar, in both themes.
+ * @property headerBrush The gradient of the top bar, in both themes. It starts darker than the logo gradient, so that the
+ *   white title has a contrast of 4:1 or more.
  * @property groups The colors of the groups in the score charts, in the order of the groups. After the last color,
  *   the first color comes again.
  */
@@ -125,7 +126,7 @@ data class ExtraColors(
 // of the CSS gradients. On the wide top bar, the color line is a little steeper than 135°.
 private val cellBrush = Brush.linearGradient(listOf(Color(0xFFCA4A09), Color(0xFFE41648)))
 private val actionBrush = Brush.linearGradient(listOf(Color(0xFFC2410C), Color(0xFF9F1239)))
-private val headerBrush = Brush.linearGradient(listOf(Color(0xFFF97316), Color(0xFFBE123C)))
+private val headerBrush = Brush.linearGradient(listOf(Color(0xFFDC4A0C), Color(0xFFBE123C)))
 
 private val lightExtra = ExtraColors(
     done = Color(0xFF2E7D32),
@@ -133,7 +134,8 @@ private val lightExtra = ExtraColors(
     cell = Color(0xFFDA3625),
     onCell = Color(0xFFFFFFFF),
     cellBrush = cellBrush,
-    cellEmpty = Color(0xFFE2E6EB),
+    // Darker than the cards and the tiles, so that an empty day shows as a cell.
+    cellEmpty = Color(0xFFD5DBE3),
     doneCell = Color(0xFF318535),
     actionBrush = actionBrush,
     onAction = Color(0xFFFFFFFF),

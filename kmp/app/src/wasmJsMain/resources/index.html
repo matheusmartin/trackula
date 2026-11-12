@@ -9,25 +9,58 @@
         <!-- content-security-policy -->
 
         <title>Trackula</title>
+        <meta name="description" content="Tracks habits and body measurements in your own Google Sheet.">
+        <!-- The browser draws its own parts, for example the scroll bars and the first paint, in the device theme. -->
+        <meta name="color-scheme" content="light dark">
 
         <!-- Fang T logo. favicon.ico is the same logo, for browsers without SVG icons. -->
         <link rel="icon" type="image/svg+xml" href="logo.svg">
 
         <!-- Install the app: the manifest, the iOS home screen icon and the color of the browser bar (the app bar
-             color of each theme). The service worker lets the app open without a network.
+             color: the middle of the gradient of the top bar, in both themes). The service worker lets the app open without a network.
              Icons: design/logo/make.py. -->
         <link rel="manifest" href="manifest.webmanifest">
         <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
-        <meta name="theme-color" content="#b8321a" media="(prefers-color-scheme: light)">
-        <meta name="theme-color" content="#ff8c66" media="(prefers-color-scheme: dark)">
+        <meta name="theme-color" content="#cd2e24">
         <script defer src="register-sw.js"></script>
 
         <style>
-            /* Compose draws the whole app on a canvas in the body. */
-            html, body { margin: 0; height: 100%; overflow: hidden; background: #f8f9fb; }
-            @media (prefers-color-scheme: dark) { body { background: #141a22; } }
+            /* Compose draws the whole app on a canvas in the element `app`. The colors are the surface colors of
+               Theme.kt. */
+            html, body { margin: 0; height: 100%; overflow: hidden; background: #f8f9fb; color: #1a1e24; }
+            #app { width: 100%; height: 100%; }
+
+            /* The start screen: the logo and a progress circle while the browser loads the app. splash.js shows an
+               error text here if the app cannot start. Main.kt removes the element when the app shows. */
+            #splash {
+                position: fixed; inset: 0; z-index: 1; display: flex; flex-direction: column; align-items: center;
+                justify-content: center; gap: 24px; padding: 24px; background: inherit;
+                font: 16px/1.5 system-ui, sans-serif; text-align: center;
+            }
+            #splash img { width: 96px; height: 96px; }
+            #splash p { margin: 0; max-width: 28em; }
+            #splash .spinner {
+                width: 28px; height: 28px; border: 3px solid #d0d6de; border-top-color: #b8321a; border-radius: 50%;
+                animation: spin 0.9s linear infinite;
+            }
+            #splash.failed .spinner { display: none; }
+            @keyframes spin { to { transform: rotate(360deg); } }
+            @media (prefers-reduced-motion: reduce) { #splash .spinner { animation-duration: 3s; } }
+            @media (prefers-color-scheme: dark) {
+                html, body { background: #141a22; color: #e8ecf2; }
+                #splash .spinner { border-color: #36404c; border-top-color: #ff8c66; }
+            }
         </style>
+        <script src="splash.js"></script>
         <script type="application/javascript" src="trackula.js"></script>
     </head>
-    <body></body>
+    <body>
+        <div id="app"></div>
+        <div id="splash" role="status">
+            <img src="logo.svg" alt="">
+            <div class="spinner"></div>
+            <p id="splash-text">Loading Trackula…</p>
+            <noscript><p>Trackula needs JavaScript.</p></noscript>
+        </div>
+    </body>
 </html>

@@ -2,10 +2,13 @@ package trackula.app.components
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
@@ -56,5 +59,42 @@ class NumberEditorTest {
         // The press confirms 82.0. Then 3 ticks to the left give 82.3.
         assertEquals(listOf<Double?>(82.0, 82.3), values.distinct())
         ruler.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "82.3 kg"))
+    }
+
+    /** Shows the editor of a table cell: with its own buttons. Returns the names of the calls of the buttons. */
+    private fun ComposeUiTest.showCellEditor(current: Double?): List<String> {
+        val calls = mutableListOf<String>()
+        setContent {
+            TrackulaTheme(dark = false) {
+                NumberEditor(
+                    metric = weight,
+                    label = "Weight · today",
+                    current = current,
+                    start = 82.0,
+                    busy = false,
+                    onSave = { calls.add("save") },
+                    onClear = { calls.add("clear") },
+                    onClose = { calls.add("close") },
+                    autofocus = false,
+                )
+            }
+        }
+        return calls
+    }
+
+    @Test
+    fun cancelClosesTheEditorAndClearClearsADayWithAValue() = runComposeUiTest {
+        val calls = showCellEditor(current = 82.0)
+        onNodeWithText("Cancel").performClick()
+        onNodeWithText("Clear").performClick()
+        assertEquals(listOf("close", "clear"), calls)
+    }
+
+    @Test
+    fun anEmptyDayHasNoClearButton() = runComposeUiTest {
+        showCellEditor(current = null)
+        onNodeWithText("Save").assertExists()
+        onNodeWithText("Cancel").assertExists()
+        onNodeWithText("Clear").assertDoesNotExist()
     }
 }
