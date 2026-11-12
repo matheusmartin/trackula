@@ -27,7 +27,7 @@ private const val MAX_DAYS_WITH_VALUES = 7
  *
  * [score] is `scoreMetric`, or a `groupScoreMetric` with a group filter. Its name is the title.
  *
- * The score uses the green of done tiles, not the theme red.
+ * The score is green, not the theme red.
  */
 @Composable
 fun ScoreChart(score: NumberMetric, days: List<Day>, scores: Map<Day, Double>, onOpen: () -> Unit) {

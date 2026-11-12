@@ -37,18 +37,30 @@ class MetricTest {
     }
 
     @Test
-    fun yesIsOverTheLimitOfTheGoalNo() {
+    fun aYesDayReachesTheGoalYesAndIsOverTheLimitNo() {
         val coffee = YesNoMetric(id = "coffee", name = "Coffee", icon = "coffee", goalIsYes = false)
-        assertEquals(listOf(true, false), listOf(1.0, 0.0).map { isOverLimit(coffee, it) })
-        assertEquals(listOf(false, false), listOf(1.0, 0.0).map { isOverLimit(read, it) })
+        assertEquals(
+            listOf(GoalMark.REACHED, GoalMark.NONE, GoalMark.NONE),
+            listOf(1.0, 0.0, null).map { goalMark(read, it) },
+        )
+        assertEquals(
+            listOf(GoalMark.OVER_LIMIT, GoalMark.NONE, GoalMark.NONE),
+            listOf(1.0, 0.0, null).map { goalMark(coffee, it) },
+        )
     }
 
     @Test
-    fun aValueAboveTheTargetOfAtMostIsOverTheLimit() {
+    fun aCountReachesTheTargetOfAtLeastAndIsOverTheTargetOfAtMost() {
+        assertEquals(
+            listOf(GoalMark.NONE, GoalMark.REACHED, GoalMark.REACHED),
+            listOf(5.0, 8.0, 12.0).map { goalMark(water, it) },
+        )
+        // A value within a limit has no mark: the day is not over.
         val coffee = water.copy(goal = NumberGoal(2.0, isMaximum = true, from = 4.0))
-        assertEquals(listOf(false, false, true, true), listOf(0.0, 2.0, 3.0, 5.0).map { isOverLimit(coffee, it) })
-        // A value below the target of at least is not over a limit: it is on the way to the goal.
-        assertEquals(listOf(false, false), listOf(5.0, 12.0).map { isOverLimit(water, it) })
+        assertEquals(
+            listOf(GoalMark.NONE, GoalMark.NONE, GoalMark.OVER_LIMIT, GoalMark.OVER_LIMIT),
+            listOf(0.0, 2.0, 3.0, 5.0).map { goalMark(coffee, it) },
+        )
     }
 
     @Test

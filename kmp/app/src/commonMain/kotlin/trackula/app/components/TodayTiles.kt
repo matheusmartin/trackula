@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import trackula.app.LocalExtraColors
 import trackula.model.CountStep
 import trackula.model.Day
+import trackula.model.GoalMark
 import trackula.model.LogTable
 import trackula.model.LogWrite
 import trackula.model.Metric
@@ -48,8 +49,8 @@ import trackula.model.YesNoMetric
 import trackula.model.applyCountSteps
 import trackula.model.dayValues
 import trackula.model.formatStep
+import trackula.model.goalMark
 import trackula.model.goalSummary
-import trackula.model.isOverLimit
 import trackula.model.nearestDay
 import trackula.model.planClear
 import trackula.model.planNumber
@@ -68,9 +69,10 @@ import trackula.services.CountInput
  * - Number: a full-width tile with the ruler of the [NumberEditor]. An empty day starts at the latest earlier value.
  *   A drag, a typed value, or a press on the ruler (to confirm the same value) makes the value unsaved.
  *
- * A tile with a value (saved or not) is green. A yes/no or count tile with a value over the limit of its goal is
- * orange: `yes` for the goal `no`, or a count above the target of `at most`. See [isOverLimit]. An unsaved tile also
- * has a frame of its color. Phones: 2 columns. Wider screens: 4 columns. Number tiles take a full row.
+ * A tile with a value (saved or not) has the soft app color. A yes/no or count tile also shows the mark of its goal:
+ * a check mark for a target that it reaches (`yes`, `at least`), a warning sign for a limit that it goes over (`no`,
+ * `at most`). See [goalMark]. An unsaved tile has a frame of the app color. Phones: 2 columns. Wider screens: 4
+ * columns. Number tiles take a full row.
  *
  * - [onWriteAll]: saves several values in one task, in order, for the Save button. It calls its `onDone` when the
  *   write ends, also after an error.
@@ -168,7 +170,7 @@ fun TodayTiles(
                                     m is NumberMetric -> NumberTile(
                                         metric = m,
                                         modifier = tileModifier,
-                                        done = shown(m, saved) != null,
+                                        filled = shown(m, saved) != null,
                                         unsaved = m.id in drafts,
                                         saved = saved,
                                         start = nearestDay(values.keys, today)?.let { values[it] },
@@ -195,56 +197,45 @@ fun TodayTiles(
     }
 }
 
-/** The color of a tile. */
-private enum class TileState {
-    /** No value, or `no` for a yes/no metric. */
-    EMPTY,
-
-    /** A value. Green. */
-    DONE,
-
-    /** A value over the limit of the goal. Orange. See [isOverLimit]. */
-    OVER_LIMIT,
-}
-
-/** The [TileState] of a yes/no or count tile of [m] with [value]. */
-private fun tileState(m: Metric, value: Double?): TileState = when {
-    value == null || (m is YesNoMetric && value != 1.0) -> TileState.EMPTY
-    isOverLimit(m, value) -> TileState.OVER_LIMIT
-    else -> TileState.DONE
-}
-
-/** The state description of a tile over the limit. Example: "over the limit (goal: at most 2)". */
-private fun overLimitText(m: Metric): String = "over the limit (goal: ${goalSummary(m)})"
-
-/** A tile in the color of [state], with a frame of that color when [unsaved]. */
+/**
+ * A tile: in the soft app color when [filled], with a frame of the app color when [unsaved]. The tiles are not green:
+ * a value is not always good. The [Mark] shows the goal.
+ */
 @Composable
-private fun Tile(modifier: Modifier, state: TileState, unsaved: Boolean, content: @Composable () -> Unit) {
-    val extra = LocalExtraColors.current
+private fun Tile(modifier: Modifier, filled: Boolean, unsaved: Boolean, content: @Composable () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(16.dp)
-    val over = state == TileState.OVER_LIMIT
-    val frame = if (unsaved) Modifier.border(2.dp, if (over) colors.tertiary else extra.done, shape) else Modifier
+    val frame = if (unsaved) Modifier.border(2.dp, colors.primary, shape) else Modifier
     Box(
         modifier = modifier
             .clip(shape)
-            .background(
-                when (state) {
-                    TileState.EMPTY -> colors.surfaceContainer
-                    TileState.DONE -> extra.doneContainer
-                    TileState.OVER_LIMIT -> colors.tertiaryContainer
-                },
-            )
+            .background(if (filled) colors.primaryContainer else colors.surfaceContainer)
             .then(frame),
     ) {
         CompositionLocalProvider(
-            LocalContentColor provides when (state) {
-                TileState.EMPTY -> colors.onSurface
-                TileState.DONE -> extra.onDoneContainer
-                TileState.OVER_LIMIT -> colors.onTertiaryContainer
-            },
+            LocalContentColor provides if (filled) colors.onPrimaryContainer else colors.onSurface,
         ) { content() }
     }
+}
+
+/** The icon of [mark]: a check mark for [GoalMark.REACHED], a warning sign for [GoalMark.OVER_LIMIT]. */
+@Composable
+private fun Mark(mark: GoalMark) {
+    when (mark) {
+        GoalMark.NONE -> {}
+        GoalMark.REACHED -> Symbol("check", size = 20.dp)
+        GoalMark.OVER_LIMIT -> Symbol("warning", size = 20.dp)
+    }
+}
+
+/**
+ * The text of [mark] for screen readers, after the value. Empty for [GoalMark.NONE]. Examples: ", goal reached",
+ * ", over the limit of the goal at most 2".
+ */
+private fun markText(m: Metric, mark: GoalMark): String = when (mark) {
+    GoalMark.NONE -> ""
+    GoalMark.REACHED -> ", goal reached"
+    GoalMark.OVER_LIMIT -> ", over the limit of the goal ${goalSummary(m)}"
 }
 
 /** The icon and the name of [m]. */
@@ -257,24 +248,27 @@ private fun TileHead(m: Metric) {
 @Composable
 private fun YesNoTile(m: YesNoMetric, modifier: Modifier, value: Double?, unsaved: Boolean, onClick: () -> Unit) {
     val done = value == 1.0
-    val state = tileState(m, value)
-    Tile(modifier, state, unsaved) {
-        Column(
+    val mark = goalMark(m, value)
+    Tile(modifier, done, unsaved) {
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 96.dp)
                 .semantics {
                     toggleableState = ToggleableState(done)
-                    if (state == TileState.OVER_LIMIT) stateDescription = "Yes, ${overLimitText(m)}"
+                    // A screen reader says "checked" for a done tile. Over the limit, it says the limit.
+                    if (mark == GoalMark.OVER_LIMIT) stateDescription = "Yes${markText(m, mark)}"
                 }
                 .clickable(role = Role.Checkbox, onClick = onClick)
                 .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) { TileHead(m) }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { TileHead(m) }
+            Box(Modifier.align(Alignment.TopEnd)) { Mark(mark) }
+        }
     }
 }
 
-/** A tile with a counter: the value of today, 0 when empty, in the top right corner. */
+/** A tile with a counter: the value of today, 0 when empty, and the [Mark], in the top right corner. */
 @Composable
 private fun CountTile(
     m: NumberMetric,
@@ -286,27 +280,29 @@ private fun CountTile(
 ) {
     val step = formatStep(m.step, m.step)
     val counter = if (value == null) "0" else formatStep(value, m.step)
-    val state = tileState(m, value)
-    val over = if (state == TileState.OVER_LIMIT) ", ${overLimitText(m)}" else ""
-    Tile(modifier, state, unsaved) {
+    val mark = goalMark(m, value)
+    Tile(modifier, value != null, unsaved) {
         Box(
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = 96.dp)
                 .semantics {
                     contentDescription = m.name
-                    stateDescription = "$counter$over. Tap or click: +$step. Double-tap or right-click: −$step."
+                    stateDescription =
+                        "$counter${markText(m, mark)}. Tap or click: +$step. Double-tap or right-click: −$step."
                 }
                 .countInput(input, m.id, add)
                 .padding(12.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { TileHead(m) }
-            Text(
-                counter,
+            Row(
                 modifier = Modifier.align(Alignment.TopEnd),
-                fontSize = 16.sp,
-                color = LocalContentColor.current.copy(alpha = 0.7f),
-            )
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Mark(mark)
+                Text(counter, fontSize = 16.sp, color = LocalContentColor.current.copy(alpha = 0.7f))
+            }
         }
     }
 }
@@ -316,7 +312,7 @@ private fun CountTile(
 private fun NumberTile(
     metric: NumberMetric,
     modifier: Modifier,
-    done: Boolean,
+    filled: Boolean,
     unsaved: Boolean,
     saved: Double?,
     start: Double?,
@@ -324,8 +320,8 @@ private fun NumberTile(
     busy: Boolean,
     onChange: (Double?) -> Unit,
 ) {
-    // A number is a measurement: its tile is never orange. A trend goal does not use the value of the day.
-    Tile(modifier, if (done) TileState.DONE else TileState.EMPTY, unsaved) {
+    // A number is a measurement: its tile has no mark. A trend goal does not use the value of the day.
+    Tile(modifier, filled, unsaved) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 TileHead(metric)

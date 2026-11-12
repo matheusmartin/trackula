@@ -115,10 +115,21 @@ class TodayPageTest {
         changeMetric<YesNoMetric>("vitamins") { it.copy(goalIsYes = false) }
         showPage()
         onNodeWithText("Vitamins").performClick()
-        onNodeWithText("Vitamins").assert(hasState("Yes, over the limit (goal: no)"))
-        // A yes tile of the goal yes is done, not over the limit.
+        onNodeWithText("Vitamins").assert(hasState("Yes, over the limit of the goal no"))
+        // A yes tile of the goal yes reaches the goal: the screen reader says "checked", not a limit.
         onNodeWithText("Meditate").performClick()
         onNodeWithText("Meditate").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
+    }
+
+    @Test
+    fun aCountTileReachesTheTargetOfAtLeast() = runComposeUiTest {
+        changeMetric<NumberMetric>("water") { it.copy(goal = NumberGoal(2.0)) }
+        showPage()
+        val tile = onNodeWithContentDescription("Water")
+        tile.performMouseInput { click() }
+        tile.assert(hasState("1. Tap or click: +1. Double-tap or right-click: −1."))
+        tile.performMouseInput { click() }
+        tile.assert(hasState("2, goal reached. Tap or click: +1. Double-tap or right-click: −1."))
     }
 
     @Test
@@ -128,9 +139,12 @@ class TodayPageTest {
         val tile = onNodeWithContentDescription("Water")
         tile.performMouseInput { click() }
         tile.performMouseInput { click() }
+        // Within the limit: no mark.
         tile.assert(hasState("2. Tap or click: +1. Double-tap or right-click: −1."))
         tile.performMouseInput { click() }
-        tile.assert(hasState("3, over the limit (goal: at most 2). Tap or click: +1. Double-tap or right-click: −1."))
+        tile.assert(
+            hasState("3, over the limit of the goal at most 2. Tap or click: +1. Double-tap or right-click: −1."),
+        )
     }
 
     @Test
