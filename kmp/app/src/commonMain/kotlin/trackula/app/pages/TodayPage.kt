@@ -312,7 +312,9 @@ fun TodayPage(
         } else {
             // A short fade between the views of the navigation.
             Crossfade(view, animationSpec = tween(VIEW_FADE_MILLIS)) { shownView ->
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // The table of 5 days is not wider than TABLE_WIDTH: on a wide screen, the cells stay near the names.
+                val width = if (shownView == MainView.SHORT) Modifier.widthIn(max = TABLE_WIDTH) else Modifier
+                Column(width, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     when (shownView) {
                         MainView.TODAY -> TodayTiles(
                             metrics = shown,
@@ -355,6 +357,9 @@ fun TodayPage(
         }
     }
 }
+
+/** The largest width of the "5 days" view. */
+private val TABLE_WIDTH = 720.dp
 
 /** The time of the fade between two views of the navigation. */
 private const val VIEW_FADE_MILLIS = 150

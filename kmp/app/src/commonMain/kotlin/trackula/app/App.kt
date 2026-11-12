@@ -125,7 +125,7 @@ private fun AppContent(platform: Platform) {
         ) {
             // Only on the main views: a detail screen and a form have their own title at the top.
             if (!showsDetail && !managing) {
-                Notice("Demo mode: sample data in this tab only. Nothing goes to Google Sheets. A reload starts again.")
+                Notice("Demo mode: sample data. Nothing goes to Google Sheets.")
             }
             todayPage(demo, { false }, {})
         }

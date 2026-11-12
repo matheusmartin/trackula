@@ -3,9 +3,14 @@
 package trackula.app
 
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.window.ComposeViewport
 import kotlinx.browser.document
+import org.jetbrains.compose.resources.ExperimentalResourceApi
+import org.jetbrains.compose.resources.preloadFont
+import trackula.app.resources.Res
+import trackula.app.resources.symbols
 import trackula.model.Day
 import trackula.services.Config
 import trackula.services.historyBack
@@ -18,14 +23,18 @@ import trackula.services.Session as GoogleSession
 import trackula.services.today as browserToday
 
 /**
- * Starts the app in the element `app` of index.html. When the first screen shows, it removes the element `splash`: the
- * logo that the page shows while the browser loads the app.
+ * Starts the app in the element `app` of index.html. The app shows after the browser loaded the icon font: before
+ * that, each icon shows as its name, for example "refresh". Then it removes the element `splash`: the logo that the
+ * page shows while the browser loads the app.
  */
-@OptIn(ExperimentalComposeUiApi::class)
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalResourceApi::class)
 fun main() {
     ComposeViewport(document.getElementById("app")!!) {
-        App(BrowserPlatform)
-        LaunchedEffect(Unit) { document.getElementById("splash")?.remove() }
+        val symbols by preloadFont(Res.font.symbols)
+        if (symbols != null) {
+            App(BrowserPlatform)
+            LaunchedEffect(Unit) { document.getElementById("splash")?.remove() }
+        }
     }
 }
 
