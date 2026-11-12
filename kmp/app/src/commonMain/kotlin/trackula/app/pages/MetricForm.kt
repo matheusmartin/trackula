@@ -11,15 +11,17 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -39,14 +41,21 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import trackula.app.components.AppCard
 import trackula.app.components.AppIconButton
+import trackula.app.components.FORM_WIDTH
 import trackula.app.components.MetricIcon
+import trackula.app.components.Notice
+import trackula.app.components.NoticeKind
+import trackula.app.components.PrimaryButton
 import trackula.app.components.Symbol
+import trackula.app.components.TOUCH_TARGET
 import trackula.app.components.groupLabel
 import trackula.app.components.outset
 import trackula.model.DraftField
@@ -96,13 +105,18 @@ internal data class FormSetup(
 /**
  * The form of one metric, on its own page: the name and the icon, the kind, the unit, the step, the group and the goal.
  * Save checks the values (see [MetricDraft.check]) and calls [onSave] with the metric. The errors show below the
- * fields after the first Save.
+ * fields after the first Save, and a text above the Save button names the fields with errors. Wide screens: the form
+ * is at most [FORM_WIDTH] wide and centered.
+ *
+ * The buttons at the end: Save, Cancel, then Delete, apart from the others. Close and Cancel ask before they discard
+ * a changed form.
  *
  * - [takenIds]: the ids that a new metric must not get. See [newMetricId].
  * - [groups]: the groups of the other metrics. A tap on a group chip sets the group.
  * - [busy]: true while data loads or saves. Save and Delete are disabled.
  * - [error]: the error of the last write, or null.
  * - [onDelete]: deletes the metric or the row, after the user confirms the [FormSetup.deleteQuestion].
+ * - [onClose]: closes the form without a save.
  */
 @Composable
 internal fun MetricForm(
@@ -119,60 +133,77 @@ internal fun MetricForm(
     // True after the first Save: then each field shows its error, and the errors follow each change.
     var tried by remember(setup) { mutableStateOf(false) }
     var confirmsDelete by remember(setup) { mutableStateOf(false) }
+    var confirmsDiscard by remember(setup) { mutableStateOf(false) }
     val id = setup.id ?: newMetricId(draft.name, takenIds)
     val errors = if (tried) draft.check(id).errors else emptyMap()
 
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            AppIconButton(icon = "close", title = "Close without saving", onClick = onClose)
-            Text(setup.title, style = MaterialTheme.typography.headlineSmall)
-        }
-        setup.note?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+    // Closes the form. A changed form asks first.
+    fun close() {
+        if (draft == setup.initial) onClose() else confirmsDiscard = true
+    }
 
-        NameAndIcon(draft, errors) { draft = it }
-        KindUnitAndGroup(draft, errors, setup.valueKind, groups) { draft = it }
-        Goal(draft, errors) { draft = it }
+    Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        Column(Modifier.widthIn(max = FORM_WIDTH).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AppIconButton(icon = "close", title = "Close without saving", onClick = ::close)
+                Text(
+                    setup.title,
+                    modifier = Modifier.padding(start = 4.dp).semantics { heading() },
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+            }
+            setup.note?.let { Notice(it, kind = NoticeKind.ERROR) }
 
-        Column(Modifier.padding(horizontal = 4.dp)) {
-            Text("Sheet column: $id", style = MaterialTheme.typography.bodyMedium)
-            Text(
-                if (setup.id == null) {
-                    "The app makes it from the name. It does not change after you save."
-                } else {
-                    "It does not change."
+            NameAndIcon(draft, errors) { draft = it }
+            KindUnitAndGroup(draft, errors, setup.valueKind, groups) { draft = it }
+            Goal(draft, errors) { draft = it }
+
+            Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Sheet column: $id", style = MaterialTheme.typography.bodyMedium)
+                Help(
+                    if (setup.id == null) {
+                        "The app makes it from the name. It does not change after you save."
+                    } else {
+                        "It does not change."
+                    },
+                )
+            }
+
+            // The fields with errors can be out of view: this text is next to the Save button.
+            if (errors.isNotEmpty()) Notice(errorSummary(errors.keys), kind = NoticeKind.ERROR)
+            error?.let { Notice(it, kind = NoticeKind.ERROR) }
+            PrimaryButton(
+                text = if (busy) "Saving…" else "Save",
+                onClick = {
+                    tried = true
+                    draft.check(id).metric?.let(onSave)
                 },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        if (setup.deleteQuestion != null) {
-            OutlinedButton(
-                onClick = { confirmsDelete = true },
-                enabled = !busy,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-            ) {
-                Symbol("delete", size = 20.dp)
-                Text(setup.deleteLabel, Modifier.padding(start = 8.dp))
+                enabled = !busy,
+            )
+            TextButton(onClick = ::close, modifier = Modifier.fillMaxWidth().heightIn(min = TOUCH_TARGET)) {
+                Text("Cancel")
+            }
+            // Delete is the last button, after a line: not next to Save.
+            if (setup.deleteQuestion != null) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                OutlinedButton(
+                    onClick = { confirmsDelete = true },
+                    enabled = !busy,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = TOUCH_TARGET),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                ) {
+                    Symbol("delete", size = 20.dp)
+                    Text(setup.deleteLabel, Modifier.padding(start = 8.dp))
+                }
             }
         }
-        Button(
-            onClick = {
-                tried = true
-                draft.check(id).metric?.let(onSave)
-            },
-            enabled = !busy,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-        ) { Text(if (busy) "Saving…" else "Save") }
-        TextButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
     }
 
     if (confirmsDelete && setup.deleteQuestion != null) {
         AlertDialog(
             onDismissRequest = { confirmsDelete = false },
-            title = { Text("Delete?") },
+            title = { Text("${setup.deleteLabel}?") },
             text = { Text(setup.deleteQuestion) },
             confirmButton = {
                 TextButton(
@@ -180,11 +211,42 @@ internal fun MetricForm(
                         confirmsDelete = false
                         onDelete()
                     },
-                ) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                ) { Text(setup.deleteLabel, color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = { TextButton(onClick = { confirmsDelete = false }) { Text("Cancel") } },
         )
     }
+    if (confirmsDiscard) {
+        AlertDialog(
+            onDismissRequest = { confirmsDiscard = false },
+            title = { Text("Discard changes?") },
+            text = { Text("The changes in this form are not saved.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmsDiscard = false
+                        onClose()
+                    },
+                ) { Text("Discard", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { confirmsDiscard = false }) { Text("Keep editing") } },
+        )
+    }
+}
+
+/** The names of the form fields in the error summary. */
+private val fieldNames = mapOf(
+    DraftField.NAME to "Name",
+    DraftField.ICON to "Icon",
+    DraftField.STEP to "Step",
+    DraftField.TARGET to "Target",
+    DraftField.START to "Start",
+)
+
+/** The error summary of [fields], in the order of the form. Example: "Correct these fields: Name, Target." */
+private fun errorSummary(fields: Set<DraftField>): String {
+    val names = DraftField.entries.filter { it in fields }.map(fieldNames::getValue)
+    return if (names.size == 1) "Correct this field: ${names[0]}." else "Correct these fields: ${names.joinToString()}."
 }
 
 @Composable
@@ -244,7 +306,8 @@ private fun KindUnitAndGroup(
                 }
             }
         }
-        Field("Group", draft.group) { onChange(draft.copy(group = it)) }
+        // The last field of a yes/no metric: its goal has no fields.
+        Field("Group", draft.group, isLast = draft.kind == MetricKind.YES_NO) { onChange(draft.copy(group = it)) }
         if (groups.isNotEmpty()) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (group in groups) {
@@ -279,7 +342,7 @@ private fun Goal(draft: MetricDraft, errors: Map<DraftField, String>, onChange: 
                     }
                 }
                 Box(Modifier.weight(1f)) {
-                    Field("Start (optional)", draft.start, errors[DraftField.START], isNumber = true) {
+                    Field("Start (optional)", draft.start, errors[DraftField.START], isNumber = true, isLast = true) {
                         onChange(draft.copy(start = it))
                     }
                 }
@@ -382,19 +445,23 @@ private const val SAMPLES = 120
 private fun Section(title: String, content: @Composable () -> Unit) {
     AppCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
+            Text(title, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
             content()
         }
     }
 }
 
-/** A text field with a [label], and its [error] below it. [isNumber] shows the number keyboard on a phone. */
+/**
+ * A text field with a [label], and its [error] below it. [isNumber] shows the number keyboard on a phone. The action
+ * key of the keyboard goes to the next field. On the last field ([isLast]), it closes the keyboard.
+ */
 @Composable
 private fun Field(
     label: String,
     value: String,
     error: String? = null,
     isNumber: Boolean = false,
+    isLast: Boolean = false,
     onChange: (String) -> Unit,
 ) {
     OutlinedTextField(
@@ -405,7 +472,10 @@ private fun Field(
         isError = error != null,
         supportingText = error?.let { { Text(it) } },
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = if (isNumber) KeyboardType.Decimal else KeyboardType.Text),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (isNumber) KeyboardType.Decimal else KeyboardType.Text,
+            imeAction = if (isLast) ImeAction.Done else ImeAction.Next,
+        ),
     )
 }
 
@@ -428,7 +498,7 @@ private fun IconChoice(name: String, selected: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(10.dp)
     Box(
         modifier = Modifier
-            .size(44.dp)
+            .size(TOUCH_TARGET)
             .background(if (selected) colors.primaryContainer else colors.surfaceContainerLowest, shape)
             .border(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant, shape)
             .clip(shape)
@@ -439,7 +509,7 @@ private fun IconChoice(name: String, selected: Boolean, onClick: () -> Unit) {
             },
         contentAlignment = Alignment.Center,
     ) {
-        Symbol(name, size = 22.dp, color = colors.primary)
+        Symbol(name, size = 24.dp, color = colors.primary)
     }
 }
 

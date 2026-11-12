@@ -8,8 +8,10 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -30,6 +32,7 @@ import kotlin.test.assertEquals
 class MetricFormTest {
     private val saved = mutableListOf<Metric>()
     private var deletes = 0
+    private var closes = 0
 
     private val weight = MetricDraft(
         name = "Weight",
@@ -54,7 +57,7 @@ class MetricFormTest {
                         error = null,
                         onSave = { saved.add(it) },
                         onDelete = { deletes++ },
-                        onClose = {},
+                        onClose = { closes++ },
                     )
                 }
             }
@@ -92,6 +95,44 @@ class MetricFormTest {
     }
 
     @Test
+    fun aTextNextToSaveNamesTheFieldsWithErrors() = runComposeUiTest {
+        showForm(FormSetup("Add metric", MetricDraft(kind = MetricKind.COUNT)))
+        onNodeWithText("Save").performScrollTo().performClick()
+        onNodeWithText("Correct these fields: Name, Icon, Target.").performScrollTo().assertExists()
+
+        onNode(hasSetTextAction() and hasText("Name")).performScrollTo().performTextReplacement("Steps")
+        onNode(hasSetTextAction() and hasText("Icon")).performScrollTo().performTextReplacement("footprint")
+        onNodeWithText("Correct this field: Target.").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun closeAndCancelCloseAFormWithoutChangesAtOnce() = runComposeUiTest {
+        showForm(FormSetup("Edit metric", weight, id = "weight"))
+        onNodeWithContentDescription("Close without saving").performClick()
+        onNodeWithText("Cancel").performScrollTo().performClick()
+        onNodeWithText("Discard changes?").assertDoesNotExist()
+        assertEquals(2, closes)
+    }
+
+    @Test
+    fun closeAndCancelAskBeforeTheyDiscardChanges() = runComposeUiTest {
+        showForm(FormSetup("Edit metric", weight, id = "weight"))
+        onNode(hasSetTextAction() and hasText("Name")).performTextReplacement("Mass")
+
+        onNodeWithContentDescription("Close without saving").performClick()
+        onNodeWithText("Discard changes?").assertExists()
+        onNodeWithText("Keep editing").performClick()
+        waitForIdle()
+        assertEquals(0, closes)
+        onNode(hasSetTextAction() and hasText("Mass")).assertExists()
+
+        onNodeWithText("Cancel").performScrollTo().performClick()
+        onNodeWithText("Discard").performClick()
+        waitForIdle()
+        assertEquals(1, closes)
+    }
+
+    @Test
     fun aGroupChipSetsTheGroupAndSaveGivesTheMetric() = runComposeUiTest {
         showForm(FormSetup("Edit metric", weight, id = "weight"))
         onNodeWithText("Health").performScrollTo().performClick()
@@ -124,8 +165,9 @@ class MetricFormTest {
     fun deleteAsksFirst() = runComposeUiTest {
         showForm(FormSetup("Edit metric", weight, id = "weight", deleteQuestion = "Delete \"Weight\"?"))
         onNodeWithText("Delete metric").performScrollTo().performClick()
+        onNodeWithText("Delete metric?").assertExists()
         onNodeWithText("Delete \"Weight\"?").assertExists()
-        onNodeWithText("Delete").performClick()
+        onNode(hasText("Delete metric") and hasAnyAncestor(isDialog())).performClick()
         waitForIdle()
         assertEquals(1, deletes)
         onNodeWithContentDescription("Close without saving").assertExists()
