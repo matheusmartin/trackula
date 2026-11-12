@@ -16,6 +16,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import trackula.model.CountStep
@@ -81,12 +83,17 @@ fun MonthCalendar(
         // Phones: one month. Wider screens: the month before on the left, and a title with both months.
         val two = maxWidth >= WIDE_CONTENT
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Edit days", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Edit days",
+                modifier = Modifier.semantics { heading() },
+                style = MaterialTheme.typography.titleMedium,
+            )
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AppIconButton("chevron_left", "Previous month", { move(-1) })
                 Text(
                     if (two) monthPairTitle(before, month) else monthTitle(month),
                     modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleSmall,
                     textAlign = TextAlign.Center,
                 )
                 AppIconButton("chevron_right", "Next month", { move(1) }, enabled = !isThisMonth)

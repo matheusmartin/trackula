@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,13 +37,20 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,6 +62,7 @@ import trackula.model.ZoomBar
 import trackula.model.barLabel
 import trackula.model.daysBetween
 import trackula.model.formatNumber
+import trackula.model.formatPercent
 import trackula.model.roundHalfAwayFromZero
 import trackula.model.shortDay
 import kotlin.math.abs
@@ -85,10 +94,50 @@ internal val WIDE_CONTENT = 608.dp
 /** The height of a bar or line chart. */
 private val PLOT_HEIGHT = 96.dp
 
-/** The text of the chart labels. */
+/** The content width from which the chart grid has 3 columns. */
+private val THREE_COLUMNS = 1000.dp
+
+/** The smallest space between two labels or two values in a row of columns. */
+private val LABEL_GAP = 4.dp
+
+/** The text of the chart labels: the smallest text of the app. */
 @Composable
 internal fun labelStyle() =
-    TextStyle(fontSize = 11.sp, lineHeight = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    TextStyle(fontSize = SMALL_TEXT, lineHeight = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+/** The text color with the best contrast on [fill]: [DARK_INK] or [LIGHT_INK]. */
+internal fun inkOn(fill: Color): Color {
+    val luminance = fill.luminance()
+    val dark = (luminance + 0.05f) / (DARK_INK.luminance() + 0.05f)
+    val light = (LIGHT_INK.luminance() + 0.05f) / (luminance + 0.05f)
+    return if (dark >= light) DARK_INK else LIGHT_INK
+}
+
+/**
+ * The data of a chart in a short text for screen readers: the [title] and each label with its value. With more than
+ * [MAX_SPOKEN] values, only the number of values, the lowest and the highest value.
+ */
+internal fun spokenValues(
+    title: String,
+    labels: List<String>,
+    values: List<Double?>,
+    format: (Double) -> String,
+): String {
+    val pairs = labels.zip(values).mapNotNull { (label, value) -> value?.let { label to it } }
+    return when {
+        pairs.isEmpty() -> "$title: no values"
+
+        pairs.size <= MAX_SPOKEN ->
+            "$title: " +
+                pairs.joinToString(", ") { (label, value) -> "$label ${format(value)}" }
+
+        else -> "$title: ${pairs.size} values, from ${format(pairs.minOf { it.second })} to " +
+            format(pairs.maxOf { it.second })
+    }
+}
+
+/** The largest number of values that [spokenValues] gives one by one. */
+private const val MAX_SPOKEN = 14
 
 /** The y coordinate of a value from [low] (bottom) to [high] (top), with 2 units of space at the top and the bottom. */
 private fun yScale(high: Double, low: Double): (Double) -> Float = { value ->
@@ -104,35 +153,38 @@ fun ChartCard(title: String, description: String, modifier: Modifier = Modifier,
     Column(
         modifier = modifier
             .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
-            .padding(12.dp),
+            .padding(16.dp),
     ) {
-        Text(title, fontSize = 14.sp)
-        Text(
-            description,
-            modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
-            fontSize = 11.sp,
-            lineHeight = 14.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Text(title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleSmall)
+        Text(description, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp), style = labelStyle())
         content()
     }
 }
 
 /** The text of a chart card with no chart. */
 @Composable
-internal fun NoValues() = Text("No values in this period.", style = labelStyle())
+internal fun NoValues() = Text(
+    "No values in this period.",
+    modifier = Modifier.padding(vertical = 8.dp),
+    style = MaterialTheme.typography.bodySmall,
+    color = MaterialTheme.colorScheme.onSurfaceVariant,
+)
 
 /** A card of a [ChartGrid]: [wide] cards take a full row. */
 class ChartItem(val wide: Boolean, val content: @Composable (Modifier) -> Unit)
 
 /**
- * The chart cards of the detail screen: 1 column on phones, 2 on wider screens. Wide cards take the full width. Dense:
- * a small card fills the gap before a wide card.
+ * The chart cards of the detail screen: 1 column on phones, 2 on wider screens, 3 from 1000 dp. Wide cards take the
+ * full width. Dense: a small card fills the gap before a wide card.
  */
 @Composable
 fun ChartGrid(items: List<ChartItem>) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val columns = if (maxWidth >= WIDE_CONTENT) 2 else 1
+        val columns = when {
+            maxWidth >= THREE_COLUMNS -> 3
+            maxWidth >= WIDE_CONTENT -> 2
+            else -> 1
+        }
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             for (row in tileRows(items, columns) { it.wide }) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -159,15 +211,19 @@ fun KeyNumbers(items: List<Pair<String, String>>) {
                             Modifier
                                 .weight(1f)
                                 .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp))
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                                // One element for screen readers: the value with its label.
+                                .semantics(mergeDescendants = true) {}
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
                             Text(
                                 value,
-                                fontSize = 20.sp,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.Medium,
                                 color = MaterialTheme.colorScheme.primary,
+                                maxLines = 1,
                             )
-                            Text(label, style = labelStyle())
+                            Text(label, style = labelStyle(), maxLines = 1)
                         }
                     }
                     if (row.size < columns) Spacer(Modifier.weight((columns - row.size).toFloat()))
@@ -180,24 +236,62 @@ fun KeyNumbers(items: List<Pair<String, String>>) {
 /** One bar of a [BarChart]. A null value draws no bar. */
 data class Bar(val label: String, val value: Double?)
 
-/** The labels under a chart: all labels in equal columns if there are few or [all], else the first and the last. */
+/**
+ * One text for each column of a chart, each in the center of its column. [texts] has one entry for each column: a null
+ * or empty entry shows nothing. If the widest text does not fit in a column, only each second, third or later text
+ * shows, so that the texts do not overlap: counted from the last column with [fromEnd], else from the first column.
+ */
+@Composable
+internal fun ColumnTexts(
+    texts: List<String?>,
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+    fromEnd: Boolean = false,
+) {
+    if (texts.isEmpty()) return
+    val measurer = rememberTextMeasurer(cacheSize = texts.size)
+    val density = LocalDensity.current
+    // The widest text and the gap, in pixels.
+    val needed = remember(texts, style, density) {
+        val widest = texts.maxOf { text -> if (text.isNullOrEmpty()) 0 else measurer.measure(text, style).size.width }
+        widest + with(density) { LABEL_GAP.roundToPx() }
+    }
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val column = constraints.maxWidth.toFloat() / texts.size
+        val stride = max(1, ceil(needed / column).toInt())
+        val shown = texts.indices.filter { i ->
+            !texts[i].isNullOrEmpty() && (if (fromEnd) texts.lastIndex - i else i) % stride == 0
+        }
+        val content = @Composable {
+            for (i in shown) Text(texts[i].orEmpty(), style = style, maxLines = 1, softWrap = false)
+        }
+        Layout(content) { measurables, constraints ->
+            val width = constraints.maxWidth
+            val placeables = measurables.map { it.measure(Constraints()) }
+            val height = max(placeables.maxOfOrNull { it.height } ?: 0, style.lineHeight.roundToPx())
+            layout(width, height) {
+                placeables.forEachIndexed { n, placeable ->
+                    val center = (shown[n] + 0.5f) * column
+                    // A text at the edge stays inside the chart.
+                    val x = (center - placeable.width / 2f).toInt().coerceIn(0, max(0, width - placeable.width))
+                    placeable.place(x, 0)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The labels under a chart. With few labels or [all]: one label in each column, and only each second or later label
+ * if the columns are too narrow (see [ColumnTexts]). Else the first and the last label.
+ */
 @Composable
 internal fun Labels(labels: List<String>, all: Boolean = false) {
     if (labels.isEmpty()) return
     if (all || labels.size <= 12) {
-        Row(Modifier.fillMaxWidth()) {
-            for (label in labels) {
-                Text(
-                    label,
-                    modifier = Modifier.weight(1f),
-                    style = labelStyle(),
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                )
-            }
-        }
+        ColumnTexts(labels, labelStyle(), Modifier.padding(top = 4.dp))
     } else {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(labels.first(), style = labelStyle())
             Text(labels.last(), style = labelStyle())
         }
@@ -244,22 +338,19 @@ internal fun Scroller(columns: Int, content: @Composable () -> Unit) {
     }
 }
 
-/** The values above the bars of a bar chart, one in each column. A null value has no text. */
+/**
+ * The values above the bars of a bar chart, one in each column. A null value has no text. If the columns are too
+ * narrow for the values, only each second or later value shows, and the newest value always shows.
+ */
 @Composable
 internal fun ValueRow(values: List<Double?>, format: (Double) -> String) {
-    // Many values on a phone: smaller text.
-    val dense = values.size > 8
-    Row(Modifier.fillMaxWidth().padding(bottom = 3.dp)) {
-        for (v in values) {
-            Text(
-                v?.let { format(it).replaceFirst('-', '−') }.orEmpty(),
-                modifier = Modifier.weight(1f),
-                fontSize = if (dense) 10.sp else 11.sp,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-            )
-        }
-    }
+    val style = labelStyle().copy(color = MaterialTheme.colorScheme.onSurface)
+    ColumnTexts(
+        values.map { v -> v?.let { format(it).replaceFirst('-', '−') } },
+        style,
+        Modifier.padding(bottom = 4.dp),
+        fromEnd = true,
+    )
 }
 
 /**
@@ -279,8 +370,9 @@ private fun BarRows(bars: List<Bar>, label: String, max: Double?, format: (Doubl
     val zero = if (below == 0.0) PLOT_UNITS else (above / scale * PLOT_UNITS).toFloat()
     val filled = LocalExtraColors.current.cell
     val second = MaterialTheme.colorScheme.tertiary
+    val spoken = spokenValues(label, bars.map { it.label }, bars.map { it.value }, format)
     if (showValues) ValueRow(bars.map { it.value }, format)
-    Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = label }) {
+    Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = spoken }) {
         val sx = size.width / (bars.size * COLUMN_UNITS)
         val sy = size.height / PLOT_UNITS
         bars.forEachIndexed { i, b ->
@@ -345,8 +437,9 @@ fun StackedBarChart(
         val scale = if (high == 0.0) 1.0 else high
         Scroller(labels.size) {
             Column {
+                val spoken = spokenValues(title, labels, sums, format)
                 ValueRow(sums, format)
-                Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = title }) {
+                Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = spoken }) {
                     val sx = size.width / (labels.size * COLUMN_UNITS)
                     val sy = size.height / PLOT_UNITS
                     val gap = 1.5.dp.toPx()
@@ -377,7 +470,7 @@ fun StackedBarChart(
 @Composable
 internal fun Legend(parts: List<StackPart>) {
     FlowRow(
-        Modifier.padding(top = 8.dp),
+        Modifier.padding(top = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -386,8 +479,8 @@ internal fun Legend(parts: List<StackPart>) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.size(11.dp).background(part.color, RoundedCornerShape(3.dp)))
-                Text(part.label, fontSize = 13.sp)
+                Box(Modifier.size(12.dp).background(part.color, RoundedCornerShape(3.dp)))
+                Text(part.label, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -418,7 +511,11 @@ fun LineChart(
         val primary = MaterialTheme.colorScheme.primary
         val dotColor = if (trend == null) primary else LocalExtraColors.current.cell
         val y = yScale(high, low)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        val shown = (trend ?: values).filterNotNull().ifEmpty { all }
+        val spoken = "$title: from ${formatNumber(shown.first(), decimals)} on ${shortDay(days.first())} to " +
+            "${formatNumber(shown.last(), decimals)} on ${shortDay(days.last())}, lowest " +
+            "${formatNumber(shown.min(), decimals)}, highest ${formatNumber(shown.max(), decimals)}"
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Column(
                 Modifier.height(PLOT_HEIGHT),
                 verticalArrangement = Arrangement.SpaceBetween,
@@ -428,7 +525,7 @@ fun LineChart(
                 if (high != low) Text(formatNumber(low, decimals), style = labelStyle())
             }
             Column(Modifier.weight(1f)) {
-                Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = title }) {
+                Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = spoken }) {
                     val width = max(1, values.size - 1).toFloat()
                     val sx = size.width / width
                     val sy = size.height / PLOT_UNITS
@@ -449,7 +546,7 @@ fun LineChart(
                         }
                     }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(shortDay(days.first()), style = labelStyle())
                     Text(shortDay(days.last()), style = labelStyle())
                 }
@@ -472,9 +569,11 @@ fun DonutChart(
 ) {
     ChartCard(title, description, modifier) {
         val total = parts.sumOf { it.value }
+        if (total == 0) return@ChartCard NoValues()
+        val spoken = "$title: " + parts.joinToString(", ") { "${it.label} ${it.value}" }
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(104.dp), contentAlignment = Alignment.Center) {
-                Canvas(Modifier.size(104.dp).semantics { contentDescription = title }) {
+                Canvas(Modifier.size(104.dp).semantics { contentDescription = spoken }) {
                     // The radius of the ring is 40 % of the size, and its width 16 %, as in the Dart chart.
                     val stroke = size.width * 0.16f
                     val radius = size.width * 0.4f
@@ -497,20 +596,20 @@ fun DonutChart(
                 }
                 Text(
                     center,
-                    fontSize = 18.sp,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.primary,
                 )
             }
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (part in parts) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Box(Modifier.size(11.dp).background(part.color, RoundedCornerShape(3.dp)))
-                        val percent = if (total == 0) 0 else roundHalfAwayFromZero(part.value * 100.0 / total).toInt()
-                        Text("${part.label}: ${part.value} · $percent%", fontSize = 13.sp)
+                        Box(Modifier.size(12.dp).background(part.color, RoundedCornerShape(3.dp)))
+                        val percent = formatPercent(part.value.toDouble() / total)
+                        Text("${part.label}: ${part.value} · $percent", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -549,7 +648,15 @@ fun TimeBars(
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
             Column(Modifier.widthIn(max = MAX_COLUMN_WIDTH * bars.size).fillMaxWidth()) {
                 if (showsRange) {
-                    RangeBars(bars.map { it.toRange() }, high, low, title)
+                    val labels = bars.map { barLabel(it.start, barUnit) }
+                    RangeBars(
+                        bars.map {
+                            it.toRange()
+                        },
+                        high,
+                        low,
+                        spokenValues(title, labels, bars.map { it.value }, format),
+                    )
                 } else {
                     BarRows(
                         bars.map { Bar(barLabel(it.start, barUnit), it.value) },
@@ -569,6 +676,9 @@ fun TimeBars(
  * One bar in the color [bar] from the lowest to the highest value for each of [ranges], and the average as a dot in
  * the color [dot]. A null range has no bar. With [marks], a diamond in the cell color shows the mark of each column,
  * also in a column without a range. A null mark has no diamond. The scale goes from [low] (bottom) to [high] (top).
+ *
+ * The default colors have a contrast of 3:1 or more in both themes: the bar on the card, and the dot on the bar. A
+ * diamond has a thin frame in the card color, so that it stays apart from a bar below it.
  */
 @Composable
 internal fun RangeBars(
@@ -576,11 +686,12 @@ internal fun RangeBars(
     high: Double,
     low: Double,
     label: String,
-    bar: Color = LocalExtraColors.current.cellEmpty,
-    dot: Color = MaterialTheme.colorScheme.primary,
+    bar: Color = MaterialTheme.colorScheme.primary,
+    dot: Color = MaterialTheme.colorScheme.surfaceContainerLowest,
     marks: List<Double?> = emptyList(),
 ) {
     val mark = LocalExtraColors.current.cell
+    val card = MaterialTheme.colorScheme.surfaceContainer
     val y = yScale(high, low)
     Canvas(Modifier.fillMaxWidth().height(PLOT_HEIGHT).semantics { contentDescription = label }) {
         val sx = size.width / (ranges.size * COLUMN_UNITS)
@@ -610,6 +721,7 @@ internal fun RangeBars(
                 close()
             }
             drawPath(diamond, mark)
+            drawPath(diamond, card, style = Stroke(1.5.dp.toPx(), join = StrokeJoin.Round))
         }
     }
 }
@@ -632,7 +744,8 @@ fun Overview(weeks: List<ZoomBar>, fromZero: Boolean, from: Day, to: Day, onPoin
     if (weeks.isEmpty()) return
     val point by rememberUpdatedState(onPoint)
     val filled = LocalExtraColors.current.cell
-    val outline = MaterialTheme.colorScheme.outlineVariant
+    // The bars out of the window: grey, with a contrast of 3:1 on the page.
+    val outline = MaterialTheme.colorScheme.outline.copy(alpha = 0.8f)
     val primary = MaterialTheme.colorScheme.primary
     val values = weeks.mapNotNull { it.value }
     val high = values.maxOrNull() ?: 1.0
@@ -650,7 +763,8 @@ fun Overview(weeks: List<ZoomBar>, fromZero: Boolean, from: Day, to: Day, onPoin
     Canvas(
         Modifier
             .fillMaxWidth()
-            .height(32.dp)
+            .height(40.dp)
+            .pointerHoverIcon(PointerIcon.Hand)
             .semantics { contentDescription = "All data" }
             .pointerInput(first, last) {
                 // A press and each move: all moves go to the overview, also vertical ones.
@@ -685,7 +799,7 @@ fun Overview(weeks: List<ZoomBar>, fromZero: Boolean, from: Day, to: Day, onPoin
             primary,
             topLeft = Offset(left, 0.5f * sy),
             size = Size(max(4 * sx, x(to.addDays(1)) - left), (barHeight + 1) * sy),
-            style = Stroke(1.5.dp.toPx()),
+            style = Stroke(2.dp.toPx()),
         )
     }
 }
@@ -718,8 +832,8 @@ fun DayHeatmap(
         val columns = ceil((offset + days.size) / 7.0).toInt()
         val extra = LocalExtraColors.current
         BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-            // Short windows: cells at most about 24 dp, centered, not the full width.
-            val width: Dp = min(maxWidth.value, columns * 24f).dp
+            // Short windows: cells at most about 28 dp, centered, not the full width.
+            val width: Dp = min(maxWidth.value, columns * 28f).dp
             DayCells(days, offset, columns, width, today, onDay) { d -> if (filled(d)) extra.cell else extra.cellEmpty }
         }
     }
@@ -746,6 +860,7 @@ private fun DayCells(
     Canvas(
         Modifier
             .size(width, width / columns * 7)
+            .then(if (onDay == null) Modifier else Modifier.pointerHoverIcon(PointerIcon.Hand))
             .semantics { contentDescription = "Days from $from to $to" }
             .pointerInput(from, to) {
                 detectTapGestures { position ->
@@ -762,7 +877,7 @@ private fun DayCells(
             val topLeft = Offset((i + offset) / 7 * step, (i + offset) % 7 * step)
             drawRoundRect(fill(d), topLeft, Size(side, side), CornerRadius(side / 5))
             if (d == today) {
-                drawRoundRect(ring, topLeft, Size(side, side), CornerRadius(side / 5), style = Stroke(1.dp.toPx()))
+                drawRoundRect(ring, topLeft, Size(side, side), CornerRadius(side / 5), style = Stroke(1.5.dp.toPx()))
             }
         }
     }

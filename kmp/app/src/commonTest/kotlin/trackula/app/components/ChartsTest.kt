@@ -1,5 +1,8 @@
 package trackula.app.components
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
@@ -9,10 +12,14 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
+import androidx.compose.ui.unit.dp
 import trackula.app.TrackulaTheme
 import trackula.model.Day
 import trackula.model.MonthKey
 import trackula.model.ValueRange
+import trackula.model.YesNoMetric
+import trackula.model.ZoomStep
+import trackula.model.ZoomWindow
 import trackula.model.daysBetween
 import trackula.model.scoreMetric
 import kotlin.test.Test
@@ -191,5 +198,53 @@ class ChartsTest {
         onNodeWithContentDescription("Sep 28: no score").assertExists()
         onNodeWithContentDescription("Next month").performClick()
         assertEquals(MonthKey(2026, 10), month)
+    }
+
+    @Test
+    fun aBarChartGivesItsValuesToScreenReaders() = runComposeUiTest {
+        setContent {
+            TrackulaTheme(dark = false) { BarChart("Change", "Changes.", listOf(Bar("A", 1.5), Bar("B", null))) }
+        }
+        onNodeWithContentDescription("Change: A 1.5").assertExists()
+    }
+
+    @Test
+    fun aNarrowBarChartShowsOnlyTheValuesAndLabelsThatFit() = runComposeUiTest {
+        val bars = (1..12).map { Bar("Label $it", 1000.0 + it) }
+        setContent {
+            TrackulaTheme(dark = false) { Box(Modifier.width(240.dp)) { BarChart("Change", "Changes.", bars) } }
+        }
+        // 12 columns of 17 dp: a value and a label do not fit in each column. The newest value and the first label show.
+        onNodeWithText("1012").assertExists()
+        onNodeWithText("1011").assertDoesNotExist()
+        onNodeWithText("Label 1").assertExists()
+        onNodeWithText("Label 2").assertDoesNotExist()
+        // Screen readers get all values.
+        onNodeWithContentDescription("Change: Label 1 1001", substring = true).assertExists()
+    }
+
+    @Test
+    fun theTextOnACellHasTheBestContrast() {
+        assertEquals(DARK_INK, inkOn(Color.White))
+        assertEquals(LIGHT_INK, inkOn(Color.Black))
+        // The strongest green of the score calendar in the light theme: dark text has more contrast than light text.
+        assertEquals(DARK_INK, inkOn(Color(0xFF62A064)))
+    }
+
+    @Test
+    fun theChartsOfAMetricWithoutValuesSayWhatToDo() = runComposeUiTest {
+        val today = days.last()
+        setContent {
+            TrackulaTheme(dark = false) {
+                MetricCharts(
+                    metric = YesNoMetric("read", "Read", icon = "menu_book"),
+                    window = ZoomWindow(ZoomStep.entries.first(), today, today),
+                    values = emptyMap(),
+                    states = emptyMap(),
+                )
+            }
+        }
+        onNodeWithText("No values yet").assertExists()
+        onNodeWithText("Yes rate").assertDoesNotExist()
     }
 }

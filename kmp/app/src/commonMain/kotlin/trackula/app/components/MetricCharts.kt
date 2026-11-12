@@ -1,12 +1,19 @@
 package trackula.app.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import trackula.app.LocalExtraColors
 import trackula.model.Aggregate
@@ -74,6 +81,9 @@ fun MetricCharts(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         when {
+            // No value on any day: one card that tells what to do, not many empty charts.
+            values.isEmpty() -> NoData(isScore(metric))
+
             metric is YesNoMetric -> YesNoCharts(window, values, yesNoStats(states, window.days, window.to))
 
             metric is NumberMetric && isScore(metric) ->
@@ -88,6 +98,33 @@ fun MetricCharts(
 
             metric is NumberMetric -> NumberCharts(metric, window, values, numberStats(values, window.days))
         }
+    }
+}
+
+/** The card of a metric with no value on any day. [score] is true for the score. */
+@Composable
+private fun NoData(score: Boolean) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surfaceContainer, RoundedCornerShape(12.dp))
+            .padding(horizontal = 16.dp, vertical = 32.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Symbol("show_chart", size = 32.dp, color = colors.onSurfaceVariant)
+        Text(if (score) "No score yet" else "No values yet", style = MaterialTheme.typography.titleMedium)
+        Text(
+            if (score) {
+                "Record a day on the Today page. Then the score and its charts show here."
+            } else {
+                "Record a day in the calendar below. Then the numbers and the charts show here."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -112,11 +149,12 @@ private fun timeBarItem(
 ): ChartItem = ChartItem(wide = true) { modifier ->
     val bars = zoomBars(values, aggregate, window.allStarts, window.unit, window.first, window.today)
     val all = bars.mapNotNull { it.value }
-    val firstInView = window.allStarts.indexOf(window.starts.first())
+    // A window without bars, for example with values only after today: the card says that there are no values.
+    val firstInView = window.starts.firstOrNull()?.let(window.allStarts::indexOf) ?: -1
     TimeBars(
         title = title,
         description = description,
-        bars = bars.subList(firstInView, firstInView + window.starts.size),
+        bars = if (firstInView < 0) emptyList() else bars.subList(firstInView, firstInView + window.starts.size),
         barUnit = window.unit,
         modifier = modifier,
         format = format,
