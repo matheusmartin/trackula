@@ -96,7 +96,7 @@ private val darkColors = darkColorScheme(
 /**
  * The colors of the app that Material Design 3 does not have.
  *
- * @property done The green of done tiles and of the score.
+ * @property done The green of the score.
  * @property cell The fill of a day with a value: table cells, calendars, heatmap and bars. The same in both themes.
  * @property cellBrush The logo gradient on the table and calendar cells.
  * @property cellEmpty The fill of a day with no value.
@@ -110,8 +110,6 @@ private val darkColors = darkColorScheme(
 data class ExtraColors(
     val done: Color,
     val onDone: Color,
-    val doneContainer: Color,
-    val onDoneContainer: Color,
     val cell: Color,
     val onCell: Color,
     val cellBrush: Brush,
@@ -132,8 +130,6 @@ private val headerBrush = Brush.linearGradient(listOf(Color(0xFFF97316), Color(0
 private val lightExtra = ExtraColors(
     done = Color(0xFF2E7D32),
     onDone = Color(0xFFFFFFFF),
-    doneContainer = Color(0xFFDCEFDC),
-    onDoneContainer = Color(0xFF1B4D1F),
     cell = Color(0xFFDA3625),
     onCell = Color(0xFFFFFFFF),
     cellBrush = cellBrush,
@@ -158,8 +154,6 @@ private val lightExtra = ExtraColors(
 private val darkExtra = lightExtra.copy(
     done = Color(0xFF86D38C),
     onDone = Color(0xFF0F2E13),
-    doneContainer = Color(0xFF1E3A22),
-    onDoneContainer = Color(0xFFC8ECC9),
     // A lighter slate, so that empty cells show the blue of the theme.
     cellEmpty = Color(0xFF323C49),
     groups = listOf(
@@ -187,8 +181,8 @@ fun TrackulaTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable ()
 }
 
 /**
- * The green theme of the score: the charts and the icons use the green of done tiles in place of the theme red, and
- * the day fills use the green cell color without the logo gradient.
+ * The green theme of the score: the charts and the icons use [ExtraColors.done] in place of the theme red, and the day
+ * fills use the green cell color without the logo gradient.
  */
 @Composable
 fun ScoreTheme(content: @Composable () -> Unit) {

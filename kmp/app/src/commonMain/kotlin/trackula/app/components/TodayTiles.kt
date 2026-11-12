@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import trackula.app.LocalExtraColors
 import trackula.model.CountStep
 import trackula.model.Day
+import trackula.model.GoalMark
 import trackula.model.LogTable
 import trackula.model.LogWrite
 import trackula.model.Metric
@@ -48,6 +49,8 @@ import trackula.model.YesNoMetric
 import trackula.model.applyCountSteps
 import trackula.model.dayValues
 import trackula.model.formatStep
+import trackula.model.goalMark
+import trackula.model.goalSummary
 import trackula.model.nearestDay
 import trackula.model.planClear
 import trackula.model.planNumber
@@ -66,8 +69,10 @@ import trackula.services.CountInput
  * - Number: a full-width tile with the ruler of the [NumberEditor]. An empty day starts at the latest earlier value.
  *   A drag, a typed value, or a press on the ruler (to confirm the same value) makes the value unsaved.
  *
- * A tile with a value (saved or not) is green. An unsaved tile also has a green frame. Phones: 2 columns. Wider
- * screens: 4 columns. Number tiles take a full row.
+ * A tile with a value (saved or not) has the soft app color. A yes/no or count tile also shows the mark of its goal:
+ * a check mark for a target that it reaches (`yes`, `at least`), a warning sign for a limit that it goes over (`no`,
+ * `at most`). See [goalMark]. An unsaved tile has a frame of the app color. Phones: 2 columns. Wider screens: 4
+ * columns. Number tiles take a full row.
  *
  * - [onWriteAll]: saves several values in one task, in order, for the Save button. It calls its `onDone` when the
  *   write ends, also after an error.
@@ -127,6 +132,9 @@ fun TodayTiles(
     }
 
     val unsaved = metrics.filter { it.id in drafts }.map { it.name }
+    // The day values of each metric. Each move of a ruler changes a draft and composes the tiles again: the values
+    // change only with new data.
+    val valuesById = remember(metrics, log, pending) { metrics.associate { it.id to dayValues(it, log, pending) } }
     Column {
         BoxWithConstraints(Modifier.fillMaxWidth()) {
             val columns = if (maxWidth >= WIDE_CONTENT) 4 else 2
@@ -136,7 +144,7 @@ fun TodayTiles(
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         for (i in row) {
                             val m = metrics[i]
-                            val values = dayValues(m, log, pending)
+                            val values = valuesById.getValue(m.id)
                             val saved = values[today]
                             val tileModifier = Modifier.weight(if (isWide(m)) columns.toFloat() else 1f)
                             key(m.id) {
@@ -165,7 +173,7 @@ fun TodayTiles(
                                     m is NumberMetric -> NumberTile(
                                         metric = m,
                                         modifier = tileModifier,
-                                        done = shown(m, saved) != null,
+                                        filled = shown(m, saved) != null,
                                         unsaved = m.id in drafts,
                                         saved = saved,
                                         start = nearestDay(values.keys, today)?.let { values[it] },
@@ -192,22 +200,45 @@ fun TodayTiles(
     }
 }
 
-/** A tile: green when [done], with a green frame when [unsaved]. */
+/**
+ * A tile: in the soft app color when [filled], with a frame of the app color when [unsaved]. The tiles are not green:
+ * a value is not always good. The [Mark] shows the goal.
+ */
 @Composable
-private fun Tile(modifier: Modifier, done: Boolean, unsaved: Boolean, content: @Composable () -> Unit) {
-    val extra = LocalExtraColors.current
+private fun Tile(modifier: Modifier, filled: Boolean, unsaved: Boolean, content: @Composable () -> Unit) {
+    val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(16.dp)
-    val frame = if (unsaved) Modifier.border(2.dp, extra.done, shape) else Modifier
+    val frame = if (unsaved) Modifier.border(2.dp, colors.primary, shape) else Modifier
     Box(
         modifier = modifier
             .clip(shape)
-            .background(if (done) extra.doneContainer else MaterialTheme.colorScheme.surfaceContainer)
+            .background(if (filled) colors.primaryContainer else colors.surfaceContainer)
             .then(frame),
     ) {
         CompositionLocalProvider(
-            LocalContentColor provides if (done) extra.onDoneContainer else MaterialTheme.colorScheme.onSurface,
+            LocalContentColor provides if (filled) colors.onPrimaryContainer else colors.onSurface,
         ) { content() }
     }
+}
+
+/** The icon of [mark]: a check mark for [GoalMark.REACHED], a warning sign for [GoalMark.OVER_LIMIT]. */
+@Composable
+private fun Mark(mark: GoalMark) {
+    when (mark) {
+        GoalMark.NONE -> {}
+        GoalMark.REACHED -> Symbol("check", size = 20.dp)
+        GoalMark.OVER_LIMIT -> Symbol("warning", size = 20.dp)
+    }
+}
+
+/**
+ * The text of [mark] for screen readers, after the value. Empty for [GoalMark.NONE]. Examples: ", goal reached",
+ * ", over the limit of the goal at most 2".
+ */
+private fun markText(m: Metric, mark: GoalMark): String = when (mark) {
+    GoalMark.NONE -> ""
+    GoalMark.REACHED -> ", goal reached"
+    GoalMark.OVER_LIMIT -> ", over the limit of the goal ${goalSummary(m)}"
 }
 
 /** The icon and the name of [m]. */
@@ -220,20 +251,27 @@ private fun TileHead(m: Metric) {
 @Composable
 private fun YesNoTile(m: YesNoMetric, modifier: Modifier, value: Double?, unsaved: Boolean, onClick: () -> Unit) {
     val done = value == 1.0
+    val mark = goalMark(m, value)
     Tile(modifier, done, unsaved) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 96.dp)
-                .semantics { toggleableState = ToggleableState(done) }
+                .semantics {
+                    toggleableState = ToggleableState(done)
+                    // A screen reader says "checked" for a done tile. Over the limit, it says the limit.
+                    if (mark == GoalMark.OVER_LIMIT) stateDescription = "Yes${markText(m, mark)}"
+                }
                 .clickable(role = Role.Checkbox, onClick = onClick)
                 .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) { TileHead(m) }
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { TileHead(m) }
+            Box(Modifier.align(Alignment.TopEnd)) { Mark(mark) }
+        }
     }
 }
 
-/** A tile with a counter: the value of today, 0 when empty, in the top right corner. */
+/** A tile with a counter: the value of today, 0 when empty, and the [Mark], in the top right corner. */
 @Composable
 private fun CountTile(
     m: NumberMetric,
@@ -245,6 +283,7 @@ private fun CountTile(
 ) {
     val step = formatStep(m.step, m.step)
     val counter = if (value == null) "0" else formatStep(value, m.step)
+    val mark = goalMark(m, value)
     Tile(modifier, value != null, unsaved) {
         Box(
             Modifier
@@ -252,18 +291,21 @@ private fun CountTile(
                 .heightIn(min = 96.dp)
                 .semantics {
                     contentDescription = m.name
-                    stateDescription = "$counter. Tap or click: +$step. Double-tap or right-click: −$step."
+                    stateDescription =
+                        "$counter${markText(m, mark)}. Tap or click: +$step. Double-tap or right-click: −$step."
                 }
                 .countInput(input, m.id, add)
                 .padding(12.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { TileHead(m) }
-            Text(
-                counter,
+            Row(
                 modifier = Modifier.align(Alignment.TopEnd),
-                fontSize = 16.sp,
-                color = LocalContentColor.current.copy(alpha = 0.7f),
-            )
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Mark(mark)
+                Text(counter, fontSize = 16.sp, color = LocalContentColor.current.copy(alpha = 0.7f))
+            }
         }
     }
 }
@@ -273,7 +315,7 @@ private fun CountTile(
 private fun NumberTile(
     metric: NumberMetric,
     modifier: Modifier,
-    done: Boolean,
+    filled: Boolean,
     unsaved: Boolean,
     saved: Double?,
     start: Double?,
@@ -281,7 +323,8 @@ private fun NumberTile(
     busy: Boolean,
     onChange: (Double?) -> Unit,
 ) {
-    Tile(modifier, done, unsaved) {
+    // A number is a measurement: its tile has no mark. A trend goal does not use the value of the day.
+    Tile(modifier, filled, unsaved) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 TileHead(metric)

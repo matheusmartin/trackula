@@ -1,5 +1,7 @@
 package trackula.app.components
 
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,10 +28,12 @@ import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -59,6 +63,9 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import trackula.app.LocalExtraColors
 import trackula.model.NumberMetric
 import trackula.model.formatStep
@@ -234,6 +241,12 @@ fun NumberEditor(
     }
 }
 
+/** The time that the strip takes to settle on the nearest tick after a drag or a side scroll. */
+private const val SETTLE_MILLIS = 150
+
+/** The time without side scroll events after which a side scroll ends and the strip settles. */
+private const val SCROLL_END_MILLIS = 120L
+
 /**
  * Ticks around the value: a long tick with a label every 10 steps, a middle tick every 5 steps. The strip moves, and
  * the needle stays in the middle. A green tick marks [start] on the nearest tick: it moves with the strip and shows
@@ -242,6 +255,10 @@ fun NumberEditor(
  *
  * Dragging to the left moves the ticks to the left, so the value under the needle gets bigger. With [pageScrolls],
  * a vertical wheel scrolls the page, and only a side wheel or trackpad swipe moves the ruler.
+ *
+ * The strip follows the finger, the mouse or the trackpad, also between two ticks, so that it moves smoothly. The value
+ * snaps to the nearest tick at each move. When the drag or the side scroll ends, the strip settles on that tick. A
+ * drag starts after the touch slop and moves from that point: the value does not jump at the start.
  */
 @Composable
 private fun Ruler(
@@ -263,17 +280,47 @@ private fun Ruler(
     val set by rememberUpdatedState(onSet)
     val focus = remember { FocusRequester() }
     var focused by remember { mutableStateOf(false) }
-    // The pointer x and the value at the press. A drag measures from the press, not from the end of the touch slop.
-    var pressX by remember { mutableFloatStateOf(0f) }
-    var pressValue by remember { mutableDoubleStateOf(value) }
+    val scope = rememberCoroutineScope()
+    // The strip position minus the position of the value, in ticks: the part of a tick that the strip moved past the
+    // value. From −0.5 to 0.5 during a drag or a side scroll, then 0 again.
+    var offset by remember { mutableFloatStateOf(0f) }
+    // The animation to 0 of the offset, or the wait for the end of a side scroll.
+    var settling by remember { mutableStateOf<Job?>(null) }
+    // The strip position at the start of the drag, in ticks, and the drag distance since then, in pixels.
+    var dragStart by remember { mutableDoubleStateOf(0.0) }
+    var dragged by remember { mutableFloatStateOf(0f) }
     // False after a press of another mouse button than the primary button: then a drag does nothing.
     var primaryPress by remember { mutableStateOf(true) }
-    // Wheel movement that is less than one tick, in ticks.
+    // Side scroll movement since the last whole tick, in ticks.
     var wheel by remember { mutableFloatStateOf(0f) }
-    val measurer = rememberTextMeasurer()
+    // A wide ruler shows up to 13 labels. The default cache keeps 8 texts: then each frame measures the texts again.
+    val measurer = rememberTextMeasurer(cacheSize = 2 * TICKS / 10 + 4)
     val shape = RoundedCornerShape(8.dp)
     val labelStyle = TextStyle(color = colors.onSurfaceVariant, fontSize = 11.sp)
     val valueText = withUnit(formatStep(value, step), metric.unit)
+
+    // Moves the strip to [position], in ticks: the value snaps to the nearest tick, and the offset keeps the rest. At
+    // 0, the value stops, and the strip goes at most half a tick past it.
+    fun moveTo(position: Double) {
+        set(position * step, true)
+        offset = (position - currentValue / step).toFloat().coerceIn(-0.5f, 0.5f)
+    }
+
+    // Stops a running settle animation. The strip stays where it is.
+    fun stopSettling() {
+        settling?.cancel()
+        settling = null
+    }
+
+    // Moves the strip to the tick of the value, after [delayMillis].
+    fun settle(delayMillis: Long = 0) {
+        stopSettling()
+        settling = scope.launch {
+            delay(delayMillis)
+            wheel = 0f
+            animate(offset, 0f, animationSpec = tween(SETTLE_MILLIS)) { v, _ -> offset = v }
+        }
+    }
 
     LaunchedEffect(Unit) { if (autofocus) focus.requestFocus() }
 
@@ -281,13 +328,15 @@ private fun Ruler(
         modifier = Modifier
             .fillMaxWidth()
             .height(if (compact) 44.dp else 52.dp)
-            .background(colors.surfaceContainerLowest, shape)
+            // The ticks next to the edges are partly outside: the clip cuts them at the rounded border.
+            .clip(shape)
+            .background(colors.surfaceContainerLowest)
             .border(
                 width = if (focused) 2.dp else 1.dp,
-                color = when {
-                    !focused -> colors.primary.copy(alpha = 0.12f).compositeOver(colors.outlineVariant)
-                    pageScrolls -> done
-                    else -> colors.primary
+                color = if (focused) {
+                    colors.primary
+                } else {
+                    colors.primary.copy(alpha = 0.12f).compositeOver(colors.outlineVariant)
                 },
                 shape = shape,
             )
@@ -313,16 +362,23 @@ private fun Ruler(
                     primaryPress = down.type != PointerType.Mouse || event.buttons.isPrimaryPressed
                     if (!primaryPress) return@awaitEachGesture
                     focus.requestFocus()
-                    pressX = down.position.x
-                    pressValue = currentValue
                     press()
                 }
             }
             .pointerInput(step) {
-                detectHorizontalDragGestures { change, _ ->
+                detectHorizontalDragGestures(
+                    onDragStart = {
+                        stopSettling()
+                        dragStart = currentValue / step + offset
+                        dragged = 0f
+                    },
+                    onDragEnd = { settle() },
+                    onDragCancel = { settle() },
+                ) { change, amount ->
                     if (!primaryPress) return@detectHorizontalDragGestures
                     change.consume()
-                    set(pressValue - (change.position.x - pressX) / TICK.toPx() * step, true)
+                    dragged += amount
+                    moveTo(dragStart - dragged / TICK.toPx())
                 }
             }
             .pointerInput(step, pageScrolls) {
@@ -336,19 +392,22 @@ private fun Ruler(
                         // On the web, Compose gives the wheel movement in pixels, as the browser: 9 pixels are one tick.
                         wheel += (if (abs(delta.x) > abs(delta.y)) delta.x else delta.y) / TICK.value
                         val steps = truncate(wheel)
-                        if (steps != 0f) {
-                            wheel -= steps
-                            set(currentValue + steps * step, true)
-                        }
+                        wheel -= steps
+                        stopSettling()
+                        if (steps != 0f) set(currentValue + steps * step, true)
+                        // The rest of a tick moves the strip. The value does not change until a whole tick.
+                        offset = wheel.coerceIn(-0.5f, 0.5f)
+                        settle(SCROLL_END_MILLIS)
                     }
                 }
             },
     ) {
         val tick = TICK.toPx()
         val center = size.width / 2
-        val position = value / step
+        val valueTick = roundHalfAwayFromZero(value / step).toInt()
+        val position = value / step + offset
         val centerTick = roundHalfAwayFromZero(position).toInt()
-        val startTick = start?.let { roundHalfAwayFromZero(it / step).toInt() }?.takeIf { it != centerTick }
+        val startTick = start?.let { roundHalfAwayFromZero(it / step).toInt() }?.takeIf { it != valueTick }
         val line = colors.onSurface.copy(alpha = 0.25f)
         for (k in max(0, centerTick - TICKS)..centerTick + TICKS) {
             val x = center + ((k - position) * tick).toFloat()

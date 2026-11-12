@@ -85,6 +85,46 @@ data class NumberGoal(
     }
 }
 
+/** The mark of a day value on a Today tile. See [goalMark]. */
+enum class GoalMark {
+    /** No mark. */
+    NONE,
+
+    /** The value reaches a target: the goal `yes` or `at least`. The tile shows a check mark. */
+    REACHED,
+
+    /** The value is over a limit: the goal `no` or `at most`. The tile shows a warning sign. */
+    OVER_LIMIT,
+}
+
+/**
+ * The [GoalMark] of [value], the value of a day of [metric]. Null is no value. The goal `yes` or `at least` is a
+ * target, and the goal `no` or `at most` is a limit. A value within a limit gets no mark: the day is not over.
+ *
+ * Examples: Water `at least 8`: 8 gives [GoalMark.REACHED], 5 gives [GoalMark.NONE]. Coffee `no`: `yes` (1) gives
+ * [GoalMark.OVER_LIMIT]. Coffee `at most 2`: 1 gives [GoalMark.NONE], 3 gives [GoalMark.OVER_LIMIT].
+ */
+fun goalMark(metric: Metric, value: Double?): GoalMark {
+    if (value == null) return GoalMark.NONE
+    return when (metric) {
+        // Only a `yes` day has a mark: `yes` reaches the goal `yes`, and is over the limit `no`.
+        is YesNoMetric -> when {
+            value != 1.0 -> GoalMark.NONE
+            metric.goalIsYes -> GoalMark.REACHED
+            else -> GoalMark.OVER_LIMIT
+        }
+
+        is NumberMetric -> {
+            val goal = metric.goal
+            when {
+                goal.isMaximum && !goal.isReachedBy(value) -> GoalMark.OVER_LIMIT
+                !goal.isMaximum && goal.isReachedBy(value) -> GoalMark.REACHED
+                else -> GoalMark.NONE
+            }
+        }
+    }
+}
+
 /** The group of the metrics without a group. */
 const val OTHER_GROUP = "other"
 
