@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Makes the emoji list of the metrics form: kmp/app/src/commonMain/composeResources/files/emoji.txt.
 
-The emoji picker of the form shows the emojis of this list, in groups, and finds them by their names and keywords.
-The names, the keywords, the groups and the order come from emojibase-data, which has them from Unicode CLDR.
+The emoji picker of the form shows the emojis of this list, in the order of Unicode. The names are for screen
+readers. The names and the order come from emojibase-data, which has them from Unicode CLDR.
 
 The app does not have an emoji font. In the browser, Compose draws emojis with the Noto Color Emoji font of Google
 Fonts: it gets the font slices from fonts.gstatic.com when a text needs them. The list keeps only the emojis that
@@ -35,19 +35,9 @@ FONT_URL = "https://fonts.gstatic.com/s/notocoloremoji/v39/Yq6P-KqIXTD0t4D9z1ESn
 FONT_SLICES = 10
 FONT_SHA256 = "2c1fbbf0a8378b9703e096cb76924aa8a18ca36de071136a1a0e0f21c283b689"
 
-# The groups of the picker, in the order of emojibase: its group number, then the name and the icon that the app
-# shows. Group 2 has the parts of emojis, for example the skin tones: they are not emojis that you can pick.
-GROUPS = {
-    0: ("Smileys", "😀"),
-    1: ("People", "👋"),
-    3: ("Animals and nature", "🐻"),
-    4: ("Food and drink", "🍔"),
-    5: ("Travel and places", "🚗"),
-    6: ("Activities", "⚽"),
-    7: ("Objects", "💡"),
-    8: ("Symbols", "🔣"),
-    9: ("Flags", "🏁"),
-}
+# The emojibase groups of the list. Group 2 has the parts of emojis, for example the skin tones: they are not emojis
+# that you can pick.
+GROUPS = {0, 1, 3, 4, 5, 6, 7, 8, 9}
 
 # The longest icon in UTF-16 units: the app and the rule of the Sheets `icon` column accept 16.
 MAX_ICON_LENGTH = 16
@@ -57,9 +47,8 @@ OUTPUT = ROOT / "kmp/app/src/commonMain/composeResources/files/emoji.txt"
 
 HEADER = f"""\
 # The emojis of the emoji picker of the metrics form. Made by design/emoji/make.py from emojibase-data {VERSION}
-# (MIT license), with names and keywords from Unicode CLDR. Do not edit.
-# A group line: "@", the name of the group, a tab and the icon of the group. An emoji line: the emoji, its name and
-# its keywords, separated by tabs. The keywords are separated by spaces. Each emoji has the default skin tone.
+# (MIT license), with names from Unicode CLDR. Do not edit.
+# Each line has an emoji with the default skin tone, a tab and the name of the emoji.
 """
 
 
@@ -123,18 +112,15 @@ def main() -> None:
     fonts = font_slices()
     lines = [HEADER.rstrip("\n")]
     skipped = []
-    for group, (name, icon) in GROUPS.items():
-        lines.append(f"@{name}\t{icon}")
-        for emoji in (e for e in data if e.get("group") == group):
-            text = emoji["emoji"]
-            if not draws(fonts, text):
-                skipped.append(text)
-                continue
-            keywords = " ".join(dict.fromkeys(word for tag in emoji.get("tags", []) for word in tag.lower().split()))
-            lines.append("\t".join([field(check_length(text)), field(emoji["label"]), field(keywords)]))
+    for emoji in data:
+        text = emoji["emoji"]
+        if draws(fonts, text):
+            lines.append(f"{field(check_length(text))}\t{field(emoji['label'])}")
+        else:
+            skipped.append(text)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    count = sum(1 for line in lines if not line.startswith(("#", "@")))
+    count = sum(1 for line in lines if not line.startswith("#"))
     print(f"{OUTPUT.relative_to(ROOT)}: {count} emojis, {OUTPUT.stat().st_size} bytes")
     print(f"The font does not draw {len(skipped)} emojis: {' '.join(skipped)}")
 
