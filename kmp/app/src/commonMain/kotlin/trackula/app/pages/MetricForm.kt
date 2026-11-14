@@ -167,17 +167,6 @@ internal fun MetricForm(
             KindUnitAndGroup(draft, errors, setup.valueKind, groups) { draft = it }
             Goal(draft, errors) { draft = it }
 
-            Column(Modifier.padding(horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Sheet column: $id", style = MaterialTheme.typography.bodyMedium)
-                Help(
-                    if (setup.id == null) {
-                        "The app makes it from the name. It does not change after you save."
-                    } else {
-                        "It does not change."
-                    },
-                )
-            }
-
             // The fields with errors can be out of view: this text is next to the Save button.
             if (errors.isNotEmpty()) Notice(errorSummary(errors.keys), kind = NoticeKind.ERROR)
             error?.let { Notice(it, kind = NoticeKind.ERROR) }

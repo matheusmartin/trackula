@@ -94,7 +94,6 @@ class MetricsPageTest {
         onNodeWithText("Count").performClick()
         onNodeWithText("At least").performScrollTo().performClick()
         field("Target").performScrollTo().performTextReplacement("20")
-        onNodeWithText("Sheet column: pages").performScrollTo().assertExists()
         onNodeWithText("In the sheet: at least 20").performScrollTo().assertExists()
 
         onNodeWithText("Save").performScrollTo().performClick()
@@ -129,7 +128,6 @@ class MetricsPageTest {
         onNodeWithText("Water").performClick()
         onNodeWithText("Edit metric").assertExists()
         onNodeWithText("Yes/no").assertIsNotEnabled()
-        onNodeWithText("Sheet column: water").performScrollTo().assertExists()
 
         field("Name").performScrollTo().performTextReplacement("Drinks")
         onNodeWithText("Save").performScrollTo().performClick()
