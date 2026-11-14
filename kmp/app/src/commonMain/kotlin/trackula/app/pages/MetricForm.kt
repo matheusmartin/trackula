@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -43,7 +42,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -52,6 +50,7 @@ import trackula.app.LocalPageScroll
 import trackula.app.OnBack
 import trackula.app.components.AppCard
 import trackula.app.components.AppIconButton
+import trackula.app.components.EmojiPicker
 import trackula.app.components.FORM_WIDTH
 import trackula.app.components.MetricIcon
 import trackula.app.components.Notice
@@ -74,14 +73,6 @@ import trackula.model.newMetricId
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-
-/** Material Symbols icons that the form suggests. The user can type any other name, or an emoji. */
-private val suggestedIcons = listOf(
-    "water_drop", "local_drink", "coffee", "restaurant", "nutrition", "pill",
-    "monitor_weight", "fitness_center", "directions_walk", "directions_run", "self_improvement", "menu_book",
-    "bedtime", "shower", "dentistry", "smoking_rooms", "spa", "favorite",
-    "mood", "savings", "school", "code", "music_note", "straighten",
-)
 
 /**
  * What the metrics form shows.
@@ -257,12 +248,8 @@ private fun NameAndIcon(draft: MetricDraft, errors: Map<DraftField, String>, onC
                 Field("Icon", draft.icon, errors[DraftField.ICON]) { onChange(draft.copy(icon = it)) }
             }
         }
-        Help("Type a Material Symbols name, such as water_drop, or an emoji. Or pick one:")
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            for (name in suggestedIcons) {
-                IconChoice(name, selected = draft.icon.trim() == name) { onChange(draft.copy(icon = name)) }
-            }
-        }
+        Help("Pick an emoji below. Or type an emoji, or a Material Symbols name such as water_drop.")
+        EmojiPicker(selected = draft.icon.trim(), onPick = { onChange(draft.copy(icon = it)) })
     }
 }
 
@@ -487,28 +474,6 @@ private fun Choice(label: String, selected: Boolean, enabled: Boolean = true, on
         enabled = enabled,
         leadingIcon = if (selected) ({ Symbol("done", size = 18.dp) }) else null,
     )
-}
-
-/** A button with the suggested icon [name]. The selected icon has a red frame. */
-@Composable
-private fun IconChoice(name: String, selected: Boolean, onClick: () -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    val shape = RoundedCornerShape(10.dp)
-    Box(
-        modifier = Modifier
-            .size(TOUCH_TARGET)
-            .background(if (selected) colors.primaryContainer else colors.surfaceContainerLowest, shape)
-            .border(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant, shape)
-            .clip(shape)
-            .clickable(role = Role.Button, onClick = onClick)
-            .semantics {
-                contentDescription = name
-                this.selected = selected
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Symbol(name, size = 24.dp, color = colors.primary)
-    }
 }
 
 /** A short help text below a field. */

@@ -65,6 +65,9 @@ The metrics screen of the app changes the `Metrics` tab, so you do not need to o
   invalid goal, a duplicate `id`. "Fix" opens the row in the form, and Save writes the same row. A row with an
   invalid or a duplicate `id` gets a new `id` from its name.
 - If the `Metrics` tab has no `goal` column, the first save adds it.
+- The emoji picker of the form writes the emoji in the `icon` cell, with the selected skin tone. Example: 👋🏽. It
+  has the emojis that the emoji font of the app can show. You can also type an emoji or a Material Symbols name in
+  the Icon field.
 - Each change reads the tab first and finds the row by its `id`, so manual edits in the sheet do not break it. After
   the change, the app sets the rules again and loads the sheet: a new metric gets its `Log` column, and a new goal
   gives new scores.

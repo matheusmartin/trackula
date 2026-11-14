@@ -91,7 +91,7 @@ class MetricsPageTest {
         onNodeWithText("Add metric").performClick()
         field("Name").performTextReplacement("Pages")
         field("Icon").performTextReplacement("menu_book")
-        onNodeWithText("Count").performClick()
+        onNodeWithText("Count").performScrollTo().performClick()
         onNodeWithText("At least").performScrollTo().performClick()
         field("Target").performScrollTo().performTextReplacement("20")
         onNodeWithText("In the sheet: at least 20").performScrollTo().assertExists()
@@ -158,7 +158,7 @@ class MetricsPageTest {
         onNodeWithText("Restore").performScrollTo().performClick()
         onNodeWithText("Restore metric").assertExists()
         field("Icon").performTextReplacement("water_drop")
-        onNodeWithText("Count").performClick()
+        onNodeWithText("Count").performScrollTo().performClick()
         // A restored metric needs a goal.
         onNodeWithText("Save").performScrollTo().performClick()
         onNodeWithText("Enter a number.").performScrollTo().assertExists()

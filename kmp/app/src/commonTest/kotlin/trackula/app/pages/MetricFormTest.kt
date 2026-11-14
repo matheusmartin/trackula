@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -73,6 +74,19 @@ class MetricFormTest {
         onNodeWithText("read_2", substring = true).assertDoesNotExist()
         onNodeWithText("Save").performScrollTo().performClick()
         assertEquals(listOf<Metric>(YesNoMetric(id = "read_2", name = "Read", icon = "menu_book")), saved)
+    }
+
+    @Test
+    fun anEmojiOfThePickerBecomesTheIcon() = runComposeUiTest {
+        showForm(FormSetup("Edit metric", weight, id = "weight"))
+        onNode(hasSetTextAction() and hasText("Search emoji")).performScrollTo().performTextReplacement("scale")
+        waitUntil(timeoutMillis = 5_000) {
+            onAllNodesWithContentDescription("balance scale").fetchSemanticsNodes().isNotEmpty()
+        }
+        onNodeWithContentDescription("balance scale").performScrollTo().performClick()
+        onNode(hasSetTextAction() and hasText("\u2696\uFE0F")).assertExists()
+        onNodeWithText("Save").performScrollTo().performClick()
+        assertEquals("\u2696\uFE0F", saved.single().let { (it as NumberMetric).icon })
     }
 
     @Test
