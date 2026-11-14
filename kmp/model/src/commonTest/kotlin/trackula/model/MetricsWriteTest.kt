@@ -83,4 +83,19 @@ class MetricsWriteTest {
         assertNull(planMoveMetric(table, "water", up = false))
         assertFailsWith<MissingMetricException> { planMoveMetric(table, "steps", up = true) }
     }
+
+    @Test
+    fun aDragMovesAMetricBeforeOrAfterTheMetricAtTheDropPlace() {
+        // Down: after the row of the other metric. Up: before it. The empty and invalid rows do not move.
+        assertEquals(MoveMetricRow(2, 7), planMoveMetricTo(table, "weight", "water"))
+        assertEquals(MoveMetricRow(3, 7), planMoveMetricTo(table, "meditate", "water"))
+        assertEquals(MoveMetricRow(6, 2), planMoveMetricTo(table, "water", "weight"))
+    }
+
+    @Test
+    fun aDragToItsOwnPlaceOrToARowThatIsNotAMetricWritesNothing() {
+        assertNull(planMoveMetricTo(table, "weight", "weight"))
+        assertNull(planMoveMetricTo(table, "weight", "walk"))
+        assertFailsWith<MissingMetricException> { planMoveMetricTo(table, "steps", "water") }
+    }
 }

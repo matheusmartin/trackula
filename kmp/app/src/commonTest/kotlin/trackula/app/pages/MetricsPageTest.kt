@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -20,6 +21,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -46,8 +48,11 @@ class MetricsPageTest {
     private val store = CountingStore(DemoStore(today, delay = Duration.ZERO))
     private var managing by mutableStateOf(true)
 
-    /** Shows the Today page with the metrics screen open. [before] writes to the store before the first load. */
-    private fun ComposeUiTest.showPage(before: MetricsWrite? = null) {
+    /**
+     * Shows the Today page with the metrics screen open. [before] writes to the store before the first load.
+     * [hasMouse] as on a desktop computer.
+     */
+    private fun ComposeUiTest.showPage(before: MetricsWrite? = null, hasMouse: Boolean = false) {
         setContent {
             var ready by remember { mutableStateOf(before == null) }
             LaunchedEffect(Unit) {
@@ -72,6 +77,7 @@ class MetricsPageTest {
                             writePref = { _, _ -> },
                             managing = managing,
                             onManaging = { managing = it },
+                            hasMouse = hasMouse,
                         )
                     }
                 }
@@ -144,6 +150,32 @@ class MetricsPageTest {
         onNodeWithContentDescription("Move Waist up").performClick()
         waitUntil(timeoutMillis = TIMEOUT) { store.last?.metrics?.first()?.id == "waist" }
         assertEquals(listOf("waist", "weight"), store.last!!.metrics.take(2).map { it.id })
+    }
+
+    @Test
+    fun withAMouseADragMovesAMetricAndTheRowsHaveNoArrows() = runComposeUiTest {
+        showPage(hasMouse = true)
+        onNodeWithContentDescription("Move Weight down").assertDoesNotExist()
+        onNodeWithText("Drag a metric to move it.", substring = true).assertExists()
+
+        // Weight goes down past Waist and past the middle of Morning teeth: it lands at the place of Morning teeth.
+        val row = onNodeWithText("Weight")
+        val height = row.fetchSemanticsNode().size.height.toFloat()
+        row.performMouseInput {
+            moveTo(center)
+            press()
+            repeat(20) { moveBy(Offset(0f, height * 1.7f / 20)) }
+            release()
+        }
+        waitUntil(timeoutMillis = TIMEOUT) { store.last?.metrics?.getOrNull(2)?.id == "weight" }
+        assertEquals(listOf("waist", "teeth", "weight"), store.last!!.metrics.take(3).map { it.id })
+    }
+
+    @Test
+    fun withAMouseAClickStillOpensTheForm() = runComposeUiTest {
+        showPage(hasMouse = true)
+        onNodeWithText("Water").performClick()
+        onNodeWithText("Edit metric").assertExists()
     }
 
     @Test

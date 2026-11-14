@@ -1,6 +1,9 @@
 package trackula.app.pages
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -17,16 +21,28 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import trackula.app.components.AppCard
 import trackula.app.components.AppIconButton
 import trackula.app.components.FORM_WIDTH
@@ -44,6 +60,8 @@ import trackula.model.MetricsTable
 import trackula.model.MetricsWrite
 import trackula.model.deletedSummary
 import trackula.model.draftOf
+import trackula.model.dragShift
+import trackula.model.dropIndex
 import trackula.model.goalSummary
 import trackula.model.isValidMetricId
 import trackula.model.kindOf
@@ -53,6 +71,7 @@ import trackula.model.planDeleteRow
 import trackula.model.planEditMetric
 import trackula.model.planFixRow
 import trackula.model.planMoveMetric
+import trackula.model.planMoveMetricTo
 import trackula.model.planSaveMetric
 import trackula.sheets.Snapshot
 
@@ -76,6 +95,8 @@ private sealed interface FormTarget {
  * - [data]: the latest data of the sheet.
  * - [busy]: true while data loads or saves. The buttons that write are disabled.
  * - [error]: the error of the last load or write, or null.
+ * - [hasMouse]: true if the device has a mouse. Then a drag moves a metric to a new place. Else the arrows of each row
+ *   move it one place up or down. See [MetricList].
  * - [onWrite]: writes a change to the `Metrics` tab. The plan runs on the latest data. `onDone` runs after a write
  *   without an error, for example to close the form.
  * - [onClose]: closes the screen.
@@ -87,6 +108,7 @@ fun MetricsPage(
     error: String?,
     onWrite: (plan: (MetricsTable) -> List<MetricsWrite>, onDone: () -> Unit) -> Unit,
     onClose: () -> Unit,
+    hasMouse: Boolean = false,
 ) {
     var form by remember { mutableStateOf<FormTarget?>(null) }
     val metrics = data.metrics
@@ -137,25 +159,23 @@ fun MetricsPage(
                 // Without metrics, the button is in the empty state.
                 if (metrics.isNotEmpty()) AddButton(enabled = !busy) { form = FormTarget.New }
             }
-            Help("Changes go to the Metrics tab of your sheet. The order here is the order in the app.")
+            Help(
+                "Changes go to the Metrics tab of your sheet. The order here is the order in the app." +
+                    if (hasMouse && metrics.size > 1) " Drag a metric to move it." else "",
+            )
             error?.let { Notice(it, kind = NoticeKind.ERROR) }
 
             if (metrics.isEmpty()) {
                 EmptyState(enabled = !busy) { form = FormTarget.New }
             } else {
-                AppCard(Modifier.fillMaxWidth()) {
-                    metrics.forEachIndexed { i, m ->
-                        if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        MetricRow(
-                            metric = m,
-                            busy = busy,
-                            isFirst = i == 0,
-                            isLast = i == metrics.lastIndex,
-                            onEdit = { form = FormTarget.Edit(m.id) },
-                            onMove = { up -> onWrite({ t -> listOfNotNull(planMoveMetric(t, m.id, up)) }, {}) },
-                        )
-                    }
-                }
+                MetricList(
+                    metrics = metrics,
+                    busy = busy,
+                    hasMouse = hasMouse,
+                    onEdit = { form = FormTarget.Edit(it.id) },
+                    onMove = { m, up -> onWrite({ t -> listOfNotNull(planMoveMetric(t, m.id, up)) }, {}) },
+                    onDrop = { m, other -> onWrite({ t -> listOfNotNull(planMoveMetricTo(t, m.id, other.id)) }, {}) },
+                )
             }
 
             if (table.invalid.isNotEmpty()) {
@@ -268,8 +288,119 @@ private fun planSave(target: FormTarget, table: MetricsTable, metric: Metric): L
 }
 
 /**
- * A metric in the list: a tap opens its form. The arrows move it up or down. The tap area is the full row, from edge
- * to edge of the card, so that its highlight has no gaps. The arrows are buttons on it.
+ * The metrics in a card, in the order of the sheet. A tap on a metric opens its form ([onEdit]).
+ *
+ * Without a mouse ([hasMouse] false), the arrows of each row move the metric one place ([onMove]). With a mouse, a
+ * drag of a row moves the metric. The other rows make space while it moves, and [onDrop] gets the metric and the
+ * metric at the drop place. The list shows the new order at once, until the write ends: then the data has the new
+ * order, or the page shows the error. While [busy], the metrics do not move.
+ */
+@Composable
+private fun MetricList(
+    metrics: List<Metric>,
+    busy: Boolean,
+    hasMouse: Boolean,
+    onEdit: (Metric) -> Unit,
+    onMove: (metric: Metric, up: Boolean) -> Unit,
+    onDrop: (metric: Metric, other: Metric) -> Unit,
+) {
+    var dropped by remember { mutableStateOf<List<Metric>?>(null) }
+    LaunchedEffect(busy) { if (!busy) dropped = null }
+    val shown = dropped ?: metrics
+
+    // The dragged metric, how far it moved down in pixels, and the height of each row in pixels.
+    var dragged by remember { mutableStateOf<String?>(null) }
+    var offset by remember { mutableFloatStateOf(0f) }
+    val heights = remember { mutableStateMapOf<String, Int>() }
+    // The gesture keeps one function for each row: these give it the latest values.
+    val currentShown by rememberUpdatedState(shown)
+    val currentOnDrop by rememberUpdatedState(onDrop)
+
+    fun heightsOf(list: List<Metric>) = list.map { (heights[it.id] ?: 0).toFloat() }
+
+    // Keeps the dragged row in the card: from the top of the first row to the bottom of the last row.
+    fun drag(delta: Float) {
+        val sizes = heightsOf(currentShown)
+        val from = currentShown.indexOfFirst { it.id == dragged }
+        if (from < 0) return
+        offset = (offset + delta).coerceIn(-sizes.take(from).sum(), sizes.drop(from + 1).sum())
+    }
+
+    fun drop() {
+        val list = currentShown
+        val from = list.indexOfFirst { it.id == dragged }
+        val to = if (from < 0) from else dropIndex(from, offset, heightsOf(list))
+        dragged = null
+        offset = 0f
+        if (to == from) return
+        dropped = list.toMutableList().apply { add(to, removeAt(from)) }
+        currentOnDrop(list[from], list[to])
+    }
+
+    val sizes = heightsOf(shown)
+    val from = shown.indexOfFirst { it.id == dragged }
+    val to = if (from < 0) from else dropIndex(from, offset, sizes)
+    AppCard(Modifier.fillMaxWidth()) {
+        shown.forEachIndexed { i, m ->
+            key(m.id) {
+                val isDragged = i == from
+                val shift by animateFloatAsState(if (from < 0) 0f else dragShift(i, from, to, sizes[from]))
+                val dragModifier = if (hasMouse && !busy) {
+                    Modifier.pointerInput(m.id) {
+                        detectDragGestures(
+                            onDragStart = { dragged = m.id },
+                            onDragEnd = ::drop,
+                            onDragCancel = {
+                                dragged = null
+                                offset = 0f
+                            },
+                            onDrag = { change, amount ->
+                                change.consume()
+                                drag(amount.y)
+                            },
+                        )
+                    }
+                } else {
+                    Modifier
+                }
+                Column(
+                    Modifier
+                        .onSizeChanged { heights[m.id] = it.height }
+                        // The dragged row is above the others, with a shadow. After a drop, the rows are at their
+                        // new places at once, without the shift.
+                        .zIndex(if (isDragged) 1f else 0f)
+                        .graphicsLayer {
+                            translationY = when {
+                                isDragged -> offset
+                                from < 0 -> 0f
+                                else -> shift
+                            }
+                            shadowElevation = if (isDragged) 8.dp.toPx() else 0f
+                        }
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .then(dragModifier),
+                ) {
+                    if (i > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    MetricRow(
+                        metric = m,
+                        busy = busy,
+                        isFirst = i == 0,
+                        isLast = i == shown.lastIndex,
+                        hasMouse = hasMouse,
+                        onEdit = { onEdit(m) },
+                        onMove = { up -> onMove(m, up) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * A metric in the list: a tap opens its form. The tap area is the full row, from edge to edge of the card, so that its
+ * highlight has no gaps. Without a mouse ([hasMouse] false), the arrows are buttons on the row: they move the metric
+ * up or down. With a mouse, a handle shows that a drag of the row moves the metric. Screen readers get the moves as
+ * actions of the row.
  */
 @Composable
 private fun MetricRow(
@@ -277,13 +408,28 @@ private fun MetricRow(
     busy: Boolean,
     isFirst: Boolean,
     isLast: Boolean,
+    hasMouse: Boolean,
     onEdit: () -> Unit,
     onMove: (up: Boolean) -> Unit,
 ) {
+    val canMoveUp = !busy && !isFirst
+    val canMoveDown = !busy && !isLast
+    // The action gives true: it ran.
+    val moves = listOfNotNull(
+        CustomAccessibilityAction("Move ${metric.name} up") {
+            onMove(true)
+            true
+        }.takeIf { canMoveUp },
+        CustomAccessibilityAction("Move ${metric.name} down") {
+            onMove(false)
+            true
+        }.takeIf { canMoveDown },
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClickLabel = "Edit", onClick = onEdit)
+            .then(if (hasMouse) Modifier.semantics { customActions = moves } else Modifier)
             .padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -305,8 +451,17 @@ private fun MetricRow(
                 }
             }
         }
-        AppIconButton("arrow_upward", "Move ${metric.name} up", { onMove(true) }, enabled = !busy && !isFirst)
-        AppIconButton("arrow_downward", "Move ${metric.name} down", { onMove(false) }, enabled = !busy && !isLast)
+        if (hasMouse) {
+            Box(
+                Modifier.size(TOUCH_TARGET).pointerHoverIcon(PointerIcon.Hand),
+                contentAlignment = Alignment.Center,
+            ) {
+                Symbol("drag_indicator", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            AppIconButton("arrow_upward", "Move ${metric.name} up", { onMove(true) }, enabled = canMoveUp)
+            AppIconButton("arrow_downward", "Move ${metric.name} down", { onMove(false) }, enabled = canMoveDown)
+        }
     }
 }
 

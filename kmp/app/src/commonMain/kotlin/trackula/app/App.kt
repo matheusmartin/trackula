@@ -111,6 +111,7 @@ private fun AppContent(platform: Platform) {
         onDetail = { showsDetail = it },
         managing = managing,
         onManaging = { managing = it },
+        hasMouse = platform.hasMouse,
         readPref = platform::readPref,
         writePref = platform::writePref,
     )

@@ -31,7 +31,7 @@ INTEGRITY = "sha512-rDJyd4SAEXNSZIX1sBTwRtbOrEzta4aN7hNQPKAhFqOY0yayXIJbXf0R1s8Y
 ICONS = """
     add arrow_back arrow_downward arrow_upward calendar_month check check_circle chevron_left chevron_right close
     delete done error flag folder_open history info login logout more_vert playlist_add radio_button_unchecked
-    refresh search show_chart swap_horiz today tune view_week warning zoom_in zoom_out
+    refresh search show_chart swap_horiz today tune view_week warning zoom_in zoom_out drag_indicator
     dentistry directions_walk menu_book monitor_weight pill self_improvement shower straighten water_drop
 """.split()
 

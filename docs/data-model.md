@@ -47,8 +47,10 @@ Example:
 
 The metrics screen of the app changes the `Metrics` tab, so you do not need to open the sheet. Rules:
 
-- The list shows the metrics in row order: the order in the app. The arrows move a row before the metric above it or
-  after the metric below it. Empty rows and invalid rows between them do not move.
+- The list shows the metrics in row order: the order in the app. On a phone or a tablet, the arrows move a row before
+  the metric above it or after the metric below it. With a mouse or a touchpad, you drag a metric: its row goes
+  before the row of the metric at the drop place if it moves up, or after it if it moves down. Empty rows and
+  invalid rows between them do not move.
 - "Add metric" writes a new row after the last row. The app makes the `id` from the name: lowercase letters and
   digits, with `_` between the words. Example: "Morning teeth" gives `morning_teeth`. If a metric, an invalid row or
   a `Log` column has this id, a number goes after it: `morning_teeth_2`. So a new metric does not get the values of a

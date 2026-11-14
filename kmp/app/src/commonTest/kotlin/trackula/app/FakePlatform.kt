@@ -10,6 +10,7 @@ import kotlin.time.Duration
 class FakePlatform(
     override val config: Config = Config("123-abc.apps.googleusercontent.com", "key"),
     override val isDemo: Boolean = false,
+    override val hasMouse: Boolean = false,
     savedSpreadsheetId: String? = null,
 ) : Platform {
     /** The local storage. */
