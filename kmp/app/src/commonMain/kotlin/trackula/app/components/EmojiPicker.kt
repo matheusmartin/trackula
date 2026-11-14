@@ -42,7 +42,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CancellationException
@@ -50,13 +49,8 @@ import kotlinx.coroutines.launch
 import trackula.app.resources.Res
 import trackula.model.Emoji
 import trackula.model.EmojiGroup
-import trackula.model.SKIN_TONES
 import trackula.model.findEmojis
 import trackula.model.parseEmojiList
-import trackula.model.skinToneOf
-
-/** The hand of the skin tone buttons: first without a tone, then with each tone of [SKIN_TONES]. */
-private val toneHands = listOf("✋", "✋🏻", "✋🏼", "✋🏽", "✋🏾", "✋🏿")
 
 /** The emoji groups after the first load. The list does not change while the app runs. */
 private var loadedGroups: List<EmojiGroup>? = null
@@ -71,11 +65,11 @@ private suspend fun loadGroups(): List<EmojiGroup>? = loadedGroups ?: try {
 }
 
 /**
- * The emoji picker of the metrics form: a search field, the skin tones, a chip for each group and a grid with all the
- * emojis that the app can show. A tap on an emoji calls [onPick] with the emoji, in the selected skin tone.
+ * The emoji picker of the metrics form: a search field, a chip for each group and a grid with all the emojis that the
+ * app can show, with the default skin tone. A tap on an emoji calls [onPick] with the emoji.
  *
- * [selected] is the icon of the form. Its emoji has a frame, and its skin tone is the first selected tone. The search
- * finds an emoji by the start of the words of its name or of its keywords. Example: "water" finds 🌊 and 💧.
+ * [selected] is the icon of the form: its emoji has a frame. The search finds an emoji by the start of the words of
+ * its name or of its keywords. Example: "water" finds 🌊 and 💧.
  */
 @Composable
 fun EmojiPicker(selected: String, onPick: (String) -> Unit, modifier: Modifier = Modifier) {
@@ -88,7 +82,6 @@ fun EmojiPicker(selected: String, onPick: (String) -> Unit, modifier: Modifier =
         }
     }
     var query by remember { mutableStateOf("") }
-    var tone by remember { mutableStateOf(skinToneOf(selected)) }
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedTextField(
@@ -101,29 +94,11 @@ fun EmojiPicker(selected: String, onPick: (String) -> Unit, modifier: Modifier =
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         )
-        ToneChoices(tone) { tone = it }
         val loaded = groups
         when {
-            loaded != null -> EmojiGrid(loaded, query, tone, selected, onPick)
+            loaded != null -> EmojiGrid(loaded, query, selected, onPick)
             failed -> Help("The emojis did not load. Type or paste an emoji in the Icon field.")
             else -> Help("Loading the emojis…")
-        }
-    }
-}
-
-/** The skin tone buttons: no tone, then the tones of [SKIN_TONES]. [tone] is the selected tone. */
-@Composable
-private fun ToneChoices(tone: Int?, onTone: (Int?) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Help("Skin tone", Modifier.padding(end = 4.dp))
-        toneHands.forEachIndexed { i, hand ->
-            val value = if (i == 0) null else i - 1
-            EmojiButton(
-                text = hand,
-                description = if (value == null) "No skin tone" else "${SKIN_TONES[value]} skin tone",
-                selected = tone == value,
-                size = 40.dp,
-            ) { onTone(value) }
         }
     }
 }
@@ -134,7 +109,7 @@ private fun ToneChoices(tone: Int?, onTone: (Int?) -> Unit) {
  * [query], the grid has only the emojis that it finds.
  */
 @Composable
-private fun EmojiGrid(groups: List<EmojiGroup>, query: String, tone: Int?, selected: String, onPick: (String) -> Unit) {
+private fun EmojiGrid(groups: List<EmojiGroup>, query: String, selected: String, onPick: (String) -> Unit) {
     val state = rememberLazyGridState()
     val scope = rememberCoroutineScope()
     val titles = remember(groups) { titleIndices(groups) }
@@ -172,7 +147,7 @@ private fun EmojiGrid(groups: List<EmojiGroup>, query: String, tone: Int?, selec
             .padding(4.dp),
     ) {
         if (searching) {
-            emojiItems(found, tone, selected, onPick)
+            emojiItems(found, selected, onPick)
         } else {
             for (group in groups) {
                 item(key = "title:${group.name}", span = { GridItemSpan(maxLineSpan) }) {
@@ -182,7 +157,7 @@ private fun EmojiGrid(groups: List<EmojiGroup>, query: String, tone: Int?, selec
                         style = MaterialTheme.typography.titleSmall,
                     )
                 }
-                emojiItems(group.emojis, tone, selected, onPick)
+                emojiItems(group.emojis, selected, onPick)
             }
         }
     }
@@ -195,11 +170,10 @@ private fun titleIndices(groups: List<EmojiGroup>): List<Int> =
 /** The height of the emoji grid: 6 rows. */
 private val GRID_HEIGHT = TOUCH_TARGET * 6 + 8.dp
 
-/** A button for each of [emojis], in the skin [tone]. The emoji of the [selected] icon has a frame. */
-private fun LazyGridScope.emojiItems(emojis: List<Emoji>, tone: Int?, selected: String, onPick: (String) -> Unit) {
+/** A button for each of [emojis]. The emoji of the [selected] icon has a frame. */
+private fun LazyGridScope.emojiItems(emojis: List<Emoji>, selected: String, onPick: (String) -> Unit) {
     items(emojis, key = { it.text }) { emoji ->
-        val text = emoji.withTone(tone)
-        EmojiButton(text, description = emoji.name, selected = emoji.isShownBy(selected)) { onPick(text) }
+        EmojiButton(emoji.text, description = emoji.name, selected = emoji.text == selected) { onPick(emoji.text) }
     }
 }
 
@@ -208,18 +182,12 @@ private fun LazyGridScope.emojiItems(emojis: List<Emoji>, tone: Int?, selected: 
  * button has a red frame and the color of a selected chip.
  */
 @Composable
-private fun EmojiButton(
-    text: String,
-    description: String,
-    selected: Boolean,
-    size: Dp = TOUCH_TARGET,
-    onClick: () -> Unit,
-) {
+private fun EmojiButton(text: String, description: String, selected: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(10.dp)
     Box(
         modifier = Modifier
-            .size(size)
+            .size(TOUCH_TARGET)
             .then(
                 if (selected) {
                     Modifier.background(colors.primaryContainer, shape).border(2.dp, colors.primary, shape)
@@ -236,17 +204,12 @@ private fun EmojiButton(
         contentAlignment = Alignment.Center,
     ) {
         // The emoji fills a little more than half of the button.
-        Text(text, Modifier.clearAndSetSemantics {}, fontSize = (size.value * 0.55f).sp, maxLines = 1)
+        Text(text, Modifier.clearAndSetSemantics {}, fontSize = 26.sp, maxLines = 1)
     }
 }
 
 /** A short text in the color of secondary text. */
 @Composable
-private fun Help(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text,
-        modifier = modifier,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+private fun Help(text: String) {
+    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

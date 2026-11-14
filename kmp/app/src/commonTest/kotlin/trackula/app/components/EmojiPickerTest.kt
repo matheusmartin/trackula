@@ -53,18 +53,11 @@ class EmojiPickerTest {
     }
 
     @Test
-    fun theSelectedSkinToneGoesToThePickedEmoji() = runComposeUiTest {
+    fun anEmojiWithSkinTonesGivesTheDefaultTone() = runComposeUiTest {
         showPicker()
-        onNodeWithContentDescription("Medium skin tone").performClick()
         search("waving")
         onNodeWithContentDescription("waving hand").performClick()
-        assertEquals("👋🏽", icon)
-    }
-
-    @Test
-    fun theSkinToneOfTheIconIsSelectedAtTheStart() = runComposeUiTest {
-        showPicker(initial = "👋🏿")
-        onNodeWithContentDescription("Dark skin tone").assertIsSelected()
+        assertEquals("👋", icon)
     }
 
     @Test

@@ -58,9 +58,8 @@ OUTPUT = ROOT / "kmp/app/src/commonMain/composeResources/files/emoji.txt"
 HEADER = f"""\
 # The emojis of the emoji picker of the metrics form. Made by design/emoji/make.py from emojibase-data {VERSION}
 # (MIT license), with names and keywords from Unicode CLDR. Do not edit.
-# A group line: "@", the name of the group, a tab and the icon of the group. An emoji line: the emoji, its name, its
-# keywords and its 5 skin tones, separated by tabs. The keywords are separated by spaces, and the skin tones also. An
-# emoji without skin tones has no skin tone field.
+# A group line: "@", the name of the group, a tab and the icon of the group. An emoji line: the emoji, its name and
+# its keywords, separated by tabs. The keywords are separated by spaces. Each emoji has the default skin tone.
 """
 
 
@@ -118,15 +117,6 @@ def check_length(text: str) -> str:
     return text
 
 
-def tones(fonts: list, emoji: dict) -> list:
-    """The 5 skin tones of [emoji], from light to dark: the variants with one tone for all persons. Else none."""
-    variants = {skin["tone"]: skin["emoji"] for skin in emoji.get("skins", []) if isinstance(skin["tone"], int)}
-    result = [variants.get(tone) for tone in range(1, 6)]
-    if None in result or not all(draws(fonts, text) for text in result):
-        return []
-    return [check_length(text) for text in result]
-
-
 def main() -> None:
     # The parts of emojis without a group, for example the regional indicator letters, have no order.
     data = sorted((e for e in emoji_data() if e.get("group") in GROUPS), key=lambda emoji: emoji["order"])
@@ -141,11 +131,7 @@ def main() -> None:
                 skipped.append(text)
                 continue
             keywords = " ".join(dict.fromkeys(word for tag in emoji.get("tags", []) for word in tag.lower().split()))
-            fields = [field(check_length(text)), field(emoji["label"]), field(keywords)]
-            skin_tones = tones(fonts, emoji)
-            if skin_tones:
-                fields.append(field(" ".join(skin_tones)))
-            lines.append("\t".join(fields))
+            lines.append("\t".join([field(check_length(text)), field(emoji["label"]), field(keywords)]))
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     count = sum(1 for line in lines if not line.startswith(("#", "@")))

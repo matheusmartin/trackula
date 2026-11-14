@@ -2,17 +2,9 @@ package trackula.model
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class EmojiTest {
-    private val wave = Emoji(
-        text = "👋",
-        name = "waving hand",
-        keywords = listOf("bye", "hello"),
-        tones = listOf("👋🏻", "👋🏼", "👋🏽", "👋🏾", "👋🏿"),
-    )
+    private val wave = Emoji("👋", "waving hand", listOf("bye", "hello"))
     private val ocean = Emoji("🌊", "water wave", listOf("ocean", "sea"))
     private val melon = Emoji("🍉", "watermelon", listOf("fruit"))
     private val droplet = Emoji("💧", "droplet", listOf("drop", "water"))
@@ -26,12 +18,12 @@ class EmojiTest {
     )
 
     @Test
-    fun theListHasGroupsWithTheirEmojisKeywordsAndSkinTones() {
+    fun theListHasGroupsWithTheirEmojisAndKeywords() {
         val text = """
             # A comment.
             🙂	no group
             @People	👋
-            👋	waving hand	bye hello	👋🏻 👋🏼 👋🏽 👋🏾 👋🏿
+            👋	waving hand	bye hello
 
             @Travel and places	🚗
             💧	droplet	drop water
@@ -65,29 +57,5 @@ class EmojiTest {
     fun aQueryWithoutWordsFindsNothing() {
         assertEquals(emptyList(), findEmojis(groups, ""))
         assertEquals(emptyList(), findEmojis(groups, "  : "))
-    }
-
-    @Test
-    fun anEmojiWithSkinTonesGivesTheSelectedTone() {
-        assertEquals("👋", wave.withTone(null))
-        assertEquals("👋🏽", wave.withTone(2))
-        assertEquals("💧", droplet.withTone(2))
-    }
-
-    @Test
-    fun anEmojiIsShownByItselfAndByItsSkinTones() {
-        assertTrue(wave.isShownBy("👋"))
-        assertTrue(wave.isShownBy("👋🏿"))
-        assertFalse(wave.isShownBy("💧"))
-    }
-
-    @Test
-    fun theSkinToneOfAnIconIsTheToneOfAllItsModifiers() {
-        assertEquals(2, skinToneOf("👋🏽"))
-        assertEquals(0, skinToneOf("🧑🏻‍🤝‍🧑🏻"))
-        assertEquals(4, skinToneOf("☝🏿"))
-        assertNull(skinToneOf("🧑🏻‍🤝‍🧑🏿"))
-        assertNull(skinToneOf("👋"))
-        assertNull(skinToneOf("water_drop"))
     }
 }
