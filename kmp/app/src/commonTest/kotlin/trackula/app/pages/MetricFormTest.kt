@@ -12,7 +12,6 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -20,6 +19,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import trackula.app.TrackulaTheme
+import trackula.app.components.pickEmoji
 import trackula.model.GoalDirection
 import trackula.model.Metric
 import trackula.model.MetricDraft
@@ -70,21 +70,17 @@ class MetricFormTest {
     fun aNewMetricGetsAnIdFromItsNameThatIsNotTakenAndTheFormDoesNotShowIt() = runComposeUiTest {
         showForm(FormSetup("Add metric", MetricDraft()), takenIds = setOf("read"))
         onNode(hasSetTextAction() and hasText("Name")).performTextReplacement("Read")
-        onNode(hasSetTextAction() and hasText("Icon")).performTextReplacement("menu_book")
+        pickEmoji("books")
         onNodeWithText("read_2", substring = true).assertDoesNotExist()
         onNodeWithText("Save").performScrollTo().performClick()
-        assertEquals(listOf<Metric>(YesNoMetric(id = "read_2", name = "Read", icon = "menu_book")), saved)
+        assertEquals(listOf<Metric>(YesNoMetric(id = "read_2", name = "Read", icon = "📚")), saved)
     }
 
     @Test
-    fun anEmojiOfThePickerBecomesTheIcon() = runComposeUiTest {
+    fun anEmojiOfThePickerBecomesTheIconAndTheFormHasNoIconField() = runComposeUiTest {
         showForm(FormSetup("Edit metric", weight, id = "weight"))
-        onNode(hasSetTextAction() and hasText("Search emoji")).performScrollTo().performTextReplacement("scale")
-        waitUntil(timeoutMillis = 5_000) {
-            onAllNodesWithContentDescription("balance scale").fetchSemanticsNodes().isNotEmpty()
-        }
-        onNodeWithContentDescription("balance scale").performScrollTo().performClick()
-        onNode(hasSetTextAction() and hasText("\u2696\uFE0F")).assertExists()
+        onNode(hasSetTextAction() and hasText("Icon")).assertDoesNotExist()
+        pickEmoji("balance scale")
         onNodeWithText("Save").performScrollTo().performClick()
         assertEquals("\u2696\uFE0F", saved.single().let { (it as NumberMetric).icon })
     }
@@ -119,7 +115,7 @@ class MetricFormTest {
         onNodeWithText("Correct these fields: Name, Icon, Target.").performScrollTo().assertExists()
 
         onNode(hasSetTextAction() and hasText("Name")).performScrollTo().performTextReplacement("Steps")
-        onNode(hasSetTextAction() and hasText("Icon")).performScrollTo().performTextReplacement("footprint")
+        pickEmoji("footprints")
         onNodeWithText("Correct this field: Target.").performScrollTo().assertExists()
     }
 

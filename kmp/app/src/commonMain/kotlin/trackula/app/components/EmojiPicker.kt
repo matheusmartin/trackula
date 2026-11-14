@@ -3,35 +3,23 @@ package trackula.app.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,23 +29,19 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.launch
 import trackula.app.resources.Res
 import trackula.model.Emoji
-import trackula.model.EmojiGroup
-import trackula.model.findEmojis
 import trackula.model.parseEmojiList
 
-/** The emoji groups after the first load. The list does not change while the app runs. */
-private var loadedGroups: List<EmojiGroup>? = null
+/** The emojis after the first load. The list does not change while the app runs. */
+private var loadedEmojis: List<Emoji>? = null
 
-/** The emoji groups of the file `emoji.txt`. See design/emoji/make.py. Null if the file does not load. */
-private suspend fun loadGroups(): List<EmojiGroup>? = loadedGroups ?: try {
-    parseEmojiList(Res.readBytes("files/emoji.txt").decodeToString()).also { loadedGroups = it }
+/** The emojis of the file `emoji.txt`. See design/emoji/make.py. Null if the file does not load. */
+private suspend fun loadEmojis(): List<Emoji>? = loadedEmojis ?: try {
+    parseEmojiList(Res.readBytes("files/emoji.txt").decodeToString()).also { loadedEmojis = it }
 } catch (e: CancellationException) {
     throw e
 } catch (_: Exception) {
@@ -65,80 +49,44 @@ private suspend fun loadGroups(): List<EmojiGroup>? = loadedGroups ?: try {
 }
 
 /**
- * The emoji picker of the metrics form: a search field, a chip for each group and a grid with all the emojis that the
- * app can show, with the default skin tone. A tap on an emoji calls [onPick] with the emoji.
+ * The emoji picker of the metrics form: a grid of a fixed height, which scrolls, with all the emojis that the app can
+ * show, in the order of Unicode and with the default skin tone. A tap on an emoji calls [onPick] with the emoji.
  *
- * [selected] is the icon of the form: its emoji has a frame. The search finds an emoji by the start of the words of
- * its name or of its keywords. Example: "water" finds 🌊 and 💧.
+ * [selected] is the icon of the form: its emoji has a frame. When the grid opens, it scrolls to that emoji.
  */
 @Composable
 fun EmojiPicker(selected: String, onPick: (String) -> Unit, modifier: Modifier = Modifier) {
-    var groups by remember { mutableStateOf(loadedGroups) }
+    var emojis by remember { mutableStateOf(loadedEmojis) }
     var failed by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        if (groups == null) {
-            groups = loadGroups()
-            failed = groups == null
+        if (emojis == null) {
+            emojis = loadEmojis()
+            failed = emojis == null
         }
     }
-    var query by remember { mutableStateOf("") }
-
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = { query = it },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("Search emoji") },
-            leadingIcon = { Symbol("search", size = 20.dp) },
-            trailingIcon = if (query.isEmpty()) null else ({ AppIconButton("close", "Clear search", { query = "" }) }),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-        )
-        val loaded = groups
-        when {
-            loaded != null -> EmojiGrid(loaded, query, selected, onPick)
-            failed -> Help("The emojis did not load. Type or paste an emoji in the Icon field.")
-            else -> Help("Loading the emojis…")
-        }
+    val loaded = emojis
+    when {
+        loaded != null -> EmojiGrid(loaded, selected, onPick, modifier)
+        failed -> Help("The emojis did not load. Reload the page to try again.", modifier)
+        else -> Help("Loading the emojis…", modifier)
     }
 }
 
-/**
- * The emojis of [groups] in a grid of a fixed height, which scrolls. Without a [query], each group has a title, and a
- * row of chips above the grid goes to a group. The chip of the group at the top of the grid is selected. With a
- * [query], the grid has only the emojis that it finds.
- */
+/** The grid of [EmojiPicker]. */
 @Composable
-private fun EmojiGrid(groups: List<EmojiGroup>, query: String, selected: String, onPick: (String) -> Unit) {
+private fun EmojiGrid(emojis: List<Emoji>, selected: String, onPick: (String) -> Unit, modifier: Modifier) {
     val state = rememberLazyGridState()
-    val scope = rememberCoroutineScope()
-    val titles = remember(groups) { titleIndices(groups) }
-    val found = remember(groups, query) { findEmojis(groups, query) }
-    val searching = query.isNotBlank()
-
-    if (searching) {
-        Help(if (found.isEmpty()) "No emoji for \"${query.trim()}\"." else "${found.size} emojis")
-    } else {
-        val atTop by remember(titles) { derivedStateOf { titles.indexOfLast { it <= state.firstVisibleItemIndex } } }
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), Arrangement.spacedBy(8.dp)) {
-            groups.forEachIndexed { i, group ->
-                FilterChip(
-                    selected = i == atTop,
-                    onClick = { scope.launch { state.scrollToItem(titles[i]) } },
-                    label = { Text("${group.icon} ${group.name}") },
-                )
-            }
-        }
+    // Only when the grid opens: a tap on an emoji does not move the grid.
+    LaunchedEffect(Unit) {
+        val index = emojis.indexOfFirst { it.text == selected }
+        if (index > 0) state.scrollToItem(index)
     }
-    // The grid starts at the top after each change of the query.
-    LaunchedEffect(query) { state.scrollToItem(0) }
-
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(12.dp)
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = TOUCH_TARGET),
         state = state,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(GRID_HEIGHT)
             .background(colors.surfaceContainerLowest, shape)
@@ -146,43 +94,21 @@ private fun EmojiGrid(groups: List<EmojiGroup>, query: String, selected: String,
             .clip(shape)
             .padding(4.dp),
     ) {
-        if (searching) {
-            emojiItems(found, selected, onPick)
-        } else {
-            for (group in groups) {
-                item(key = "title:${group.name}", span = { GridItemSpan(maxLineSpan) }) {
-                    Text(
-                        group.name,
-                        modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 4.dp),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                }
-                emojiItems(group.emojis, selected, onPick)
-            }
+        items(emojis, key = { it.text }) { emoji ->
+            EmojiButton(emoji, selected = emoji.text == selected) { onPick(emoji.text) }
         }
     }
 }
 
-/** The index of the title of each group in the grid without a query: each group has its title, then its emojis. */
-private fun titleIndices(groups: List<EmojiGroup>): List<Int> =
-    groups.runningFold(0) { index, group -> index + 1 + group.emojis.size }.dropLast(1)
-
 /** The height of the emoji grid: 6 rows. */
 private val GRID_HEIGHT = TOUCH_TARGET * 6 + 8.dp
 
-/** A button for each of [emojis]. The emoji of the [selected] icon has a frame. */
-private fun LazyGridScope.emojiItems(emojis: List<Emoji>, selected: String, onPick: (String) -> Unit) {
-    items(emojis, key = { it.text }) { emoji ->
-        EmojiButton(emoji.text, description = emoji.name, selected = emoji.text == selected) { onPick(emoji.text) }
-    }
-}
-
 /**
- * A square button with the emoji [text]. [description] is its name for screen readers and tests. The [selected]
+ * A square button with [emoji]. Its name is the name of the button for screen readers and tests. The [selected]
  * button has a red frame and the color of a selected chip.
  */
 @Composable
-private fun EmojiButton(text: String, description: String, selected: Boolean, onClick: () -> Unit) {
+private fun EmojiButton(emoji: Emoji, selected: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(10.dp)
     Box(
@@ -198,18 +124,23 @@ private fun EmojiButton(text: String, description: String, selected: Boolean, on
             .clip(shape)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics {
-                contentDescription = description
+                contentDescription = emoji.name
                 this.selected = selected
             },
         contentAlignment = Alignment.Center,
     ) {
         // The emoji fills a little more than half of the button.
-        Text(text, Modifier.clearAndSetSemantics {}, fontSize = 26.sp, maxLines = 1)
+        Text(emoji.text, Modifier.clearAndSetSemantics {}, fontSize = 26.sp, maxLines = 1)
     }
 }
 
 /** A short text in the color of secondary text. */
 @Composable
-private fun Help(text: String) {
-    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun Help(text: String, modifier: Modifier) {
+    Text(
+        text,
+        modifier = modifier,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }

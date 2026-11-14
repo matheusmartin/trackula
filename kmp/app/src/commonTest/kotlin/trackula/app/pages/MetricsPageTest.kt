@@ -27,6 +27,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import trackula.app.CountingStore
 import trackula.app.TrackulaTheme
+import trackula.app.components.pickEmoji
 import trackula.model.Day
 import trackula.model.MainView
 import trackula.model.MetricsWrite
@@ -96,7 +97,7 @@ class MetricsPageTest {
         showPage()
         onNodeWithText("Add metric").performClick()
         field("Name").performTextReplacement("Pages")
-        field("Icon").performTextReplacement("menu_book")
+        pickEmoji("books")
         onNodeWithText("Count").performScrollTo().performClick()
         onNodeWithText("At least").performScrollTo().performClick()
         field("Target").performScrollTo().performTextReplacement("20")
@@ -105,7 +106,7 @@ class MetricsPageTest {
         onNodeWithText("Save").performScrollTo().performClick()
         waitFor("Add metric")
         assertEquals(
-            NumberMetric(id = "pages", name = "Pages", icon = "menu_book", goal = NumberGoal(20.0), isCount = true),
+            NumberMetric(id = "pages", name = "Pages", icon = "📚", goal = NumberGoal(20.0), isCount = true),
             store.last!!.metrics.last(),
         )
 
@@ -120,7 +121,7 @@ class MetricsPageTest {
         onNodeWithText("Add metric").performClick()
         onNodeWithText("Save").performScrollTo().performClick()
         onNodeWithText("Enter a name.").performScrollTo().assertExists()
-        onNodeWithText("Enter an icon: a Material Symbols name or an emoji.").performScrollTo().assertExists()
+        onNodeWithText("Pick an icon.").performScrollTo().assertExists()
         assertEquals(emptyList(), store.metricsWrites)
 
         // The errors follow the changes.
@@ -189,7 +190,7 @@ class MetricsPageTest {
 
         onNodeWithText("Restore").performScrollTo().performClick()
         onNodeWithText("Restore metric").assertExists()
-        field("Icon").performTextReplacement("water_drop")
+        pickEmoji("droplet")
         onNodeWithText("Count").performScrollTo().performClick()
         // A restored metric needs a goal.
         onNodeWithText("Save").performScrollTo().performClick()
@@ -210,7 +211,7 @@ class MetricsPageTest {
         onNodeWithText("Fix").performScrollTo().performClick()
         onNodeWithText("Fix row 11").assertExists()
 
-        field("Icon").performTextReplacement("self_improvement")
+        pickEmoji("person in lotus position")
         onNodeWithText("Save").performScrollTo().performClick()
         waitFor("Add metric")
         assertEquals("stretch", store.last!!.metrics.last().id)

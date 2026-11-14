@@ -68,9 +68,9 @@ data class MetricDraft(
         if (name.isBlank()) errors[DraftField.NAME] = "Enter a name."
         val iconText = icon.trim()
         if (iconText.isEmpty()) {
-            errors[DraftField.ICON] = "Enter an icon: a Material Symbols name or an emoji."
+            errors[DraftField.ICON] = "Pick an icon."
         } else if (!symbolName.matches(iconText) && iconText.length > 16) {
-            errors[DraftField.ICON] = "Use a Material Symbols name in lowercase, such as water_drop, or one emoji."
+            errors[DraftField.ICON] = "The icon in the sheet is too long. Pick an icon."
         }
         val isNumber = kind != MetricKind.YES_NO
         val stepValue = if (isNumber) parseDecimal(step)?.takeIf { it > 0 } else 1.0

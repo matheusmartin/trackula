@@ -242,13 +242,17 @@ private fun errorSummary(fields: Set<DraftField>): String {
 private fun NameAndIcon(draft: MetricDraft, errors: Map<DraftField, String>, onChange: (MetricDraft) -> Unit) {
     Section("Name and icon") {
         Field("Name", draft.name, errors[DraftField.NAME]) { onChange(draft.copy(name = it)) }
+        // The icon shows once: here. An icon from the sheet, for example a Material Symbol, stays until a pick.
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             MetricIcon(draft.icon.trim(), large = true)
-            Box(Modifier.weight(1f)) {
-                Field("Icon", draft.icon, errors[DraftField.ICON]) { onChange(draft.copy(icon = it)) }
-            }
+            val error = errors[DraftField.ICON]
+            val colors = MaterialTheme.colorScheme
+            Text(
+                error ?: "Pick an emoji for the icon.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (error != null) colors.error else colors.onSurfaceVariant,
+            )
         }
-        Help("Pick an emoji below. Or type an emoji, or a Material Symbols name such as water_drop.")
         EmojiPicker(selected = draft.icon.trim(), onPick = { onChange(draft.copy(icon = it)) })
     }
 }
