@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -25,6 +26,7 @@ import trackula.model.MetricDraft
 import trackula.model.MetricKind
 import trackula.model.NumberGoal
 import trackula.model.NumberMetric
+import trackula.model.YesNoMetric
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -65,10 +67,26 @@ class MetricFormTest {
     }
 
     @Test
-    fun aNewMetricGetsAnIdFromItsNameThatIsNotTaken() = runComposeUiTest {
+    fun aNewMetricGetsAnIdFromItsNameThatIsNotTakenAndTheFormDoesNotShowIt() = runComposeUiTest {
         showForm(FormSetup("Add metric", MetricDraft()), takenIds = setOf("read"))
         onNode(hasSetTextAction() and hasText("Name")).performTextReplacement("Read")
-        onNodeWithText("Sheet column: read_2").performScrollTo().assertExists()
+        onNode(hasSetTextAction() and hasText("Icon")).performTextReplacement("menu_book")
+        onNodeWithText("read_2", substring = true).assertDoesNotExist()
+        onNodeWithText("Save").performScrollTo().performClick()
+        assertEquals(listOf<Metric>(YesNoMetric(id = "read_2", name = "Read", icon = "menu_book")), saved)
+    }
+
+    @Test
+    fun anEmojiOfThePickerBecomesTheIcon() = runComposeUiTest {
+        showForm(FormSetup("Edit metric", weight, id = "weight"))
+        onNode(hasSetTextAction() and hasText("Search emoji")).performScrollTo().performTextReplacement("scale")
+        waitUntil(timeoutMillis = 5_000) {
+            onAllNodesWithContentDescription("balance scale").fetchSemanticsNodes().isNotEmpty()
+        }
+        onNodeWithContentDescription("balance scale").performScrollTo().performClick()
+        onNode(hasSetTextAction() and hasText("\u2696\uFE0F")).assertExists()
+        onNodeWithText("Save").performScrollTo().performClick()
+        assertEquals("\u2696\uFE0F", saved.single().let { (it as NumberMetric).icon })
     }
 
     @Test

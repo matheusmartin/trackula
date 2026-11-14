@@ -75,11 +75,26 @@ fun planDeleteRow(table: MetricsTable, old: InvalidMetricRow): MetricsWrite = De
  * first one ([up]) or the last one. Throws a [MissingMetricException] if [table] has no row for [id].
  */
 fun planMoveMetric(table: MetricsTable, id: String, up: Boolean): MetricsWrite? {
-    val row = table.rows[id] ?: throw MissingMetricException(id)
     val index = table.items.indexOfFirst { it.id == id }
-    val other = table.items.getOrNull(if (up) index - 1 else index + 1) ?: return null
-    val otherRow = table.rows.getValue(other.id)
-    return MoveMetricRow(row, if (up) otherRow else otherRow + 1)
+    // The same id gives null: the first metric does not move up, and the last one does not move down.
+    val otherId = table.items.getOrNull(if (up) index - 1 else index + 1)?.id ?: id
+    return planMoveMetricTo(table, id, otherId)
+}
+
+/**
+ * The write that moves the metric [id] to the place of the metric [otherId], as a drag does: before the row of
+ * [otherId] if [id] is below it now, or after it if [id] is above it. The rows between them move one place. Null if
+ * [otherId] is [id], or if [table] has no metric [otherId]. Throws a [MissingMetricException] if [table] has no row
+ * for [id].
+ *
+ * Example: the metrics weight (row 2), waist (row 3) and water (row 4). Weight to the place of water gives
+ * `MoveMetricRow(2, 5)`: the order is waist, water, weight.
+ */
+fun planMoveMetricTo(table: MetricsTable, id: String, otherId: String): MetricsWrite? {
+    val row = table.rows[id] ?: throw MissingMetricException(id)
+    if (otherId == id || table.items.none { it.id == otherId }) return null
+    val otherRow = table.rows.getValue(otherId)
+    return MoveMetricRow(row, if (row > otherRow) otherRow else otherRow + 1)
 }
 
 /** The row of the invalid row [old] in [table], found by its cells. Throws a [ChangedRowException] if it is gone. */

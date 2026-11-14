@@ -85,6 +85,7 @@ class ReloadHandle {
  *   the detail screen.
  * - [managing]: true if the page shows the metrics screen (see [MetricsPage]). The App owns it, and [onManaging]
  *   changes it. The App hides the bottom navigation bar on the metrics screen.
+ * - [hasMouse]: true if the device has a mouse. Then a drag moves a metric on the metrics screen, not arrow buttons.
  * - [readPref], [writePref]: the group filter stays in local storage. The filter also selects the score: of all
  *   metrics, or of the metrics of the selected group.
  */
@@ -103,6 +104,7 @@ fun TodayPage(
     writePref: (String, String?) -> Unit,
     managing: Boolean = false,
     onManaging: (Boolean) -> Unit = {},
+    hasMouse: Boolean = false,
 ) {
     // The latest callbacks: the reload handle and the coroutines keep one function for the life of the page.
     val currentExpired by rememberUpdatedState(expired)
@@ -272,6 +274,7 @@ fun TodayPage(
             data = snapshot,
             busy = busy,
             error = error,
+            hasMouse = hasMouse,
             onWrite = ::writeMetrics,
             onClose = { currentOnManaging(false) },
         )

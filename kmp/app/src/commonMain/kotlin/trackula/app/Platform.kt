@@ -14,6 +14,12 @@ interface Platform {
     /** True if the URL has `?demo`. Then the app uses sample data in memory. See `DemoStore`. */
     val isDemo: Boolean
 
+    /**
+     * True if the main pointer of the device is a mouse or a touchpad, as on a desktop computer. False on a phone or
+     * a tablet. Example: the metrics screen moves a metric with a drag of the mouse, or else with arrow buttons.
+     */
+    val hasMouse: Boolean
+
     /** Today in the time zone of the device. */
     fun today(): Day
 

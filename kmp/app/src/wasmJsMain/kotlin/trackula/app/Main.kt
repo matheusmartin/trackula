@@ -42,6 +42,7 @@ fun main() {
 private object BrowserPlatform : Platform {
     override val config = Config.build
     override val isDemo = hasDemoParameter()
+    override val hasMouse = hasFinePointer()
 
     override fun today(): Day = browserToday()
 
@@ -71,6 +72,9 @@ private class BrowserSession(private val google: GoogleSession) : Session {
 
     override fun store(spreadsheetId: String): Store = google.store(spreadsheetId)
 }
+
+/** True if the main pointer of the device is precise, as a mouse or a touchpad: the CSS media query `pointer: fine`. */
+private fun hasFinePointer(): Boolean = js("window.matchMedia('(pointer: fine)').matches")
 
 /** True if the URL of the page has the parameter `demo`, for example `?demo`. */
 private fun hasDemoParameter(): Boolean = js("new URLSearchParams(window.location.search).has('demo')")
