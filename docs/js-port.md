@@ -61,11 +61,16 @@ This file has the plan, the decisions and the rules of the port from Kotlin Mult
 
 | Kotlin | JavaScript |
 |---|---|
-| `Double`, `Int` | `number`. Text for the user comes from `Format.js` or `Numbers.js`. `String(3)` gives "3", as the KMP app. |
-| A cell (`Any?`) | `string \| number \| boolean \| null`. |
+| `Double`, `Int`, `Float` | `number`. Text for the user comes from `Format.js` or `Numbers.js`. `String(3)` gives "3", as the KMP app. |
+| A cell (`Any?`) | `Cell` in `src/model/Parse.js`: `string \| number \| boolean \| null`. |
 | `Day` | `Day` in `src/model/Day.js`. There is one object for each date, so `===` compares days, and a day can be a `Map` key. Use `day.isBefore(other)`, not `<`. |
-| `data class` | A class with fields, or a JSDoc `@typedef` of a plain object. Tests compare them with `toEqual`. If the code compares two of them or uses one as a `Map` key, make a text key. Example: `MetricDay` → `` `${metricId}\|${day}` ``. |
-| `sealed class` | A base class and subclasses. The code checks the type with `instanceof`. |
+| `data class` | A frozen class if it has methods, getters or default values, or if it is a subclass of a sealed class. Else a JSDoc `@typedef` of a plain object, for example `LogEntry` and `ZoomBar`: make it with `{ row, date, … }`. Tests compare them with `toEqual`. If the code compares two of them or uses one as a `Map` key, make a text key. Example: `MetricDay` → `metricDayKey(metricId, day)`, and `parseMetricDay(key)` gives the id and the day back. |
+| Constructor with default values, or with more than 3 fields | One object with the Kotlin names: `new NumberMetric({ id, name, icon, goal, isCount: true })`. `copy(changes)` gives a copy with other values. Other constructors take the fields in the Kotlin order: `new SetCell(row, column, value)`. |
+| Named optional arguments | The optional parameters in the Kotlin order, or one last object of options if callers set them by name: `chartPoints(days, values, { height: 40, fromZero: true })`. |
+| `sealed class` | A JSDoc `@typedef` with the Kotlin name of the union of the subclasses: `Metric` is `YesNoMetric \| NumberMetric`, `LogWrite` and `MetricsWrite` are the same. The code checks the type with `instanceof`, and TypeScript then knows the subclass. |
+| `Pair`, `Triple` | An array: `[first, second]`. |
+| Functions with the same name and other parameter types | One function that checks the type of its parameter. Example: `draftOf`. |
+| `internal` | `export`. Example: `logDate` in `Parse.js`. |
 | `enum class` | A class with one static instance for each value and `entries`, as `MainView.js`. A simple enum can be a frozen object of texts. |
 | `List`, `Map`, `Set` | `Array`, `Map`, `Set`. |
 | `T?` | `T \| null`. Use `null` for "no value", not `undefined`. |
