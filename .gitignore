@@ -22,3 +22,6 @@ config.env
 /node_modules/
 /dist/
 /coverage/
+
+# Git worktrees of Claude Code agents.
+/.claude/worktrees/
