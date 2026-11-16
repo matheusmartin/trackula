@@ -24,11 +24,23 @@ This file has the plan, the decisions and the rules of the port from Kotlin Mult
   (`npm run typecheck`, `checkJs` and `strict`). The only TypeScript file is `src/globals.d.ts`.
 - **UI: Preact 10** with JSX and hooks: function components, as Jaspr in the Dart app. No other UI library.
 - **Styles: BeerCSS 5.0.3** (Material Design 3), from npm, in the bundle. The Dart app used the same version from a
-  CDN. The colors of `kmp/app/src/commonMain/kotlin/trackula/app/Theme.kt` go in the BeerCSS CSS variables. The app
-  styles are plain CSS files next to their components.
-- **Icons: Material Symbols**, in a font that the app serves itself. No CDN.
-- **Text font: Roboto** (`@fontsource/roboto`), the font of the KMP app. The app serves it itself.
+  CDN. The colors of `kmp/app/src/commonMain/kotlin/trackula/app/Theme.kt` go in the BeerCSS CSS variables
+  (`src/app/theme.css`). The app styles are plain CSS files next to their components.
+  - BeerCSS is in the cascade layer `beer` (`src/app/beer.css`). A rule of the app replaces a BeerCSS rule without a
+    more specific selector.
+  - Do not use a BeerCSS helper class as the name of an app class, for example `.error`, `.small` or `.large`: the
+    helpers use `!important`. Use the name of the component: `.notice-error`.
+  - `theme.css` has the type scale of Compose as classes (`.title-medium`, `.body-small`, …), the extra colors
+    (`--cell`, `--done`, `--action-start`, …) and `.score-theme`. A button with its own corners sets them in
+    `--button-shape` too, so that a press does not change its shape.
+- **Icons: Material Symbols**, in a font that the app serves itself. No CDN. `src/app/symbols.woff2` (0.33 MB) has the
+  glyphs of the KMP font: outlined, weight 400, not filled. `design/symbols/make.py` makes it.
+- **Text font: Roboto** (`@fontsource/roboto`), the font of the KMP app. The app serves it itself: the weights 400,
+  500, 600 and 700, with the subsets `latin` and `latin-ext` (`src/app/roboto.css`).
 - **Emojis: the font of the device.** The app downloads no emoji font.
+- **Scroll: the page of the browser.** The app bar stays at the top and the navigation bar at the bottom
+  (`position: sticky`). A screen that must start at the top calls `window.scrollTo(0, 0)`: the Kotlin code uses
+  `LocalPageScroll`.
 - **Charts: SVG.** Each bar, dot or day has a `<title>`, so the browser shows a tooltip, as in the Dart app.
 - **Build: Vite.** **Tests: Vitest**: Node.js for `model`, `sheets` and `services`, and happy-dom with Testing Library
   for `app`. **Checks: ESLint and Prettier.**
@@ -124,3 +136,6 @@ This file has the plan, the decisions and the rules of the port from Kotlin Mult
 
 - `Day` objects come from `Day.of` and the other static functions, never from `new`. There is one object for each
   date. `Day.of` corrects values out of range: the Kotlin constructor kept them.
+- Text weights: the JavaScript app uses Roboto Medium and SemiBold. The KMP app has only Roboto Regular: it shows
+  Medium as Regular, and SemiBold as a bolder Regular.
+- The tooltip of an icon button is the tooltip of the browser (`title`).

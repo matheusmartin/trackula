@@ -1,0 +1,16 @@
+/* SetupPage.jsx: one card, at most --form-width wide, in the middle. */
+.setup-page {
+  display: flex;
+  justify-content: center;
+}
+
+.setup-card {
+  gap: 16px;
+  inline-size: 100%;
+  max-inline-size: var(--form-width);
+  padding: 16px;
+}
+
+.setup-card :is(h2, p) {
+  margin: 0;
+}
