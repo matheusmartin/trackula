@@ -1,0 +1,60 @@
+/*
+ * BeerCSS 5.0.3, the Material Design 3 styles of the app, in the cascade layer `beer`. The rules of the app are not
+ * in a layer, so they replace a BeerCSS rule without a more specific selector.
+ *
+ * The same files as beercss/src/cdn/beer.css, but not settings/font.css: its Material Symbols fonts come from BeerCSS
+ * or from a CDN. The app has its own icon font. See theme.css.
+ *
+ * The layer `override` comes first: its !important rules replace the !important rules of BeerCSS. See theme.css.
+ */
+@layer override, beer;
+@import 'beercss/src/cdn/settings/dark.css' layer(beer);
+@import 'beercss/src/cdn/settings/global.css' layer(beer);
+@import 'beercss/src/cdn/settings/light.css' layer(beer);
+@import 'beercss/src/cdn/settings/reset.css' layer(beer);
+@import 'beercss/src/cdn/settings/theme.css' layer(beer);
+@import 'beercss/src/cdn/helpers/alignment.css' layer(beer);
+@import 'beercss/src/cdn/helpers/blur.css' layer(beer);
+@import 'beercss/src/cdn/helpers/color.css' layer(beer);
+@import 'beercss/src/cdn/helpers/direction.css' layer(beer);
+@import 'beercss/src/cdn/helpers/elevate.css' layer(beer);
+@import 'beercss/src/cdn/helpers/form.css' layer(beer);
+@import 'beercss/src/cdn/helpers/margin.css' layer(beer);
+@import 'beercss/src/cdn/helpers/opacity.css' layer(beer);
+@import 'beercss/src/cdn/helpers/padding.css' layer(beer);
+@import 'beercss/src/cdn/helpers/position.css' layer(beer);
+@import 'beercss/src/cdn/helpers/responsive.css' layer(beer);
+@import 'beercss/src/cdn/helpers/ripple.css' layer(beer);
+@import 'beercss/src/cdn/helpers/scroll.css' layer(beer);
+@import 'beercss/src/cdn/helpers/shadow.css' layer(beer);
+@import 'beercss/src/cdn/helpers/size.css' layer(beer);
+@import 'beercss/src/cdn/helpers/space.css' layer(beer);
+@import 'beercss/src/cdn/helpers/wave.css' layer(beer);
+@import 'beercss/src/cdn/helpers/zoom.css' layer(beer);
+@import 'beercss/src/cdn/elements/badge.css' layer(beer);
+@import 'beercss/src/cdn/elements/bar.css' layer(beer);
+@import 'beercss/src/cdn/elements/button.css' layer(beer);
+@import 'beercss/src/cdn/elements/card.css' layer(beer);
+@import 'beercss/src/cdn/elements/chip.css' layer(beer);
+@import 'beercss/src/cdn/elements/dialog.css' layer(beer);
+@import 'beercss/src/cdn/elements/divider.css' layer(beer);
+@import 'beercss/src/cdn/elements/expansion.css' layer(beer);
+@import 'beercss/src/cdn/elements/field.css' layer(beer);
+@import 'beercss/src/cdn/elements/grid.css' layer(beer);
+@import 'beercss/src/cdn/elements/icon.css' layer(beer);
+@import 'beercss/src/cdn/elements/layout.css' layer(beer);
+@import 'beercss/src/cdn/elements/list.css' layer(beer);
+@import 'beercss/src/cdn/elements/mainLayout.css' layer(beer);
+@import 'beercss/src/cdn/elements/media.css' layer(beer);
+@import 'beercss/src/cdn/elements/menu.css' layer(beer);
+@import 'beercss/src/cdn/elements/navigation.css' layer(beer);
+@import 'beercss/src/cdn/elements/overlay.css' layer(beer);
+@import 'beercss/src/cdn/elements/page.css' layer(beer);
+@import 'beercss/src/cdn/elements/progress.css' layer(beer);
+@import 'beercss/src/cdn/elements/selection.css' layer(beer);
+@import 'beercss/src/cdn/elements/slider.css' layer(beer);
+@import 'beercss/src/cdn/elements/snackbar.css' layer(beer);
+@import 'beercss/src/cdn/elements/table.css' layer(beer);
+@import 'beercss/src/cdn/elements/tab.css' layer(beer);
+@import 'beercss/src/cdn/elements/tooltip.css' layer(beer);
+@import 'beercss/src/cdn/elements/typography.css' layer(beer);
