@@ -42,7 +42,7 @@ function onlyImports(allowed) {
 }
 
 export default [
-  { ignores: ['dist/', 'kmp/', 'design/', 'node_modules/', 'coverage/'] },
+  { ignores: ['dist/', 'kmp/', 'design/', 'node_modules/', 'coverage/', '.claude/'] },
   js.configs.recommended,
   jsdoc.configs['flat/recommended-typescript-flavor-error'],
   {
