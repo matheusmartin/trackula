@@ -206,6 +206,13 @@ describe('MetricDraft', () => {
     expect(water.copy({ kind: MetricKind.YES_NO }).previewGoal()).toBeNull();
   });
 
+  test('equals compares the values, not the objects', () => {
+    expect(water.copy({ name: 'Tea' }).copy({ name: ' Water ' }).equals(water)).toBe(true);
+    expect(new MetricDraft().equals(new MetricDraft())).toBe(true);
+    expect(water.copy({ kind: MetricKind.NUMBER }).equals(water)).toBe(false);
+    expect(water.copy({ usesTrend: true }).equals(water)).toBe(false);
+  });
+
   test('the deleted summary gives the number of values and the last day', () => {
     expect(deletedSummary({ id: 's', values: 142, lastDay: Day.of(2026, 10, 30), isYesNo: false })).toBe(
       '142 values · last on Oct 30',

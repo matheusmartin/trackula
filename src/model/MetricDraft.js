@@ -159,6 +159,17 @@ export class MetricDraft {
   }
 
   /**
+   * True if `other` has the same values as this draft, as Kotlin `==` on two drafts. Example: the form asks before it
+   * discards the changes only if the draft is not equal to the draft at the start.
+   * @param {MetricDraft} other
+   * @returns {boolean}
+   */
+  equals(other) {
+    const keys = /** @type {(keyof MetricDraftFields)[]} */ (Object.keys(this));
+    return keys.every((key) => this[key] === other[key]);
+  }
+
+  /**
    * The metric of the form with the id `id`, or an error for each field that is not valid. The parser of the sheet
    * also checks the metric, so that the app writes only rows that it can read.
    *
