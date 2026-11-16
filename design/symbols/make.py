@@ -1,14 +1,20 @@
 #!/usr/bin/env python3
-"""Makes the Material Symbols font of the app: kmp/app/src/commonMain/composeResources/font/symbols.ttf.
+"""Makes the Material Symbols fonts of the app: kmp/app/src/commonMain/composeResources/font/symbols.ttf for the KMP
+app, and src/app/symbols.woff2 for the JavaScript app.
 
-Compose draws the icons with this font: the app buttons (refresh, logout and the others) and the metric icons, which
-can be any Material Symbol. The Skia build of Compose for the web cannot read WOFF2, so the font is a TTF. It is a
-static font, as the default icon style of the Material Symbols CSS: outlined, weight 400, size 24. Without the font
-variations it is 1.4 MB (0.5 MB with gzip): less than the 4 MB WOFF2 of the Dart app.
+The app draws the icons with this font: the app buttons (refresh, logout and the others) and the metric icons, which
+can be any Material Symbol. It is a static font, as the default icon style of the Material Symbols CSS: outlined,
+weight 400, size 24, not filled.
+
+- symbols.ttf: the Skia build of Compose for the web cannot read WOFF2, so the font is a TTF. Without the font
+  variations it is 1.4 MB (0.5 MB with gzip): less than the 4 MB WOFF2 of the Dart app.
+- symbols.woff2: the same glyphs for the browser, 0.33 MB. The JavaScript app finds an icon by its name (a ligature),
+  so the font keeps only the character codes of the names, and no glyph names. The variable WOFF2 of BeerCSS
+  (0.46 MB) is an older version, with a fill axis that the app does not use.
 
 Run it again to change the version. It needs Python 3 and fonttools with brotli. The same versions give the same
 bytes:
-    pip install fonttools==4.67.0 brotli
+    pip install fonttools==4.67.0 brotli==1.2.1
     python3 design/symbols/make.py
 """
 
@@ -37,6 +43,10 @@ ICONS = """
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUTPUT = ROOT / "kmp/app/src/commonMain/composeResources/font/symbols.ttf"
+WOFF2_OUTPUT = ROOT / "src/app/symbols.woff2"
+
+# The characters of the icon names. The WOFF2 maps only these, and not the private-use code of each icon.
+NAME_CHARACTERS = range(0x80)
 
 
 def main() -> None:
@@ -59,6 +69,20 @@ def main() -> None:
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     font.save(OUTPUT)
     print(f"{OUTPUT.relative_to(ROOT)}: {OUTPUT.stat().st_size} bytes")
+    save_woff2(TTFont(OUTPUT))
+
+
+def save_woff2(font: TTFont) -> None:
+    """Saves the font as WOFF2, without the parts that the browser does not use for a ligature."""
+    # Format 3: no glyph names. The ligatures find the glyphs by their index.
+    font["post"].formatType = 3.0
+    for table in font["cmap"].tables:
+        table.cmap = {code: glyph for code, glyph in table.cmap.items() if code in NAME_CHARACTERS}
+    font.flavor = "woff2"
+    font.recalcTimestamp = False
+    WOFF2_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    font.save(WOFF2_OUTPUT)
+    print(f"{WOFF2_OUTPUT.relative_to(ROOT)}: {WOFF2_OUTPUT.stat().st_size} bytes")
 
 
 if __name__ == "__main__":
