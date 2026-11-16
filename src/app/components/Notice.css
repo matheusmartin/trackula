@@ -1,0 +1,43 @@
+/* Notice.jsx */
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  inline-size: 100%;
+  padding-inline: 12px 4px;
+  border-radius: 12px;
+  background-color: var(--surface-container-high);
+  color: var(--on-surface-variant);
+}
+
+.notice-error {
+  background-color: var(--error-container);
+  color: var(--on-error-container);
+}
+
+.notice-text {
+  flex: 1;
+  min-inline-size: 0;
+  margin: 0;
+  padding-block: 10px;
+  overflow-wrap: anywhere;
+}
+
+.notice-end {
+  flex: none;
+  inline-size: 8px;
+}
+
+/* The TextButton of Compose: 40 px high, in a touch target of 48 px. */
+.notice-action {
+  --button-shape: 20px;
+  flex: none;
+  box-sizing: border-box;
+  block-size: 40px;
+  min-inline-size: 58px;
+  margin-block: 4px;
+  padding: 0 12px;
+  border-radius: 20px;
+  background-color: transparent;
+  color: inherit;
+}
