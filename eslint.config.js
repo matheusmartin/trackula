@@ -51,7 +51,8 @@ export default [
       ecmaVersion: 2024,
       sourceType: 'module',
       parserOptions: { ecmaFeatures: { jsx: true } },
-      globals: { ...globals.es2024 },
+      // The build values of vite.config.js.
+      globals: { ...globals.es2024, __GOOGLE_CLIENT_ID__: 'readonly', __GOOGLE_API_KEY__: 'readonly' },
     },
     rules: {
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
