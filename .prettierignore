@@ -1,0 +1,9 @@
+# Generated files, other projects and files that keep their own format.
+dist/
+kmp/
+design/
+package-lock.json
+*.md
+public/
+.claude/
+.github/

@@ -17,3 +17,8 @@
 
 # Local build values (OAuth client ID, API key). See config.example.env.
 config.env
+
+# JavaScript app: packages and build output.
+/node_modules/
+/dist/
+/coverage/

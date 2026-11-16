@@ -68,7 +68,16 @@
 
 ## Commands
 
-Run all commands in `kmp/`.
+The app moves to JavaScript in `src/`. See [docs/js-port.md](docs/js-port.md). Run these commands in the root folder.
+They need Node.js 22 or later.
+
+- Install the packages: `npm ci`.
+- Run the development server: `npm run dev`. Then open `http://localhost:8080/?demo`.
+- Check the code as CI does: `npm run check`. It runs ESLint, Prettier, the type check, the tests and the build.
+- Correct the format: `npm run format`.
+- Build for production: `npm run build`. The output goes to `dist/`.
+
+Run these commands of the Kotlin app in `kmp/`.
 
 - Run the development server: `./gradlew :app:wasmJsBrowserDevelopmentRun`. It opens the app in the browser.
 - Demo mode: add `?demo` to the URL. Example: `http://localhost:8080/?demo`. Sample data in memory, no Google sign-in, no writes to a sheet. A reload starts again from the sample data. Use it to test the UI.
