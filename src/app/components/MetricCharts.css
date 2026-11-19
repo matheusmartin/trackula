@@ -1,0 +1,27 @@
+/* MetricCharts.jsx: the key numbers and the chart grid in a column, or the card of a metric with no values. */
+.metric-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-inline-size: 0;
+}
+
+.metric-charts-no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  border-radius: 12px;
+  background-color: var(--surface-container);
+  text-align: center;
+}
+
+.metric-charts-no-data-title,
+.metric-charts-no-data-text {
+  margin: 0;
+}
+
+.metric-charts-no-data-text {
+  color: var(--on-surface-variant);
+}
