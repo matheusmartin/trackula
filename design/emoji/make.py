@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Makes the emoji list of the metrics form: kmp/app/src/commonMain/composeResources/files/emoji.txt.
+"""Makes the emoji list of the metrics form: src/app/components/emoji.txt.
 
 The emoji picker of the form shows the emojis of this list, in the order of Unicode. The names are for screen
 readers. The names and the order come from emojibase-data, which has them from Unicode CLDR.
+
+The JavaScript app loads the list only when the picker opens. Until the end of the port (docs/js-port.md), the
+script also writes the same list for the KMP app: kmp/app/src/commonMain/composeResources/files/emoji.txt.
 
 The app does not have an emoji font. In the browser, Compose draws emojis with the Noto Color Emoji font of Google
 Fonts: it gets the font slices from fonts.gstatic.com when a text needs them. The list keeps only the emojis that
@@ -43,7 +46,11 @@ GROUPS = {0, 1, 3, 4, 5, 6, 7, 8, 9}
 MAX_ICON_LENGTH = 16
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "kmp/app/src/commonMain/composeResources/files/emoji.txt"
+# The list of the JavaScript app, then the same list for the KMP app.
+OUTPUTS = [
+    ROOT / "src/app/components/emoji.txt",
+    ROOT / "kmp/app/src/commonMain/composeResources/files/emoji.txt",
+]
 
 HEADER = f"""\
 # The emojis of the emoji picker of the metrics form. Made by design/emoji/make.py from emojibase-data {VERSION}
@@ -118,10 +125,11 @@ def main() -> None:
             lines.append(f"{field(check_length(text))}\t{field(emoji['label'])}")
         else:
             skipped.append(text)
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT.write_text("\n".join(lines) + "\n", encoding="utf-8")
     count = sum(1 for line in lines if not line.startswith("#"))
-    print(f"{OUTPUT.relative_to(ROOT)}: {count} emojis, {OUTPUT.stat().st_size} bytes")
+    for output in OUTPUTS:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        print(f"{output.relative_to(ROOT)}: {count} emojis, {output.stat().st_size} bytes")
     print(f"The font does not draw {len(skipped)} emojis: {' '.join(skipped)}")
 
 

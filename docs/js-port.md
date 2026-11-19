@@ -37,7 +37,9 @@ This file has the plan, the decisions and the rules of the port from Kotlin Mult
   glyphs of the KMP font: outlined, weight 400, not filled. `design/symbols/make.py` makes it.
 - **Text font: Roboto** (`@fontsource/roboto`), the font of the KMP app. The app serves it itself: the weights 400,
   500, 600 and 700, with the subsets `latin` and `latin-ext` (`src/app/roboto.css`).
-- **Emojis: the font of the device.** The app downloads no emoji font.
+- **Emojis: the font of the device.** The app downloads no emoji font. The emoji picker of the metrics form gets its
+  list (`src/app/components/emoji.txt`, from `design/emoji/make.py`) with a dynamic import, only when it opens: the
+  list is not in the first download.
 - **Scroll: the page of the browser.** The app bar stays at the top and the navigation bar at the bottom
   (`position: sticky`). A screen that must start at the top calls `window.scrollTo(0, 0)`: the Kotlin code uses
   `LocalPageScroll`.
