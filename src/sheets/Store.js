@@ -1,16 +1,43 @@
 // The storage of the metrics and the log.
-//
-// The sheets port (docs/js-port.md, phase 3) replaces the loose types below with the types of the model:
-// MetricsTable, LogTable, LogWrite, MetricsWrite, Metric and DeletedMetric.
+
+/** @import { DeletedMetric } from '../model/DeletedMetric.js' */
+/** @import { LogTable, LogWrite } from '../model/LogEntry.js' */
+/** @import { Metric } from '../model/Metric.js' */
+/** @import { MetricsTable } from '../model/MetricsTable.js' */
+/** @import { MetricsWrite } from '../model/MetricsWrite.js' */
 
 /**
- * The data of the spreadsheet at one point in time.
- * @typedef {object} Snapshot
- * @property {any} metricsTable The `Metrics` tab: the metrics, their rows and the invalid rows.
- * @property {any[]} metrics All valid metrics, in sheet order: `metricsTable.items`.
- * @property {any} log The `Log` tab.
+ * The fields of a {@link Snapshot}.
+ * @typedef {object} SnapshotFields
+ * @property {MetricsTable} metricsTable
+ * @property {LogTable} log
  * @property {string[]} warnings
- * @property {any[]} deleted The `Log` columns without a metric, in column order.
+ * @property {DeletedMetric[]} [deleted] Empty by default.
+ */
+
+/** The data of the spreadsheet at one point in time. */
+export class Snapshot {
+  /** @param {SnapshotFields} fields */
+  constructor({ metricsTable, log, warnings, deleted = [] }) {
+    /** The `Metrics` tab: the metrics, their rows and the invalid rows. */
+    this.metricsTable = metricsTable;
+    /** The `Log` tab. */
+    this.log = log;
+    this.warnings = warnings;
+    /** The `Log` columns without a metric, in column order. See `deletedMetrics` in `DeletedMetric.js`. */
+    this.deleted = deleted;
+    Object.freeze(this);
+  }
+
+  /** @returns {Metric[]} All valid metrics, in sheet order. */
+  get metrics() {
+    return this.metricsTable.items;
+  }
+}
+
+/**
+ * A plan of a change to the `Log` tab: it gets the latest `Log` tab and gives the write, or null if nothing changes.
+ * @typedef {(log: LogTable) => LogWrite | null} LogPlan
  */
 
 /**
@@ -32,7 +59,7 @@ export class Store {
    * Reads the metrics and the log, and validates each row.
    * @abstract
    * @param {boolean} [_writesScores] True if the load also writes the scores that changed in the `Score` column. Only
-   *   `SheetsStore` writes them. See docs/data-model.md.
+   *   `SheetsStore` writes them. See docs/data-model.md. True by default.
    * @returns {Promise<Snapshot>}
    */
   async load(_writesScores = true) {
@@ -40,10 +67,10 @@ export class Store {
   }
 
   /**
-   * Writes a change to the `Log` tab. Callers use {@link Store#change} or {@link Store#changeAll}, which plan the
-   * write on the latest data.
+   * Writes `write`. Callers use {@link Store#change} or {@link Store#changeAll}, which plan the write on the latest
+   * data.
    * @abstract
-   * @param {any} _write
+   * @param {LogWrite} _write
    * @returns {Promise<void>}
    */
   async apply(_write) {
@@ -51,10 +78,10 @@ export class Store {
   }
 
   /**
-   * Writes a change to the `Metrics` tab. Callers use {@link Store#changeMetrics}, which plans the write on the latest
+   * Writes `write` to the `Metrics` tab. Callers use {@link Store#changeMetrics}, which plans the write on the latest
    * data.
    * @abstract
-   * @param {any} _write
+   * @param {MetricsWrite} _write
    * @returns {Promise<void>}
    */
   async applyMetrics(_write) {
@@ -64,8 +91,10 @@ export class Store {
   /**
    * Reads the latest data, writes the changes of `plan` to the `Metrics` tab, sets the rules again and reads the data
    * again. The last load adds the `Log` column of a new metric and writes the new scores, for example after a new
-   * goal. The rules follow the new kinds and the new columns.
-   * @param {(metricsTable: any) => any[]} plan
+   * goal.
+   *
+   * The rules follow the new kinds and the new columns. See {@link Store#refreshRules}.
+   * @param {(metricsTable: MetricsTable) => MetricsWrite[]} plan
    * @returns {Promise<Snapshot>}
    */
   async changeMetrics(plan) {
@@ -76,9 +105,10 @@ export class Store {
   }
 
   /**
-   * Reads the latest data, writes the change of `plan` on it, and reads the data again. The read before the write
-   * keeps row numbers correct after manual edits in the sheet.
-   * @param {(log: any) => any | null} plan
+   * Reads the latest data, writes the change of `plan` on it, and reads the data again.
+   *
+   * The read before the write keeps row numbers correct after manual edits in the sheet.
+   * @param {LogPlan} plan
    * @returns {Promise<Snapshot>}
    */
   async change(plan) {
@@ -86,10 +116,12 @@ export class Store {
   }
 
   /**
-   * Runs the plans one after the other, each on the latest data. So a plan sees the row that an earlier plan added for
-   * the same day. It writes the scores once, after the last write: not after each plan. Example: the Save button of 9
-   * Today tiles writes the score of today once, not 9 times.
-   * @param {((log: any) => any | null)[]} plans
+   * Runs `plans` one after the other, each on the latest data. So a plan sees the row that an earlier plan added for
+   * the same day.
+   *
+   * It writes the scores once, after the last write: not after each plan. Example: the Save button of 9 Today tiles
+   * writes the score of today once, not 9 times.
+   * @param {LogPlan[]} plans
    * @returns {Promise<Snapshot>}
    */
   async changeAll(plans) {
