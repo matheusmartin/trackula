@@ -328,3 +328,20 @@
 .day-heatmap-taps .day-heatmap-cell {
   cursor: pointer;
 }
+
+/*
+ * The text on a cell with the fill --fill: DARK_INK (#1a1e24) or LIGHT_INK (#f4f6f9), the one with the higher contrast
+ * (inkOn in Charts.kt). The relative luminance Y of the fill is 0.2126 r + 0.7152 g + 0.0722 b of its linear sRGB
+ * channels. The dark ink has the higher contrast if Y is 0.196704 or more: (Y + 0.05)² ≥ (0.012755 + 0.05) ×
+ * (0.919842 + 0.05). The step goes from 0 (light ink) to 1 (dark ink). The channels of the inks are linear sRGB. A
+ * browser without relative colors shows the text color.
+ */
+.chart-ink {
+  color: var(--on-surface);
+  color: color(
+    from var(--fill) srgb-linear
+      calc(0.904661 - 0.894331 * clamp(0, (0.2126 * r + 0.7152 * g + 0.0722 * b - 0.196704) * 100000, 1))
+      calc(0.921582 - 0.908599 * clamp(0, (0.2126 * r + 0.7152 * g + 0.0722 * b - 0.196704) * 100000, 1))
+      calc(0.947307 - 0.929665 * clamp(0, (0.2126 * r + 0.7152 * g + 0.0722 * b - 0.196704) * 100000, 1))
+  );
+}

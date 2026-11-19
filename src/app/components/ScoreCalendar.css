@@ -1,0 +1,83 @@
+/* ScoreCalendar.jsx: the heading, the month bar with its arrows, and the days of the month. */
+.score-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.score-calendar-heading {
+  margin: 0;
+}
+
+.score-calendar-bar {
+  display: flex;
+  align-items: center;
+}
+
+.score-calendar-title {
+  flex: 1;
+  min-inline-size: 0;
+  text-align: center;
+}
+
+/* At most 560 px wide, centered. */
+.score-calendar-grid {
+  inline-size: 100%;
+  max-inline-size: 560px;
+  margin-inline: auto;
+}
+
+/* Spaces of 4 px between the cells, and no space at the edges. */
+.score-calendar-days {
+  inline-size: calc(100% + 8px);
+  margin: -4px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 4px;
+}
+
+.score-calendar-weekday {
+  padding: 0;
+  font-weight: 400;
+  text-align: center;
+}
+
+.score-calendar-cell {
+  padding: 0;
+}
+
+/* A day: 56 px high, the day number at the top left and the score at the bottom. The element sets --fill. */
+.score-calendar-day {
+  position: relative;
+  block-size: 56px;
+  border-radius: 8px;
+  background-color: var(--fill);
+}
+
+.score-calendar-today {
+  box-shadow: inset 0 0 0 2px var(--on-surface);
+}
+
+.score-calendar-date {
+  position: absolute;
+  inset-block-start: 4px;
+  inset-inline-start: 6px;
+  font-size: var(--small-text);
+  line-height: 14px;
+}
+
+.score-calendar-empty .score-calendar-date {
+  color: var(--on-surface-variant);
+}
+
+.score-calendar-score {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 8px;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 16px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+}

@@ -817,7 +817,8 @@ function toRange(bar) {
  * One bar in the CSS color `bar` from the lowest to the highest value for each of `ranges`, and the average as a dot
  * in the CSS color `dot`. A null range has no bar. With `marks`, a diamond in the cell color shows the mark of each
  * column, also in a column without a range. A null mark has no diamond. The scale goes from `low` (bottom) to `high`
- * (top). Each bar, dot and diamond has a tooltip: its entry of `titles` and its value.
+ * (top). Each bar, dot and diamond has a tooltip: its entry of `titles`, the name of the range or the mark, and its
+ * value.
  *
  * The default colors have a contrast of 3:1 or more in both themes: the bar on the card, and the dot on the bar. A
  * diamond has a thin frame in the card color, so that it stays apart from a bar below it.
@@ -831,7 +832,8 @@ function toRange(bar) {
  * @param {string} [props.bar] Default: the theme primary color.
  * @param {string} [props.dot] Default: the lowest surface container color.
  * @param {(number | null)[]} [props.marks] Default: no marks.
- * @param {string} [props.markName] The name of a mark in its tooltip. Default: "value".
+ * @param {string | null} [props.rangeName] The name of a bar and its dot in their tooltips. Default: null, no name.
+ * @param {string | null} [props.markName] The name of a mark in its tooltip. Default: null, no name.
  * @returns {JSX.Element}
  */
 export function RangeBars({
@@ -844,7 +846,8 @@ export function RangeBars({
   bar = 'var(--primary)',
   dot = 'var(--surface-container-lowest)',
   marks = [],
-  markName = 'value',
+  rangeName = null,
+  markName = null,
 }) {
   const y = yScale(high, low);
   const total = ranges.length * COLUMN_UNITS;
@@ -853,6 +856,13 @@ export function RangeBars({
    * @returns {string}
    */
   const x = (i) => percent(i * COLUMN_UNITS + 5, total);
+  /**
+   * The start of a tooltip: the column and the name, for example "Mo, This week".
+   * @param {number} i
+   * @param {string | null} name
+   * @returns {string}
+   */
+  const tip = (i, name) => (name == null ? titles[i] : `${titles[i]}, ${name}`);
   return (
     <svg class="chart-plot" role="img" aria-label={label}>
       {ranges.map((r, i) => {
@@ -868,7 +878,7 @@ export function RangeBars({
               y2={coordinate(Math.max(y(r.high) + 0.5, y(r.low)) * PLOT_SCALE)}
               style={{ stroke: bar }}
             >
-              <title>{`${titles[i]}: ${format(r.low)} to ${format(r.high)}`}</title>
+              <title>{`${tip(i, rangeName)}: ${format(r.low)} to ${format(r.high)}`}</title>
             </line>
             <circle
               class="range-dot"
@@ -877,7 +887,7 @@ export function RangeBars({
               r="2.5"
               style={{ fill: dot }}
             >
-              <title>{`${titles[i]}: average ${format(r.average)}`}</title>
+              <title>{`${tip(i, rangeName)}: average ${format(r.average)}`}</title>
             </circle>
           </g>
         );
@@ -887,7 +897,7 @@ export function RangeBars({
           // A diamond of 12 px around the point of the mark.
           <svg key={`mark-${i}`} x={x(i)} y={coordinate(y(v) * PLOT_SCALE)} overflow="visible">
             <path class="range-mark" d="M0 -6 L6 0 L0 6 L-6 0 Z">
-              <title>{`${titles[i]}: ${markName} ${format(v)}`}</title>
+              <title>{`${tip(i, markName)}: ${format(v)}`}</title>
             </path>
           </svg>
         ),

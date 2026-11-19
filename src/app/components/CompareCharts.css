@@ -1,0 +1,58 @@
+/* CompareCharts.jsx: the change table. Spaces of 4 px between the cells, and no space at the edges. */
+.change-table {
+  inline-size: calc(100% + 8px);
+  margin: -4px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 4px;
+}
+
+/* The column of the row labels: at most 112 px, and less on narrow cards, so that the numbers fit in their cells. */
+.change-table-corner {
+  inline-size: min(112px, 30%);
+  padding: 0;
+}
+
+.change-table-column {
+  padding: 0;
+  overflow: hidden;
+  font-weight: 400;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* A row label: at most 2 lines, at the end, with a space of 4 px before the cells. */
+.change-table-label {
+  padding: 0 4px 0 0;
+  font-weight: 400;
+  text-align: end;
+  vertical-align: middle;
+  color: var(--on-surface);
+}
+
+.change-table-label-text {
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.change-table-cell {
+  padding: 0;
+  vertical-align: middle;
+}
+
+/* The fill of a cell: 28 px high, with the number in the middle. The element sets --fill. */
+.change-table-fill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  block-size: 28px;
+  overflow: hidden;
+  border-radius: 4px;
+  background-color: var(--fill);
+  font-size: var(--small-text);
+  white-space: nowrap;
+}
