@@ -239,7 +239,8 @@
 }
 
 /* The OutlinedButton of Compose Material 3, 48 px high: the Delete button of the form, and the Fix and Restore
-   buttons of the metrics screen. */
+   buttons of the metrics screen. The text has the color of secondary text, as in the material3 version of the KMP
+   app. */
 .metric-outlined-button {
   --button-shape: 24px;
   flex: none;
@@ -253,7 +254,7 @@
   padding: 0 24px;
   border: 1px solid var(--outline-variant);
   border-radius: 24px;
-  color: var(--primary);
+  color: var(--on-surface-variant);
   background-color: transparent;
 }
 

@@ -182,10 +182,12 @@
   padding: 16px;
 }
 
+/* 28 px high, as the Symbol of 24 px in the Kotlin code. */
 .metrics-other-title {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-block-size: 28px;
 }
 
 .metrics-other-title > h3 {
