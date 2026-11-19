@@ -4,13 +4,10 @@
 The emoji picker of the form shows the emojis of this list, in the order of Unicode. The names are for screen
 readers. The names and the order come from emojibase-data, which has them from Unicode CLDR.
 
-The JavaScript app loads the list only when the picker opens. Until the end of the port (docs/js-port.md), the
-script also writes the same list for the KMP app: kmp/app/src/commonMain/composeResources/files/emoji.txt.
-
-The app does not have an emoji font. In the browser, Compose draws emojis with the Noto Color Emoji font of Google
-Fonts: it gets the font slices from fonts.gstatic.com when a text needs them. The list keeps only the emojis that
-these slices draw as one glyph. So a new emoji that the font does not have yet is not in the list. When Compose uses a
-new version of the font (search the .wasm file of the app for "notocoloremoji"), change FONT_URL and FONT_SHA256.
+The app loads the list only when the picker opens. The app does not have an emoji font: the browser draws emojis
+with the emoji font of the device. The list keeps only the emojis that a recent Noto Color Emoji font (the emoji font
+of Android and ChromeOS) draws as one glyph, so a very new emoji that most devices cannot show yet is not in the list.
+To accept newer emojis, change FONT_URL and FONT_SHA256 to a newer version of the font on fonts.gstatic.com.
 
 Run it again to change a version. It needs Python 3, fonttools with brotli, and uharfbuzz. The same versions give the
 same bytes:
@@ -33,7 +30,8 @@ from fontTools.ttLib import TTFont
 VERSION = "18.0.0"
 INTEGRITY = "sha512-TPPRRYv2zPd0jKI+pTpMquwWNZXYAsC3IVsCMeg2X8y8fEzKwOks4/5bz0YavF5r6d71aGPpb6oDnUEwSLLMoA=="
 
-# The slices of the emoji font that Compose 1.12 uses in the browser, and the SHA-256 hash of all slices in order.
+# The slices of the Noto Color Emoji font of Google Fonts, and the SHA-256 hash of all slices in order. The KMP app
+# (Compose 1.12) used this version.
 FONT_URL = "https://fonts.gstatic.com/s/notocoloremoji/v39/Yq6P-KqIXTD0t4D9z1ESnKM3-HpFabsE4tq3luCC7p-aXxcn.{}.woff2"
 FONT_SLICES = 10
 FONT_SHA256 = "2c1fbbf0a8378b9703e096cb76924aa8a18ca36de071136a1a0e0f21c283b689"
@@ -46,11 +44,7 @@ GROUPS = {0, 1, 3, 4, 5, 6, 7, 8, 9}
 MAX_ICON_LENGTH = 16
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-# The list of the JavaScript app, then the same list for the KMP app.
-OUTPUTS = [
-    ROOT / "src/app/components/emoji.txt",
-    ROOT / "kmp/app/src/commonMain/composeResources/files/emoji.txt",
-]
+OUTPUTS = [ROOT / "src/app/components/emoji.txt"]
 
 HEADER = f"""\
 # The emojis of the emoji picker of the metrics form. Made by design/emoji/make.py from emojibase-data {VERSION}

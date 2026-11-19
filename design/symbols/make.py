@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
-"""Makes the Material Symbols fonts of the app: kmp/app/src/commonMain/composeResources/font/symbols.ttf for the KMP
-app, and src/app/symbols.woff2 for the JavaScript app.
+"""Makes the Material Symbols font of the app: src/app/symbols.woff2.
 
 The app draws the icons with this font: the app buttons (refresh, logout and the others) and the metric icons, which
 can be any Material Symbol. It is a static font, as the default icon style of the Material Symbols CSS: outlined,
 weight 400, size 24, not filled.
 
-- symbols.ttf: the Skia build of Compose for the web cannot read WOFF2, so the font is a TTF. Without the font
-  variations it is 1.4 MB (0.5 MB with gzip): less than the 4 MB WOFF2 of the Dart app.
-- symbols.woff2: the same glyphs for the browser, 0.33 MB. The JavaScript app finds an icon by its name (a ligature),
-  so the font keeps only the character codes of the names, and no glyph names. The variable WOFF2 of BeerCSS
-  (0.46 MB) is an older version, with a fill axis that the app does not use.
+The font is 0.33 MB. The app finds an icon by its name (a ligature), so the font keeps only the character codes of the
+names, and no glyph names. The variable WOFF2 of BeerCSS (0.46 MB) is an older version, with a fill axis that the app
+does not use. The KMP app had the same glyphs in a TTF.
 
 Run it again to change the version. It needs Python 3 and fonttools with brotli. The same versions give the same
 bytes:
@@ -42,7 +39,6 @@ ICONS = """
 """.split()
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-OUTPUT = ROOT / "kmp/app/src/commonMain/composeResources/font/symbols.ttf"
 WOFF2_OUTPUT = ROOT / "src/app/symbols.woff2"
 
 # The characters of the icon names. The WOFF2 maps only these, and not the private-use code of each icon.
@@ -66,10 +62,10 @@ def main() -> None:
     font = instancer.instantiateVariableFont(font, {"FILL": 0, "wght": 400, "GRAD": 0, "opsz": 24})
     # Keep the time stamp of the package font, so that each run gives the same bytes.
     font.recalcTimestamp = False
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    font.save(OUTPUT)
-    print(f"{OUTPUT.relative_to(ROOT)}: {OUTPUT.stat().st_size} bytes")
-    save_woff2(TTFont(OUTPUT))
+    static = io.BytesIO()
+    font.save(static)
+    static.seek(0)
+    save_woff2(TTFont(static))
 
 
 def save_woff2(font: TTFont) -> None:

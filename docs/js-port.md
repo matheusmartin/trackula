@@ -1,7 +1,7 @@
 # Port to JavaScript
 
-This file has the plan, the decisions and the rules of the port from Kotlin Multiplatform (`kmp/`) to JavaScript
-(`src/`). When the port is done, it keeps the decisions and the differences from the KMP app.
+The port is done. The KMP app is gone from the repository: its last version is in commit `2da8d89`, in `kmp/`. This
+file keeps the plan, the decisions, the rules of the port and the differences from the KMP app.
 
 ## Goal
 
@@ -119,10 +119,13 @@ This file has the plan, the decisions and the rules of the port from Kotlin Mult
 6. **Switch**: the service worker, the manifest, the deploy and CI. Remove `kmp/`. Update `README.md` and
    `CLAUDE.md`.
 
+All phases are done.
+
 ## Compare with the KMP app
 
-- Build the KMP app: `cd kmp && ./gradlew :app:wasmJsBrowserDistribution`. Serve it:
-  `python3 -m http.server 8082 --bind 127.0.0.1 -d kmp/app/build/dist/wasmJs/productionExecutable`. Open
+- Get the KMP app: `git worktree add ../trackula-kmp 2da8d89`. It needs JDK 17 or later. Build it:
+  `cd ../trackula-kmp/kmp && ./gradlew :app:wasmJsBrowserDistribution`. Serve it:
+  `python3 -m http.server 8082 --bind 127.0.0.1 -d app/build/dist/wasmJs/productionExecutable`. Open
   `http://127.0.0.1:8082/?demo`.
 - Serve the JavaScript app: `npm run dev`, then open `http://localhost:8080/?demo`.
 - Playwright with Chromium: set `locale: 'en-US'`, or Compose shows nothing. Wait until the element `splash` is gone.
@@ -136,6 +139,12 @@ This file has the plan, the decisions and the rules of the port from Kotlin Mult
 
 ## Differences from the KMP app
 
+- Size and speed: the first open downloads 0.46 MB with gzip (code, styles, Roboto and the icon font). The KMP app
+  downloaded 5.6 MB. On a phone with a slow CPU (4×), the first open takes 1.5 s on fast 4G and 3.1 s on slow 4G (KMP:
+  7.2 s and 30.7 s). A click shows its result in about 40 ms (KMP: about 100 ms). Emojis use the font of the device,
+  so they show at once, also without a network.
+- The service worker (`web/sw.js`) ignores the `Vary` header when it gives a file from its cache: the server can answer
+  the script and the style of the page with `Vary: Origin`, because the page loads them with `crossorigin`.
 - `Day` objects come from `Day.of` and the other static functions, never from `new`. There is one object for each
   date. `Day.of` corrects values out of range: the Kotlin constructor kept them.
 - Text weights: the KMP app has only Roboto Regular. It shows Medium as Regular, and SemiBold as a bolder Regular.

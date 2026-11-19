@@ -1,12 +1,11 @@
-"""Makes the Trackula logo files from kmp/app/src/wasmJsMain/resources/logo.svg (the Fang T icon, Blood orange).
+"""Makes the Trackula logo files from public/logo.svg (the Fang T icon, Blood orange).
 
 Usage: python3 design/logo/make.py <path to svg2png>
 svg2png is a small macOS tool: svg2png <in.svg> <out.png> <width> <height>. See svg2png.swift.
 Output:
 - design/logo/trackula-icon-512.png: the icon.
 - design/logo/trackula-logo.svg and .png: the icon and the word "Trackula", 1200 x 360, transparent background.
-All web files are in kmp/app/src/wasmJsMain/resources/ (WEB):
-- kmp/app/src/commonMain/composeResources/drawable/logo.svg: a copy of the icon, for the UI (sign-in page, header).
+All web files are in public/ (WEB). The app bar and the sign-in page also show WEB/logo.svg.
 - WEB/favicon.ico: the icon at 32 x 32 (PNG data), for browsers without SVG icons.
 - WEB/images/icon-192.png and icon-512.png: the icon for the web app manifest (WEB/manifest.webmanifest).
 - design/logo/trackula-icon-square.svg: the icon on a full square, without round corners.
@@ -22,9 +21,8 @@ import sys
 
 OUT = pathlib.Path(__file__).parent
 ROOT = OUT.parent.parent
-WEB = ROOT / "kmp/app/src/wasmJsMain/resources"
+WEB = ROOT / "public"
 ICON = WEB / "logo.svg"
-UI_ICON = ROOT / "kmp/app/src/commonMain/composeResources/drawable/logo.svg"
 FONT = "Helvetica Neue, Helvetica, Arial, sans-serif"
 WORD_COLOR = "#BE123C"
 
@@ -32,7 +30,6 @@ WORD_COLOR = "#BE123C"
 def main():
     svg2png = sys.argv[1]
     icon = ICON.read_text()
-    UI_ICON.write_text(icon)
     body = re.search(r"<svg[^>]*>(.*)</svg>", icon, re.S).group(1)
     logo = OUT / "trackula-logo.svg"
     logo.write_text(

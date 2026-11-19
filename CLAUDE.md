@@ -3,8 +3,7 @@
 Read `README.md` first. It has the overview, the commands, the configuration and the project structure. This file
 adds the rules for the code.
 
-The app moves from Kotlin Multiplatform (`kmp/`) to JavaScript (`src/`). `docs/js-port.md` has the plan, the
-decisions and the rules of the port. Until the port is done, the rules for the Kotlin code are at the end of this file.
+`docs/js-port.md` has the decisions of the JavaScript app and its differences from the Kotlin app before it.
 
 ## Standards
 
@@ -59,13 +58,3 @@ ESLint checks these rules (`no-restricted-imports` in `eslint.config.js`).
 - Use Conventional Commits: `type(scope): summary`. Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
   Scopes: `ui`, `data`. Example: `feat(data): require a metric icon and show it in the detail title`.
 - Write the summary in lowercase, in the imperative.
-
-## Kotlin code (`kmp/`, until the end of the port)
-
-- Follow the [Kotlin coding conventions](https://kotlinlang.org/docs/coding-conventions.html) and the Compose API
-  guidelines. ktlint uses the `intellij_idea` style with a maximum line length of 120. See `kmp/.editorconfig`.
-- `cd kmp && ./gradlew build` must pass. The compiler treats warnings as errors.
-- `model` uses no other module and no library. `sheets` can use `model`, Ktor, coroutines and
-  `kotlinx.serialization`. `services` can use `model` and `sheets`. `app` can use all of them and Compose. Browser code
-  goes in `wasmJsMain`. All library versions are in `kmp/gradle/libs.versions.toml`.
-- The tests of `<Name>.kt` are in `<Name>Test.kt`, in `src/commonTest/` of the same module and package.

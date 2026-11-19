@@ -3,7 +3,6 @@
 //
 // If the app cannot start, the start screen shows the reason and stays. Examples: a browser without JavaScript
 // modules, or no network on the first open.
-/* global document, window, HTMLScriptElement */
 (() => {
   const fail = () => {
     const splash = document.getElementById('splash');

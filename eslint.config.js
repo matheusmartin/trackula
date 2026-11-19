@@ -42,7 +42,7 @@ function onlyImports(allowed) {
 }
 
 export default [
-  { ignores: ['dist/', 'kmp/', 'design/', 'node_modules/', 'coverage/', '.claude/'] },
+  { ignores: ['dist/', 'design/', 'node_modules/', 'coverage/', '.claude/'] },
   js.configs.recommended,
   jsdoc.configs['flat/recommended-typescript-flavor-error'],
   {
@@ -94,4 +94,8 @@ export default [
     rules: { 'no-restricted-imports': 'off', 'jsdoc/require-jsdoc': 'off' },
   },
   { files: ['*.config.js', 'scripts/**'], languageOptions: { globals: { ...globals.node } } },
+  // The service worker template (vite.config.js writes dist/sw.js from it) and the scripts that index.html loads as
+  // they are.
+  { files: ['web/sw.js'], languageOptions: { sourceType: 'script', globals: { ...globals.serviceworker } } },
+  { files: ['public/**/*.js'], languageOptions: { sourceType: 'script', globals: { ...globals.browser } } },
 ];

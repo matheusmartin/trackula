@@ -23,19 +23,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v6
+      - uses: actions/setup-node@v6
         with:
-          distribution: temurin
-          java-version: 21
+          node-version: 22
+          cache: npm
 
-      # The basic cache provider is open source (MIT). The default provider of v6 has its own license terms.
-      - uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-provider: basic
+      - name: Install
+        run: npm ci
 
-      # Values for the Config object: see generateConfig in kmp/services/build.gradle.kts. Set them in Settings →
-      # Secrets and variables → Actions → Secrets. They are public in the built app. Secrets only keep them out of the
-      # repository and the logs.
+      # The build values: see buildValue in vite.config.js. Set them in Settings → Secrets and variables → Actions →
+      # Secrets. They are public in the built app. Secrets only keep them out of the repository and the logs.
+      # npm run check also runs the checks and the tests before the build.
       - name: Build
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
@@ -45,25 +43,25 @@ jobs:
             echo "::error::Set the GOOGLE_CLIENT_ID and GOOGLE_API_KEY repository secrets."
             exit 1
           fi
-          cd kmp && ./gradlew build :app:wasmJsBrowserDistribution --console=plain
+          npm run check
 
       # The page can load code, styles and data only from these origins. The page keeps the Google access token in
       # memory: this limits where other code can come from and where it can send data.
       # - accounts.google.com/gsi: Google sign-in. apis.google.com and docs.google.com: the Google Picker.
-      #   sheets.googleapis.com: the Sheets API. fonts.gstatic.com: the fallback fonts (Noto) of Compose, for
-      #   characters that its own fonts do not have.
-      # - 'wasm-unsafe-eval': the browser starts the WebAssembly code of the app.
-      # - 'unsafe-inline' styles: the style element in index.html, and the styles of Google sign-in and the Picker.
+      #   sheets.googleapis.com: the Sheets API. The fonts (Roboto and Material Symbols) come from the app itself.
+      #   Emojis use the fonts of the device.
+      # - 'unsafe-inline' styles: the style element in index.html, the style attributes of the app (for example the
+      #   position of the ruler), and the styles of Google sign-in and the Picker.
       # If you add a script, a font or an API from another origin, add the origin here.
       - name: Add the Content Security Policy
         env:
           CSP: >-
             default-src 'self';
-            script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client https://apis.google.com;
+            script-src 'self' https://accounts.google.com/gsi/client https://apis.google.com;
             style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style;
-            font-src 'self' https://fonts.gstatic.com;
+            font-src 'self';
             img-src 'self' data: https:;
-            connect-src 'self' https://fonts.gstatic.com https://sheets.googleapis.com https://accounts.google.com/gsi/
+            connect-src 'self' https://sheets.googleapis.com https://accounts.google.com/gsi/
             https://apis.google.com;
             frame-src https://accounts.google.com/gsi/ https://docs.google.com;
             worker-src 'self';
@@ -74,7 +72,7 @@ jobs:
         run: |
           python3 - <<'EOF'
           import os
-          path = 'kmp/app/build/dist/wasmJs/productionExecutable/index.html'
+          path = 'dist/index.html'
           marker = '<!-- content-security-policy -->'
           html = open(path).read()
           if marker not in html:
@@ -85,7 +83,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: kmp/app/build/dist/wasmJs/productionExecutable
+          path: dist
 
   deploy:
     needs: build

@@ -14,12 +14,14 @@
     <meta name="color-scheme" content="light dark" />
 
     <!-- Fang T logo. favicon.ico is the same logo, for browsers without SVG icons. -->
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="icon" type="image/svg+xml" href="logo.svg" />
 
     <!-- Install the app: the manifest, the iOS home screen icon and the color of the browser bar (the app bar color:
-         the middle of the gradient of the top bar, in both themes). Icons: design/logo/make.py. -->
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+         the middle of the gradient of the top bar, in both themes). Icons: design/logo/make.py. register-sw.js
+         registers the service worker, so the app opens without a network. All paths are relative: the app can be in a
+         folder of the site, for example on GitHub Pages. -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
     <meta name="theme-color" content="#cd2e24" />
 
     <style>
@@ -92,12 +94,13 @@
         }
       }
     </style>
-    <script src="/splash.js"></script>
+    <script src="splash.js"></script>
+    <script defer src="register-sw.js"></script>
   </head>
   <body>
     <div id="app"></div>
     <div id="splash" role="status">
-      <img src="/logo.svg" alt="" />
+      <img src="logo.svg" alt="" />
       <div class="spinner"></div>
       <p id="splash-text">Loading Trackula…</p>
       <noscript><p>Trackula needs JavaScript.</p></noscript>
