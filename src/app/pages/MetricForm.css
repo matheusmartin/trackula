@@ -1,0 +1,308 @@
+/* MetricForm.jsx: one column, at most --form-width wide, in the middle. */
+.metric-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  inline-size: 100%;
+  max-inline-size: var(--form-width);
+  margin-inline: auto;
+}
+
+.metric-form p {
+  margin: 0;
+}
+
+.metric-form-title-row {
+  display: flex;
+  align-items: center;
+}
+
+.metric-form-title {
+  margin: 0;
+  padding-inline-start: 4px;
+}
+
+/* A card with a title and its fields. */
+.metric-form-section {
+  gap: 12px;
+  padding: 16px;
+}
+
+.metric-form-section-title {
+  margin: 0;
+}
+
+.metric-form-help {
+  color: var(--on-surface-variant);
+}
+
+.metric-form .metric-form-error {
+  color: var(--error);
+}
+
+.metric-form-icon-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.metric-form-icon-text {
+  color: var(--on-surface-variant);
+}
+
+/* Two fields side by side: the target and the start, or the unit (twice as wide) and the step. */
+.metric-form-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+.metric-form-pair-unit {
+  grid-template-columns: 2fr 1fr;
+}
+
+/* The OutlinedTextField of Compose Material 3: 56 px high, with the label on the border when the field has a value
+   or the focus. */
+.metric-form-field {
+  --_input: 56px;
+  min-inline-size: 0;
+  margin: 0;
+}
+
+.metric-form-field > input {
+  min-inline-size: 0;
+  caret-color: var(--primary);
+}
+
+.metric-form-field > label {
+  color: var(--on-surface-variant);
+}
+
+.metric-form-field > input:focus + label {
+  color: var(--primary);
+}
+
+/* A row of choice chips that wraps. Each chip is in a touch target of 48 px, as in Compose: 8 px above and below. */
+.metric-form-choices {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 8px;
+}
+
+.metric-form-choices > .group-chip {
+  margin-block: 8px;
+}
+
+/* The trend checkbox: the row is a label, so a click on the text changes the checkbox too. */
+.metric-form-trend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.metric-form-trend:hover {
+  background-color: color-mix(in srgb, var(--on-surface) 8%, transparent);
+}
+
+.metric-form-trend:has(input:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 0;
+}
+
+.metric-form-trend-disabled {
+  cursor: default;
+}
+
+.metric-form-trend-disabled:hover {
+  background-color: transparent;
+}
+
+.metric-form-trend-text {
+  display: flex;
+  flex-direction: column;
+}
+
+/* The Checkbox of Compose Material 3: a box of 18 px in a space of 24 px. Checked: the theme color with a check
+   mark. */
+.metric-form-checkbox {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 24px;
+  block-size: 24px;
+}
+
+.metric-form-checkbox > input {
+  appearance: none;
+  box-sizing: border-box;
+  inline-size: 18px;
+  block-size: 18px;
+  margin: 0;
+  border: 2px solid var(--on-surface-variant);
+  border-radius: 2px;
+  background-color: transparent;
+  cursor: inherit;
+}
+
+.metric-form-checkbox > input:focus-visible {
+  outline: none;
+}
+
+.metric-form-checkbox > input:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.metric-form-checkbox > input:disabled {
+  border-color: color-mix(in srgb, var(--on-surface) 38%, transparent);
+}
+
+.metric-form-checkbox > .symbol {
+  position: absolute;
+  color: var(--on-primary);
+  pointer-events: none;
+}
+
+/* The goal text, the chart of the points and the examples. */
+.metric-form-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 12px;
+  background-color: var(--surface-container-lowest);
+}
+
+.metric-form-chart {
+  display: block;
+  inline-size: 100%;
+  block-size: 96px;
+  overflow: visible;
+}
+
+.metric-form-chart-grid {
+  stroke: var(--outline-variant);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
+}
+
+.metric-form-chart-dash {
+  stroke-dasharray: 6 6;
+}
+
+.metric-form-chart-line {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.metric-form > hr {
+  margin: 0;
+}
+
+/* The TextButton of Compose Material 3: 40 px high, the text in the theme color. In the form: the full width and
+   48 px high. */
+.metric-form-text-button {
+  --button-shape: 20px;
+  box-sizing: border-box;
+  min-inline-size: 48px;
+  block-size: 40px;
+  padding: 0 12px;
+  border-radius: 20px;
+  color: var(--primary);
+  background-color: transparent;
+}
+
+.metric-form > .metric-form-text-button {
+  --button-shape: 24px;
+  inline-size: 100%;
+  block-size: 48px;
+  border-radius: 24px;
+}
+
+/* The OutlinedButton of Compose Material 3, 48 px high: the Delete button of the form, and the Fix and Restore
+   buttons of the metrics screen. */
+.metric-outlined-button {
+  --button-shape: 24px;
+  flex: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-block-size: 48px;
+  block-size: auto;
+  padding: 0 24px;
+  border: 1px solid var(--outline-variant);
+  border-radius: 24px;
+  color: var(--primary);
+  background-color: transparent;
+}
+
+.metric-outlined-button-error {
+  color: var(--error);
+}
+
+.metric-outlined-button:disabled {
+  opacity: 1;
+  cursor: default;
+  border-color: color-mix(in srgb, var(--on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--on-surface) 38%, transparent);
+}
+
+/* The AlertDialog of Compose Material 3: in the middle of the window, with 28 px corners, on a scrim. */
+.alert-dialog {
+  inset: 0;
+  min-inline-size: 280px;
+  max-inline-size: min(560px, calc(100% - 48px));
+  block-size: fit-content;
+  margin: auto;
+  padding: 0;
+  border-radius: 28px;
+  box-shadow: none;
+  transform: none;
+}
+
+.alert-dialog[open] {
+  transform: none;
+}
+
+.alert-dialog::backdrop {
+  opacity: 1;
+  visibility: visible;
+  background-color: rgb(0 0 0 / 0.32);
+}
+
+.alert-dialog-content {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+}
+
+.alert-dialog-title {
+  margin: 0 0 16px;
+}
+
+.alert-dialog-text {
+  margin: 0 0 24px;
+  color: var(--on-surface-variant);
+}
+
+.alert-dialog-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.alert-dialog .metric-form-error {
+  color: var(--error);
+}

@@ -24,28 +24,30 @@ export function groupLabel(group) {
 export function GroupChips({ groups, selected, onSelect }) {
   return (
     <div class="group-chips" role="group" aria-label="Groups">
-      <GroupChip label="All" selected={selected == null} onClick={() => onSelect(null)} />
+      <FilterChip label="All" selected={selected == null} onClick={() => onSelect(null)} />
       {groups.map((g) => (
-        <GroupChip key={g} label={groupLabel(g)} selected={g === selected} onClick={() => onSelect(g)} />
+        <FilterChip key={g} label={groupLabel(g)} selected={g === selected} onClick={() => onSelect(g)} />
       ))}
     </div>
   );
 }
 
 /**
- * The FilterChip of Compose Material 3.
+ * The FilterChip of Compose Material 3: the chips of the group filter, and the choices of the metrics form.
  * @param {object} props
  * @param {string} props.label
  * @param {boolean} props.selected
  * @param {() => void} props.onClick
+ * @param {boolean} [props.enabled] Default: true.
  * @returns {JSX.Element}
  */
-function GroupChip({ label, selected, onClick }) {
+export function FilterChip({ label, selected, onClick, enabled = true }) {
   return (
     <button
       type="button"
       class={selected ? 'group-chip group-chip-selected label-large' : 'group-chip label-large'}
       aria-pressed={selected}
+      disabled={!enabled}
       onClick={onClick}
     >
       {selected && <Symbol name="done" size={18} />}

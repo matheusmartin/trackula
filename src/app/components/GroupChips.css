@@ -35,3 +35,16 @@
   color: var(--on-secondary-container);
   background-color: var(--secondary-container);
 }
+
+/* Disabled: the text at 38% and the outline at 12% of the text color, as in Compose. */
+.group-chip:disabled {
+  opacity: 1;
+  cursor: default;
+  border-color: color-mix(in srgb, var(--on-surface) 12%, transparent);
+  color: color-mix(in srgb, var(--on-surface) 38%, transparent);
+}
+
+.group-chip-selected:disabled {
+  border-color: transparent;
+  background-color: color-mix(in srgb, var(--on-surface) 12%, transparent);
+}
