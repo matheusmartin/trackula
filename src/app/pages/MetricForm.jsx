@@ -366,6 +366,7 @@ function Goal({ draft, errors, onChange }) {
  * @returns {JSX.Element}
  */
 function Trend({ draft, onChange }) {
+  const id = useId();
   const enabled = draft.kind === MetricKind.NUMBER;
   const checked = enabled && draft.usesTrend;
   return (
@@ -375,19 +376,21 @@ function Trend({ draft, onChange }) {
           type="checkbox"
           checked={checked}
           disabled={!enabled}
+          aria-labelledby={`${id}-label`}
+          aria-describedby={`${id}-help`}
           onChange={() => onChange(draft.copy({ usesTrend: !draft.usesTrend }))}
         />
         {checked && <Symbol name="check" size={18} />}
       </span>
       <span class="metric-form-trend-text">
-        <span class="body-large">Use the trend</span>
-        <Help
-          text={
-            enabled
-              ? 'The points come from the trend of the values, not from the value of the day.'
-              : 'Only for a number metric.'
-          }
-        />
+        <span id={`${id}-label`} class="body-large">
+          Use the trend
+        </span>
+        <span id={`${id}-help`} class="metric-form-help body-small">
+          {enabled
+            ? 'The points come from the trend of the values, not from the value of the day.'
+            : 'Only for a number metric.'}
+        </span>
       </span>
     </label>
   );

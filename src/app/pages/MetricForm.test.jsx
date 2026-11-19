@@ -99,10 +99,13 @@ describe('MetricForm', () => {
     showForm(new FormSetup({ title: 'Edit metric', initial: weight, id: 'weight' }));
     expect(screen.getByText('In the sheet: at most 80 from 84')).toBeTruthy();
     expect(screen.getByText('• 82 kg: 0.5 points')).toBeTruthy();
-    fireEvent.click(screen.getByText('Use the trend'));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Use the trend' }));
     expect(screen.getByText('In the sheet: at most 80 from 84 trend')).toBeTruthy();
 
     click('Count');
+    const trend = /** @type {HTMLInputElement} */ (screen.getByRole('checkbox', { name: 'Use the trend' }));
+    expect(trend.disabled).toBe(true);
+    expect(trend.checked).toBe(false);
     expect(screen.getByText('Only for a number metric.')).toBeTruthy();
     expect(screen.getByText('In the sheet: at most 80 from 84')).toBeTruthy();
   });
