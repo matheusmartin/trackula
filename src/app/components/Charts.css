@@ -89,7 +89,10 @@
   text-overflow: ellipsis;
 }
 
+/* The value can use 12 px of the padding on the right: the Medium weight is wider than the Regular weight that the
+   KMP app shows, and a value that fits in the KMP app, for example "94.6% · Oct 27", fits here too. */
 .key-number-value {
+  margin-inline-end: -12px;
   font-weight: 500;
   color: var(--primary);
 }

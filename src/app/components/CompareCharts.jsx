@@ -2,6 +2,7 @@
 import { formatNumber, formatSigned } from '../../model/Format.js';
 import { stepChanges } from '../../model/ScoreStats.js';
 import { ChartCard, Labels, Legend, NoValues, RangeBars, Scroller, ValueRow, spokenValues } from './Charts.jsx';
+import { useElementWidth } from './ElementWidth.js';
 import './CompareCharts.css';
 
 /** @import { JSX } from 'preact' */
@@ -93,6 +94,9 @@ export function RangeBarChart({
   );
 }
 
+/** The largest width of the row labels of a {@link ChangeTable}, in CSS pixels. */
+const ROW_LABEL_WIDTH = 112;
+
 /** The lowest share of the full color in a cell of a {@link ChangeTable} with a change, so that a small change shows. */
 const MIN_CHANGE_FILL = 0.2;
 
@@ -134,6 +138,7 @@ export function cellFill(color, share) {
  * @returns {JSX.Element}
  */
 export function ChangeTable({ title, description, columns, rows, upLabel, downLabel, format = defaultFormat }) {
+  const [measure, width] = useElementWidth();
   if (rows.length === 0) {
     return (
       <ChartCard title={title} description={description}>
@@ -145,51 +150,55 @@ export function ChangeTable({ title, description, columns, rows, upLabel, downLa
   const down = 'var(--tertiary)';
   const changes = rows.map(([, values]) => stepChanges(values));
   const largest = Math.max(0, ...changes.flat().map((c) => Math.abs(c ?? 0)));
+  // Narrow cards: a smaller label column, so that the numbers fit in their cells.
+  const labelWidth = width > 0 ? Math.min(ROW_LABEL_WIDTH, width * 0.3) : ROW_LABEL_WIDTH;
   return (
     <ChartCard title={title} description={description}>
-      <table class="change-table">
-        <thead>
-          <tr>
-            <td class="change-table-corner" />
-            {columns.map((c) => (
-              <th key={c} scope="col" class="change-table-column chart-label">
-                {c}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(([label, values], r) => (
-            <tr key={label}>
-              <th scope="row" class="change-table-label chart-label">
-                <span class="change-table-label-text chart-label-trim">{label}</span>
-              </th>
-              {values.map((v, i) => {
-                const change = changes[r][i];
-                const fill =
-                  change == null || change === 0 || largest === 0
-                    ? 'var(--cell-empty)'
-                    : cellFill(
-                        change > 0 ? up : down,
-                        MIN_CHANGE_FILL + (MAX_FILL - MIN_CHANGE_FILL) * (Math.abs(change) / largest),
-                      );
-                const text = v == null ? null : format(v);
-                // Example: "Habits, Nov 9: 6.8, +2.1 from Nov 2".
-                const spoken =
-                  `${label}, ${columns[i]}: ${text ?? 'no value'}` +
-                  (change == null ? '' : `, ${formatSigned(change, null)} from ${columns[i - 1]}`);
-                return (
-                  <td key={i} class="change-table-cell" aria-label={spoken} title={spoken}>
-                    <span class="change-table-fill chart-ink" style={{ '--fill': fill }} aria-hidden="true">
-                      {text ?? '–'}
-                    </span>
-                  </td>
-                );
-              })}
+      <div ref={measure}>
+        <table class="change-table">
+          <thead>
+            <tr>
+              <td class="change-table-corner" style={{ inlineSize: `${Math.round(labelWidth * 100) / 100}px` }} />
+              {columns.map((c) => (
+                <th key={c} scope="col" class="change-table-column chart-label">
+                  {c}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map(([label, values], r) => (
+              <tr key={label}>
+                <th scope="row" class="change-table-label chart-label">
+                  <span class="change-table-label-text chart-label-trim">{label}</span>
+                </th>
+                {values.map((v, i) => {
+                  const change = changes[r][i];
+                  const fill =
+                    change == null || change === 0 || largest === 0
+                      ? 'var(--cell-empty)'
+                      : cellFill(
+                          change > 0 ? up : down,
+                          MIN_CHANGE_FILL + (MAX_FILL - MIN_CHANGE_FILL) * (Math.abs(change) / largest),
+                        );
+                  const text = v == null ? null : format(v);
+                  // Example: "Habits, Nov 9: 6.8, +2.1 from Nov 2".
+                  const spoken =
+                    `${label}, ${columns[i]}: ${text ?? 'no value'}` +
+                    (change == null ? '' : `, ${formatSigned(change, null)} from ${columns[i - 1]}`);
+                  return (
+                    <td key={i} class="change-table-cell" aria-label={spoken} title={spoken}>
+                      <span class="change-table-fill chart-ink" style={{ '--fill': fill }} aria-hidden="true">
+                        {text ?? '–'}
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <Legend
         parts={[
           { label: upLabel, color: up, values: [] },

@@ -36,8 +36,10 @@
   border-spacing: 4px;
 }
 
+/* No line below the weekdays: BeerCSS gives the column headers of a table a line. */
 .score-calendar-weekday {
   padding: 0;
+  border: 0;
   line-height: 14px;
   font-weight: 400;
   text-align: center;

@@ -7,14 +7,16 @@
   border-spacing: 4px;
 }
 
-/* The column of the row labels: at most 112 px, and less on narrow cards, so that the numbers fit in their cells. */
+/* The column of the row labels. ChangeTable sets its width. */
 .change-table-corner {
-  inline-size: min(112px, 30%);
+  box-sizing: border-box;
   padding: 0;
 }
 
+/* No line below the headers: BeerCSS gives the column headers of a table a line. */
 .change-table-column {
   padding: 0;
+  border: 0;
   line-height: 14px;
   overflow: hidden;
   font-weight: 400;
@@ -24,6 +26,7 @@
 
 /* A row label: at most 2 lines, at the end, with a space of 4 px before the cells. */
 .change-table-label {
+  box-sizing: border-box;
   padding: 0 4px 0 0;
   font-weight: 400;
   text-align: end;
