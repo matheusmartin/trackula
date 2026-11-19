@@ -138,8 +138,9 @@ This file has the plan, the decisions and the rules of the port from Kotlin Mult
 
 - `Day` objects come from `Day.of` and the other static functions, never from `new`. There is one object for each
   date. `Day.of` corrects values out of range: the Kotlin constructor kept them.
-- Text weights: the JavaScript app uses Roboto Medium and SemiBold. The KMP app has only Roboto Regular: it shows
-  Medium as Regular, and SemiBold as a bolder Regular.
+- Text weights: the KMP app has only Roboto Regular. It shows Medium as Regular, and SemiBold as a bolder Regular.
+  The JavaScript app has no Medium font (see `roboto.css`), so Medium shows as Regular too. SemiBold and Bold use the
+  real Roboto fonts.
 - The tooltip of an icon button is the tooltip of the browser (`title`).
 - The 5-day view is an HTML table: the metric names are row headers, and the days are column headers. A day cell has
   a tooltip with the metric, the day and the value. A count tile has a tooltip with its value and its inputs, and a
@@ -157,5 +158,4 @@ This file has the plan, the decisions and the rules of the port from Kotlin Mult
 - CSS gives the text on a cell of the change table and of the score calendar the dark or the light ink, the one with
   the higher contrast (`inkOn` in the KMP app, `.chart-ink` in `Charts.css`, with relative colors). A browser without
   relative colors shows the text color.
-- A key number can use 12 px of the padding of its tile: the Medium weight is wider than the Regular weight of the KMP
-  app.
+- A key number can use 12 px of the padding of its tile, so that a long number fits.

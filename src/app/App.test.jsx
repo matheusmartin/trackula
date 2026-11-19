@@ -66,8 +66,7 @@ describe('App', () => {
     await signInToTodayPage(platform);
 
     click('Metrics');
-    // STUB: pages/MetricsPage.jsx shows only its heading. The Kotlin test finds "Add metric" of the metrics screen.
-    await screen.findByRole('heading', { name: 'Metrics' });
+    await screen.findByRole('button', { name: 'Add metric' });
     expect(screen.queryByText('5 days')).toBeNull();
     expect(platform.history.entries).toBe(1);
 
