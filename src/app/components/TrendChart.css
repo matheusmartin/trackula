@@ -1,0 +1,100 @@
+/* TrendChart.jsx: the Y axis labels on the left, the plot, and the first and last day below it. The chart color is
+   the text color of .trend-chart: the theme primary color, or the color of the color prop. */
+.trend-chart {
+  display: flex;
+  gap: 8px;
+  padding-block-start: 12px;
+  color: var(--primary);
+}
+
+/* The labels of the axes: the smallest text of the app. */
+.trend-chart-label {
+  font-size: var(--small-text);
+  line-height: 16px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  color: var(--on-surface-variant);
+}
+
+.trend-chart-y {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  block-size: 72px;
+}
+
+.trend-chart-y-bottom {
+  justify-content: flex-end;
+}
+
+.trend-chart-plot {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/* The box of the SVG. The value labels are HTML on top of it, so that the stretched SVG does not stretch the text. */
+.trend-chart-canvas {
+  position: relative;
+  block-size: 72px;
+}
+
+/* Room at the sides for the labels of the first and the last dot. The X axis gets the same room, so that the days stay
+   below the dots. */
+.trend-chart-side-padding :is(.trend-chart-canvas, .trend-chart-x) {
+  margin-inline: 12px;
+}
+
+.trend-chart-svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+
+.trend-chart-bar {
+  fill: currentColor;
+}
+
+.trend-chart-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.trend-chart-dot {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 6px;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+/* The value of a dot, above it. */
+.trend-chart-value {
+  position: absolute;
+  transform: translate(-50%, -150%);
+  font-size: var(--small-text);
+  line-height: var(--small-text);
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* The value of a bar, above it. */
+.trend-chart-bar-value {
+  transform: translate(-50%, -120%);
+}
+
+.trend-chart-x {
+  display: flex;
+  justify-content: space-between;
+  padding-block-start: 4px;
+}
