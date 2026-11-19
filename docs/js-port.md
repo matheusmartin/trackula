@@ -139,3 +139,9 @@ This file has the plan, the decisions and the rules of the port from Kotlin Mult
 - Text weights: the JavaScript app uses Roboto Medium and SemiBold. The KMP app has only Roboto Regular: it shows
   Medium as Regular, and SemiBold as a bolder Regular.
 - The tooltip of an icon button is the tooltip of the browser (`title`).
+- The 5-day view is an HTML table: the metric names are row headers, and the days are column headers. A day cell has
+  a tooltip with the metric, the day and the value. A count tile has a tooltip with its value and its inputs, and a
+  done yes/no tile has the tooltip "Yes" and the mark of its goal, for example "Yes, goal reached".
+- A change of the view fades in the new view. Compose fades out the old view at the same time.
+- Compose draws the texts of the charts and the ruler at the natural height of the font, without their line height:
+  the JavaScript app gives them a line height of 14 px.
