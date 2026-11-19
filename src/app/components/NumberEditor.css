@@ -125,13 +125,14 @@
   background-color: var(--done);
 }
 
+/* The KMP app draws the labels without their line height: 14 px is the natural height of Roboto at 12 px. */
 .ruler-label {
   position: absolute;
   inset-block-start: 28px;
   transform: translateX(-50%);
   font-size: var(--small-text);
-  line-height: 16px;
-  letter-spacing: 0.5px;
+  line-height: 14px;
+  letter-spacing: 0;
   white-space: nowrap;
   color: var(--on-surface-variant);
 }
