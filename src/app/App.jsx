@@ -241,7 +241,9 @@ function Layout({ header, showsNavigation, view, onView, screen, children }) {
   const [actionElement, setActionElement] = useState(/** @type {HTMLElement | null} */ (null));
   const actionBar = useMemo(() => new ActionBarHost(actionElement), [actionElement]);
   const hasRail = useWideWindow(RAIL_WIDTH);
+  const bottom = useRef(/** @type {HTMLDivElement | null} */ (null));
   useScrollPerScreen(screen);
+  useBottomHeight(bottom);
   return (
     <div class="app">
       {header}
@@ -251,7 +253,7 @@ function Layout({ header, showsNavigation, view, onView, screen, children }) {
           <LocalActionBarHost.Provider value={actionBar}>{children}</LocalActionBarHost.Provider>
         </main>
       </div>
-      <div class="app-bottom">
+      <div class="app-bottom" ref={bottom}>
         <div class="action-bar" ref={setActionElement} />
         {showsNavigation && !hasRail && <Navigation kind="bar" view={view} onView={onView} />}
       </div>
@@ -304,6 +306,28 @@ function useWideWindow(width) {
     return () => list.removeEventListener('change', update);
   }, [query]);
   return wide;
+}
+
+/**
+ * Keeps the height of the bottom area (the action bar and the navigation bar) in the CSS variable
+ * `--app-bottom-height` of the page. `App.css` uses it as the scroll padding, so the browser does not put a focused
+ * element below the bottom area. Example: the Tab key moves the focus to a tile below the Save button.
+ * @param {{ current: HTMLElement | null }} ref
+ */
+function useBottomHeight(ref) {
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const root = document.documentElement;
+    const update = () => root.style.setProperty('--app-bottom-height', `${element.offsetHeight}px`);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => {
+      observer.disconnect();
+      root.style.removeProperty('--app-bottom-height');
+    };
+  }, [ref]);
 }
 
 /**
