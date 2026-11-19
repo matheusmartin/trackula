@@ -235,4 +235,20 @@ describe('Charts', () => {
     expect(screen.getByText('Zoom in to 1 year or less to see single days.')).toBeTruthy();
     expect(screen.getByText('One cell for each day of the window.')).toBeTruthy();
   });
+
+  test('a bar chart with more than 12 bars scrolls to the side, and a chart with fewer bars is centered', () => {
+    const many = Array.from({ length: 20 }, (_, i) => ({ label: `${i}`, value: i }));
+    const { container, unmount } = render(<BarChart title="Many" description="Bars." bars={many} />);
+    const scroller = /** @type {HTMLElement} */ (container.querySelector('.chart-scroller'));
+    // The keyboard can scroll it.
+    expect(scroller.tabIndex).toBe(0);
+    // At most 56 px and at least 41.6 px for each bar.
+    const content = /** @type {HTMLElement} */ (scroller.firstElementChild);
+    expect(content.style.inlineSize).toBe('max(min(100%, 1120px), 832px)');
+    unmount();
+    const few = render(<BarChart title="Few" description="Bars." bars={many.slice(0, 7)} />);
+    expect(few.container.querySelector('.chart-scroller')).toBeNull();
+    const columns = /** @type {HTMLElement} */ (few.container.querySelector('.chart-columns'));
+    expect(columns.style.maxInlineSize).toBe('392px');
+  });
 });

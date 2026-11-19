@@ -146,4 +146,16 @@ This file has the plan, the decisions and the rules of the port from Kotlin Mult
   done yes/no tile has the tooltip "Yes" and the mark of its goal, for example "Yes, goal reached".
 - A change of the view fades in the new view. Compose fades out the old view at the same time.
 - Compose draws the texts of the charts and the ruler at the natural height of the font, without their line height:
-  the JavaScript app gives them a line height of 14 px.
+  the JavaScript app gives them a line height of 14 px. Compose also cuts the space above the first line and below the
+  last line of the labels of the chart cards (`labelStyle`): one line of a label is 14 px high, and a label of more
+  lines has negative margins (`.chart-label-trim`).
+- The detail screen: the bar with the zoom buttons and the dates stays below the app bar while the page scrolls, as
+  in the Dart app. The overview scrolls with the page.
+- Each bar, dot, range, diamond and day of the charts has a tooltip (an SVG `<title>`). Each key number tile, and each
+  cell of the change table and of the score calendar, has a tooltip. The change table and the score calendar are
+  HTML tables. A chart that scrolls to the side can get the keyboard focus, so that the arrow keys scroll it.
+- CSS gives the text on a cell of the change table and of the score calendar the dark or the light ink, the one with
+  the higher contrast (`inkOn` in the KMP app, `.chart-ink` in `Charts.css`, with relative colors). A browser without
+  relative colors shows the text color.
+- A key number can use 12 px of the padding of its tile: the Medium weight is wider than the Regular weight of the KMP
+  app.

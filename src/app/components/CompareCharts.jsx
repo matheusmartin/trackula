@@ -155,7 +155,7 @@ export function ChangeTable({ title, description, columns, rows, upLabel, downLa
   return (
     <ChartCard title={title} description={description}>
       <div ref={measure}>
-        <table class="change-table">
+        <table class="change-table" aria-label={title}>
           <thead>
             <tr>
               <td class="change-table-corner" style={{ inlineSize: `${Math.round(labelWidth * 100) / 100}px` }} />

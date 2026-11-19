@@ -41,7 +41,7 @@ export function ScoreCalendar({ scores, today, month, onMonth }) {
         />
       </div>
       <div class="score-calendar-grid">
-        <table class="score-calendar-days">
+        <table class="score-calendar-days" aria-label={`Score of each day of ${monthTitle(month)}`}>
           <thead>
             <tr>
               {weekdayNames.map((name) => (
