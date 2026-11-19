@@ -38,6 +38,7 @@
 
 .score-calendar-weekday {
   padding: 0;
+  line-height: 14px;
   font-weight: 400;
   text-align: center;
 }

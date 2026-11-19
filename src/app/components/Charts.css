@@ -13,22 +13,29 @@
   margin: 0;
 }
 
-/* The text of the chart labels: the smallest text of the app. */
+/* The text of the chart labels: the smallest text of the app, without letter spacing (labelStyle in Charts.kt). */
 .chart-label {
   font-size: var(--small-text);
   line-height: 16px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
   font-weight: 400;
   color: var(--on-surface-variant);
 }
 
+/* Compose cuts the space above the first line and below the last line of a label (the line height style Trim.Both):
+   one line is 14 px high, the natural height of Roboto at 12 px. A label of one line has a line height of 14 px. A
+   label of more lines has negative margins. */
+.chart-label-trim {
+  margin-block: -1.5px -0.5px;
+}
+
 .chart-card-description {
-  margin: 0;
+  margin-inline: 0;
   padding-block: 4px 12px;
 }
 
 .chart-text {
-  margin: 0;
+  margin-inline: 0;
 }
 
 .chart-no-values {
@@ -87,6 +94,10 @@
   color: var(--primary);
 }
 
+.key-number-label {
+  line-height: 14px;
+}
+
 /* ColumnTexts: one line of texts, each in the center of its column. The texts are on top of each other in the flow:
    ColumnTexts sets the left side of each text. */
 .column-texts {
@@ -97,6 +108,7 @@
 
 .column-text {
   position: absolute;
+  line-height: 14px;
   white-space: nowrap;
 }
 
@@ -114,6 +126,7 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
+  line-height: 14px;
   white-space: nowrap;
 }
 
@@ -185,6 +198,7 @@
   justify-content: space-between;
   align-items: flex-end;
   block-size: 96px;
+  line-height: 14px;
   white-space: nowrap;
 }
 

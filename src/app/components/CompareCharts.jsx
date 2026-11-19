@@ -162,7 +162,7 @@ export function ChangeTable({ title, description, columns, rows, upLabel, downLa
           {rows.map(([label, values], r) => (
             <tr key={label}>
               <th scope="row" class="change-table-label chart-label">
-                <span class="change-table-label-text">{label}</span>
+                <span class="change-table-label-text chart-label-trim">{label}</span>
               </th>
               {values.map((v, i) => {
                 const change = changes[r][i];

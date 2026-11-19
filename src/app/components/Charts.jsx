@@ -117,8 +117,8 @@ let measureContext = /** @type {CanvasRenderingContext2D | null} */ (null);
 let measureReady = false;
 
 /**
- * The width of `text` in the chart label font, in CSS pixels, without letter spacing, as Compose measures it. Without
- * a canvas, for example in the tests, an estimate: the digits of Roboto are 0.56 em wide.
+ * The width of `text` in the chart label font, in CSS pixels. Without a canvas, for example in the tests, an estimate:
+ * the digits of Roboto are 0.56 em wide.
  * @param {string} text
  * @returns {number}
  */
@@ -148,7 +148,7 @@ export function ChartCard({ title, description, children }) {
   return (
     <section class="chart-card">
       <h3 class="chart-card-title title-small">{title}</h3>
-      <p class="chart-card-description chart-label">{description}</p>
+      <p class="chart-card-description chart-label chart-label-trim">{description}</p>
       {children}
     </section>
   );
@@ -244,9 +244,7 @@ export function ColumnTexts({ texts, class: className, fromEnd = false }) {
     <div ref={measure} class={`column-texts ${className}`}>
       {texts.map((text, i) => {
         if (!text || (fromEnd ? last - i : i) % stride !== 0) return null;
-        // The width on the screen, with the letter spacing of 0.5 px.
-        const shown = widths[i] + 0.5 * text.length;
-        const left = Math.min(Math.max(0, (i + 0.5) * column - shown / 2), Math.max(0, width - shown));
+        const left = Math.min(Math.max(0, (i + 0.5) * column - widths[i] / 2), Math.max(0, width - widths[i]));
         return (
           <span
             key={i}
@@ -1027,7 +1025,7 @@ export function DayHeatmap({ title, from, to, filled, today, onDay = null, dayTi
   if (to.serial - from.serial + 1 > MAX_HEATMAP_DAYS) {
     return (
       <ChartCard title={title} description={description}>
-        <p class="chart-label chart-text">Zoom in to 1 year or less to see single days.</p>
+        <p class="chart-label chart-label-trim chart-text">Zoom in to 1 year or less to see single days.</p>
       </ChartCard>
     );
   }
