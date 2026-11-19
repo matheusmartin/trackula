@@ -79,10 +79,12 @@ html {
 }
 
 /* The NavigationRail of Compose Material 3: 80 px wide, on the surface color. It stays below the app bar while the
-   page scrolls. */
+   page scrolls. Not as high as the page: BeerCSS gives a nav `align-self: normal`, and a stretched rail cannot
+   stay at the top. */
 .navigation-rail {
   position: sticky;
   inset-block-start: var(--app-bar-height);
+  align-self: flex-start;
   flex: none;
   display: flex;
   flex-direction: column;
