@@ -37,6 +37,9 @@
   line-height: 1;
   letter-spacing: 0;
   white-space: nowrap;
+  /* The browser lays out and draws only the emojis near the visible part of the grid. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--touch-target);
 }
 
 /* The selected emoji: a frame in the theme color, on the color of a selected chip. */
@@ -52,6 +55,12 @@
 
 .emoji-button-selected:focus-visible {
   outline-offset: -5px;
+}
+
+/* The grid while the list loads, or if it does not load: a text. */
+.emoji-grid-empty {
+  display: block;
+  padding: 12px;
 }
 
 .emoji-picker-help {

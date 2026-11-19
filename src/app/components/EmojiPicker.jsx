@@ -49,10 +49,11 @@ const PAGE_ROWS = 6;
  * @returns {JSX.Element}
  */
 export function EmojiPicker({ selected, onPick }) {
-  const [emojis, setEmojis] = useState(loadedEmojis);
+  // Null until the list loads. Also with a loaded list, the grid shows after the first paint: the form shows at once,
+  // also on a slow phone, and the grid comes a moment later.
+  const [emojis, setEmojis] = useState(/** @type {Emoji[] | null} */ (null));
   const [failed, setFailed] = useState(false);
   useEffect(() => {
-    if (emojis != null) return;
     let active = true;
     void loadEmojis().then((list) => {
       if (!active) return;
@@ -64,10 +65,18 @@ export function EmojiPicker({ selected, onPick }) {
     };
   }, []);
   if (emojis != null) return <EmojiGrid emojis={emojis} selected={selected} onPick={onPick} />;
+  // An empty grid of the same size, so that the page does not move when the grid shows. The text shows only while the
+  // list downloads.
   return (
-    <p class="emoji-picker-help body-small">
-      {failed ? 'The emojis did not load. Reload the page to try again.' : 'Loading the emojis…'}
-    </p>
+    <div class="emoji-grid emoji-grid-empty">
+      <p class="emoji-picker-help body-small">
+        {failed
+          ? 'The emojis did not load. Reload the page to try again.'
+          : loadedEmojis == null
+            ? 'Loading the emojis…'
+            : ''}
+      </p>
+    </div>
   );
 }
 
