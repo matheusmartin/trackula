@@ -22,6 +22,7 @@ import { useElementWidth } from '../components/ElementWidth.js';
 import { MetricCharts } from '../components/MetricCharts.jsx';
 import { MetricIcon } from '../components/MetricIcon.jsx';
 import { MonthCalendar } from '../components/MonthCalendar.jsx';
+import { useStickyHeight } from '../components/StickyHeight.js';
 import { ScoreCalendar } from '../components/ScoreCalendar.jsx';
 import { WIDE_CONTENT } from '../components/Sizes.js';
 import './MetricDetail.css';
@@ -253,11 +254,13 @@ function WindowBar({ metric, window, steps, index, beforeAll, values, wide, zoom
   const count = window.starts.length;
   const box = window.boxOn(BarUnit.WEEK);
   const labelName = atAll ? `Back to ${steps[back].label}` : 'Show all';
+  const band = useRef(/** @type {HTMLDivElement | null} */ (null));
+  useStickyHeight(band);
   // One tool bar in a soft color. Wide screens: the zoom buttons on the left and the dates on the right, in one row.
   // Phones: 2 rows, each with its buttons at the edges and its label in the center.
   return (
     <>
-      <div class="window-bar-band">
+      <div class="window-bar-band" ref={band}>
         <div class={wide ? 'window-bar window-bar-wide' : 'window-bar'}>
           <div class="window-bar-row">
             <AppIconButton icon="zoom_in" title="Zoom in" onClick={() => zoom(index - 1, null)} enabled={index > 0} />

@@ -2,10 +2,11 @@
  * App.jsx: the layout. The page scrolls as a normal web page: the app bar stays at the top (Header.css), and the
  * action bar and the navigation bar stay at the bottom.
  */
-/* The browser keeps a focused or scrolled element out from below the app bar and the bottom area. App.jsx sets
-   --app-bottom-height. */
+/* The browser keeps a focused or scrolled element out from below the app bar, a sticky bar below it, and the bottom
+   area. App.jsx sets --app-bottom-height, and useStickyHeight (StickyHeight.js) sets --app-sticky-height. */
 html {
-  scroll-padding-block: calc(var(--app-bar-height) + 8px) calc(var(--app-bottom-height, 0px) + 8px);
+  scroll-padding-block: calc(var(--app-bar-height) + var(--app-sticky-height, 0px) + 8px)
+    calc(var(--app-bottom-height, 0px) + 8px);
 }
 
 .app {
