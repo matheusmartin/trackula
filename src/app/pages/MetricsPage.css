@@ -135,8 +135,10 @@
   outline-offset: -2px;
 }
 
-/* The highlight of the row also shows when the mouse is on the arrows or on the handle. */
-.metric-row:hover > .metric-row-edit::after {
+/* The highlight of the row also shows when the mouse is on the arrows or on the handle, and while a drag moves the
+   row. */
+.metric-row:hover > .metric-row-edit::after,
+.metric-list-item-dragged .metric-row-edit::after {
   background-size: 22500%;
   opacity: 0.1;
 }
