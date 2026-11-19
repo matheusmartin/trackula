@@ -1,0 +1,34 @@
+/* MetricIcon.jsx */
+.metric-icon {
+  flex: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 32px;
+  block-size: 32px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--primary) 12%, var(--outline-variant));
+  border-radius: 8px;
+  color: var(--primary);
+  background-color: var(--surface-container-lowest);
+  vertical-align: middle;
+}
+
+.metric-icon-large {
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 10px;
+}
+
+/* An emoji or another text: one line, in the font of the device. */
+.metric-icon-text {
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.metric-icon-large .metric-icon-text {
+  font-size: 24px;
+}

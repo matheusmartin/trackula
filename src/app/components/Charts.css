@@ -1,0 +1,364 @@
+/* Charts.jsx: the chart cards, the key numbers and the chart kinds of the detail screen. The charts use the colors of
+   the theme: in .score-theme, --primary and --cell are green. */
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  padding: 16px;
+  border-radius: 12px;
+  background-color: var(--surface-container);
+}
+
+.chart-card-title {
+  margin: 0;
+}
+
+/* The text of the chart labels: the smallest text of the app, without letter spacing (labelStyle in Charts.kt). */
+.chart-label {
+  font-size: var(--small-text);
+  line-height: 16px;
+  letter-spacing: 0;
+  font-weight: 400;
+  color: var(--on-surface-variant);
+}
+
+/* Compose cuts the space above the first line and below the last line of a label (the line height style Trim.Both):
+   one line is 14 px high, the natural height of Roboto at 12 px. A label of one line has a line height of 14 px. A
+   label of more lines has negative margins. */
+.chart-label-trim {
+  margin-block: -1.5px -0.5px;
+}
+
+.chart-card-description {
+  margin-inline: 0;
+  padding-block: 4px 12px;
+}
+
+.chart-text {
+  margin-inline: 0;
+}
+
+.chart-no-values {
+  margin: 0;
+  padding-block: 8px;
+  color: var(--on-surface-variant);
+}
+
+/* ChartGrid: the cards in rows. ChartGrid sets --chart-columns. Each card has its own height. */
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--chart-columns, 1), minmax(0, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.chart-grid-item {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.chart-grid-wide {
+  grid-column: 1 / -1;
+}
+
+/* KeyNumbers: as many columns as fit, each at least 144 px wide. Few tiles stretch to fill the row. */
+.key-numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(144px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.key-number {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background-color: var(--surface-container);
+}
+
+.key-number-value,
+.key-number-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The value can use 12 px of the padding on the right: the Medium weight is wider than the Regular weight that the
+   KMP app shows, and a value that fits in the KMP app, for example "94.6% · Oct 27", fits here too. */
+.key-number-value {
+  margin-inline-end: -12px;
+  font-weight: 500;
+  color: var(--primary);
+}
+
+.key-number-label {
+  line-height: 14px;
+}
+
+/* ColumnTexts: one line of texts, each in the center of its column. The texts are on top of each other in the flow:
+   ColumnTexts sets the left side of each text. */
+.column-texts {
+  position: relative;
+  box-sizing: content-box;
+  block-size: 16px;
+}
+
+.column-text {
+  position: absolute;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.chart-labels {
+  padding-block-start: 4px;
+}
+
+.chart-values {
+  padding-block-end: 4px;
+  color: var(--on-surface);
+}
+
+/* The first and the last label of a chart, at the ends. */
+.chart-ends {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+/* The columns of a bar chart: at most 56 px each, centered. The element sets max-inline-size. */
+.chart-columns {
+  inline-size: 100%;
+  margin-inline: auto;
+}
+
+/* A bar chart with more than 12 columns: at least 41.6 px for each column. It scrolls to the side if the card is too
+   narrow. The content sets its inline size. */
+.chart-scroller {
+  overflow-x: auto;
+  padding-block-end: 8px;
+}
+
+.chart-scroller-content {
+  margin-inline: auto;
+}
+
+/* The plot of a bar or line chart: x in percent of the width, y in pixels. */
+.chart-plot {
+  display: block;
+  inline-size: 100%;
+  block-size: 96px;
+  overflow: visible;
+}
+
+.chart-bar {
+  fill: var(--cell);
+}
+
+.chart-bar-negative {
+  fill: var(--tertiary);
+}
+
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 12px 0 0;
+  list-style: none;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-swatch {
+  flex: none;
+  inline-size: 12px;
+  block-size: 12px;
+  border-radius: 3px;
+}
+
+/* LineChart: the Y axis labels on the left, the plot, and the first and last day below it. */
+.line-chart {
+  display: flex;
+  gap: 8px;
+}
+
+.line-chart-y {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-end;
+  block-size: 96px;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+.line-chart-plot {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+.line-chart-lines {
+  overflow: visible;
+}
+
+.line-chart-line {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.line-chart-dot {
+  fill: var(--primary);
+}
+
+/* The dots below a trend line: the cell color. */
+.line-chart-dot-value {
+  fill: var(--cell);
+}
+
+/* DonutChart: the ring with the center text, and the legend on its right. */
+.donut-chart {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.donut-chart-ring {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 104px;
+  block-size: 104px;
+}
+
+.donut-chart-svg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/* An arc of the ring: 16 % of the size wide, from the top, clockwise. */
+.donut-chart-arc {
+  fill: none;
+  stroke-width: 16.64;
+  transform: rotate(-90deg);
+  transform-origin: 52px 52px;
+}
+
+.donut-chart-center {
+  position: relative;
+  font-weight: 500;
+  color: var(--primary);
+  pointer-events: none;
+}
+
+.donut-chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* RangeBars: a bar with round ends from the lowest to the highest value, the average as a dot, and a diamond for a
+   mark. The element sets the colors of the bar and the dot. */
+.range-bar {
+  stroke-width: 10px;
+  stroke-linecap: round;
+}
+
+.range-mark {
+  fill: var(--cell);
+  stroke: var(--surface-container);
+  stroke-width: 1.5px;
+  stroke-linejoin: round;
+}
+
+/* Overview: all data in weeks, with a box on the window. All moves of a drag go to the overview. */
+.overview {
+  display: block;
+  inline-size: 100%;
+  block-size: 40px;
+  overflow: visible;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+/* The bars out of the window: grey, with a contrast of 3:1 on the page. */
+.overview-bar {
+  fill: color-mix(in srgb, var(--outline) 80%, transparent);
+}
+
+.overview-bar-in {
+  fill: var(--cell);
+}
+
+.overview-box {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2px;
+}
+
+/* DayHeatmap: square cells in week columns, at most 28 px for each column, centered. */
+.day-heatmap {
+  display: block;
+  inline-size: 100%;
+  block-size: auto;
+  margin-inline: auto;
+  overflow: visible;
+}
+
+.day-heatmap-cell {
+  fill: var(--cell-empty);
+}
+
+.day-heatmap-filled {
+  fill: var(--cell);
+}
+
+.day-heatmap-today {
+  stroke: var(--on-surface);
+  stroke-width: 1.5px;
+  vector-effect: non-scaling-stroke;
+}
+
+.day-heatmap-taps .day-heatmap-cell {
+  cursor: pointer;
+}
+
+/*
+ * The text on a cell with the fill --fill: DARK_INK (#1a1e24) or LIGHT_INK (#f4f6f9), the one with the higher contrast
+ * (inkOn in Charts.kt). The relative luminance Y of the fill is 0.2126 r + 0.7152 g + 0.0722 b of its linear sRGB
+ * channels. The dark ink has the higher contrast if Y is 0.196704 or more: (Y + 0.05)² ≥ (0.012755 + 0.05) ×
+ * (0.919842 + 0.05). The step goes from 0 (light ink) to 1 (dark ink). The channels of the inks are linear sRGB. A
+ * browser without relative colors shows the text color.
+ */
+.chart-ink {
+  color: var(--on-surface);
+  color: color(
+    from var(--fill) srgb-linear
+      calc(0.904661 - 0.894331 * clamp(0, (0.2126 * r + 0.7152 * g + 0.0722 * b - 0.196704) * 100000, 1))
+      calc(0.921582 - 0.908599 * clamp(0, (0.2126 * r + 0.7152 * g + 0.0722 * b - 0.196704) * 100000, 1))
+      calc(0.947307 - 0.929665 * clamp(0, (0.2126 * r + 0.7152 * g + 0.0722 * b - 0.196704) * 100000, 1))
+  );
+}

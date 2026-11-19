@@ -1,0 +1,114 @@
+/* Header.jsx: the app bar. It stays at the top while the page scrolls. */
+.app-bar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  block-size: calc(var(--app-bar-height) + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) 12px 0;
+  color: var(--on-action);
+  background-color: var(--header-end);
+  /* Compose draws the gradient from the top-left corner to the bottom-right corner: on the wide bar, the angle of its
+     diagonal. The first value is for browsers without atan2(). */
+  background-image: linear-gradient(97deg, var(--header-start), var(--header-end));
+  background-image: linear-gradient(
+    calc(90deg + atan2(var(--app-bar-height), 100vw)),
+    var(--header-start),
+    var(--header-end)
+  );
+}
+
+/* The space after the logo: a Spacer of 8 px between two spaces of 4 px in the Kotlin code. */
+.app-bar-logo {
+  flex: none;
+  inline-size: 32px;
+  block-size: 32px;
+  margin-inline-end: 12px;
+}
+
+/* titleLarge, semibold. */
+.app-bar-title {
+  flex: 1;
+  min-inline-size: 0;
+  margin: 0;
+  font-size: 22px;
+  line-height: 28px;
+  letter-spacing: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The focus ring is white on the gradient. */
+.app-bar :focus-visible {
+  outline-color: var(--on-action);
+}
+
+/* The progress circle in place of the reload button: 24 px with a line of 3 px, in a box of 48 px. */
+.app-bar-progress {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 48px;
+  block-size: 48px;
+}
+
+.app-bar-progress progress.circle {
+  --_stroke: 3px;
+  inline-size: 24px;
+  block-size: 24px;
+  color: var(--on-action);
+}
+
+/* The "More" menu: the DropdownMenu of Compose Material 3, below the button, at its right edge. It is on a surface of
+   the theme, not on the gradient. */
+.account-menu {
+  position: relative;
+  flex: none;
+}
+
+.app-menu {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-end: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 112px;
+  max-inline-size: 280px;
+  padding-block: 8px;
+  border-radius: 4px;
+  color: var(--on-surface);
+  background-color: var(--surface-container);
+  box-shadow: var(--elevate2);
+}
+
+.app-menu-item {
+  --button-shape: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  inline-size: 100%;
+  block-size: 48px;
+  padding: 0 12px;
+  border-radius: 0;
+  color: var(--on-surface);
+  background-color: transparent;
+  white-space: nowrap;
+  text-align: start;
+}
+
+.app-menu-item .symbol {
+  color: var(--on-surface-variant);
+}
+
+.app-menu-item:focus-visible {
+  outline-color: var(--primary);
+  outline-offset: -2px;
+}

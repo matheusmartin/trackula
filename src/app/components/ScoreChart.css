@@ -1,0 +1,25 @@
+/* ScoreChart.jsx: the score card above the 5-day table and the 31-day calendars. */
+.score-chart {
+  padding: 16px;
+}
+
+/* The title is a link to the Score view: on the left, as wide as its text. */
+.score-chart-title {
+  --button-shape: 8px;
+  align-self: flex-start;
+  gap: 4px;
+  block-size: auto;
+  border-radius: 8px;
+  color: var(--on-surface);
+  background-color: transparent;
+}
+
+.score-chart-chart {
+  padding-block-start: 12px;
+}
+
+.score-chart-empty {
+  margin: 0;
+  padding-block-start: 8px;
+  color: var(--on-surface-variant);
+}

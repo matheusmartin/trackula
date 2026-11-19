@@ -1,0 +1,374 @@
+/*
+ * The Ember theme of the app: the colors of the KMP app (Theme.kt, see docs/js-port.md) in the variables of
+ * BeerCSS (Material Design 3), the extra colors of the app, the fonts and the type scale of Compose Material 3.
+ *
+ * - The device setting (prefers-color-scheme) selects the light or the dark theme.
+ * - Neutrals: one slate blue family in both themes. Blue is opposite to orange, so the orange-red parts stand out.
+ * - Accents: light uses dark tones and dark uses light tones of the same hues, as in Material Design 3.
+ * - BeerCSS is in the cascade layer `beer` (see beer.css), so these rules replace its rules.
+ */
+
+@import './roboto.css';
+
+/* Material Symbols, outlined, weight 400, size 24, not filled: the icons of the KMP app. A <Symbol> or a BeerCSS <i>
+   shows the icon of its text, for example "refresh". The font has all icons, because a metric icon can be any
+   Material Symbol. design/symbols/make.py makes the file. Block: an icon does not show its name while the font
+   loads. */
+@font-face {
+  font-family: 'Symbols';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./symbols.woff2') format('woff2');
+}
+
+:root {
+  /* Scroll bars, form fields and other browser parts follow the theme too. */
+  color-scheme: light dark;
+  /* The color emoji fonts of the devices come before the other fonts of the device: some of them have black and white
+     glyphs for emojis. */
+  --font: Roboto, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', system-ui, sans-serif;
+  --font-icon: 'Symbols';
+
+  --primary: #b8321a;
+  --on-primary: #ffffff;
+  --primary-container: #ffdfd4;
+  --on-primary-container: #4a1300;
+  --secondary: #87412f;
+  --on-secondary: #ffffff;
+  --secondary-container: #f7ddd2;
+  --on-secondary-container: #3f150a;
+  --tertiary: #b45309;
+  --on-tertiary: #ffffff;
+  --tertiary-container: #fde7cf;
+  --on-tertiary-container: #3d1d00;
+  --background: #f8f9fb;
+  --on-background: #1a1e24;
+  --surface: #f8f9fb;
+  --on-surface: #1a1e24;
+  --surface-variant: #e4e8ed;
+  --on-surface-variant: #4d5562;
+  --outline: #7a8390;
+  --outline-variant: #d0d6de;
+  --inverse-surface: #2c323b;
+  --inverse-on-surface: #eef1f5;
+  --inverse-primary: #ff8c66;
+  --surface-dim: #d9dee4;
+  --surface-bright: #f8f9fb;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f3f5f7;
+  --surface-container: #eef1f4;
+  --surface-container-high: #e8ebef;
+  --surface-container-highest: #e2e6eb;
+  /* The light error colors of BeerCSS, as in the Dart app. */
+  --error: #ba1a1a;
+  --on-error: #ffffff;
+  --error-container: #ffdad6;
+  --on-error-container: #410002;
+
+  /*
+   * The colors of the app that Material Design 3 does not have (ExtraColors in Theme.kt).
+   * - --done, --on-done: the green of the score.
+   * - --cell, --on-cell: the fill of a day with a value: table cells, calendars, heatmap and bars. The same in both
+   *   themes. --cell-image: the logo gradient on the table and calendar cells. --cell-empty: a day with no value.
+   * - --done-cell: the green cell fill of the score.
+   * - --action-start, --action-end: a darker logo gradient for the main buttons, with --on-action text (5:1 or more).
+   *   --action-image: the gradient on a square.
+   * - --header-start, --header-end: the gradient of the app bar, in both themes. It starts darker than the logo
+   *   gradient, so that the white title has a contrast of 4:1 or more.
+   * - --group-1 to --group-8: the colors of the groups in the score charts, in the order of the groups. After the last
+   *   color, the first color comes again. The first 4 colors pass a colorblind check on the chart cards.
+   * Compose draws a gradient from the top-left corner to the bottom-right corner of the box. On a square, this is a CSS
+   * gradient of 135deg.
+   */
+  --done: #2e7d32;
+  --on-done: #ffffff;
+  --cell: #da3625;
+  --on-cell: #ffffff;
+  --cell-image: linear-gradient(135deg, #ca4a09, #e41648);
+  /* Darker than the cards and the tiles, so that an empty day shows as a cell. */
+  --cell-empty: #d5dbe3;
+  --done-cell: #318535;
+  --action-start: #c2410c;
+  --action-end: #9f1239;
+  --action-image: linear-gradient(135deg, var(--action-start), var(--action-end));
+  --on-action: #ffffff;
+  --header-start: #dc4a0c;
+  --header-end: #be123c;
+  --group-1: #2e7d32;
+  --group-2: #1565c0;
+  --group-3: #e06a10;
+  --group-4: #8a3fc0;
+  --group-5: #00838f;
+  --group-6: #ad1457;
+  --group-7: #5d4037;
+  --group-8: #546e7a;
+
+  /* The shadows of Compose, the same in both themes. 1 dp, a card: a thin, soft edge, a little darker at the bottom.
+     3 dp: a menu. */
+  --elevate1: 0 0 1px rgb(0 0 0 / 0.16), 0 1px 1px rgb(0 0 0 / 0.07), 0 1px 2px rgb(0 0 0 / 0.05);
+  --elevate2: 0 1px 3px rgb(0 0 0 / 0.16), 0 3px 6px rgb(0 0 0 / 0.1);
+
+  /* The sizes of Sizes.js, for the CSS files. */
+  --small-text: 12px;
+  --button-text: 16px;
+  --touch-target: 48px;
+  --form-width: 640px;
+  /* The height of the app bar. Elements that stay at the top while the page scrolls go below it. */
+  --app-bar-height: 64px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #ff8c66;
+    --on-primary: #4a1300;
+    --primary-container: #7a2a14;
+    --on-primary-container: #ffdbcf;
+    --secondary: #f0b8a4;
+    --on-secondary: #4a2214;
+    --secondary-container: #5e2e22;
+    --on-secondary-container: #ffdbcf;
+    --tertiary: #ffb067;
+    --on-tertiary: #4a2500;
+    --tertiary-container: #7a3d0b;
+    --on-tertiary-container: #ffdcc0;
+    --background: #141a22;
+    --on-background: #e8ecf2;
+    --surface: #141a22;
+    --on-surface: #e8ecf2;
+    --surface-variant: #27303c;
+    --on-surface-variant: #b7c0cc;
+    --outline: #8590a0;
+    --outline-variant: #36404c;
+    --inverse-surface: #e8ecf2;
+    --inverse-on-surface: #141a22;
+    --inverse-primary: #b8321a;
+    --surface-dim: #141a22;
+    --surface-bright: #323c49;
+    --surface-container-lowest: #141a22;
+    --surface-container-low: #1a212b;
+    --surface-container: #1f2732;
+    --surface-container-high: #27303c;
+    --surface-container-highest: #323c49;
+    --error: #ffb4ab;
+    --on-error: #690005;
+    --error-container: #93000a;
+    --on-error-container: #ffb4ab;
+
+    --done: #86d38c;
+    --on-done: #0f2e13;
+    /* A lighter slate, so that empty cells show the blue of the theme. */
+    --cell-empty: #323c49;
+    --group-1: #4ca352;
+    --group-2: #3d8fd8;
+    --group-3: #cc7a22;
+    --group-4: #a06acb;
+    --group-5: #4dd0e1;
+    --group-6: #f06292;
+    --group-7: #a1887f;
+    --group-8: #90a4ae;
+  }
+}
+
+/*
+ * The green theme of the score (ScoreTheme in Theme.kt): the charts and the icons use --done in place of the theme
+ * red, and the day fills use the green cell color without the logo gradient.
+ */
+.score-theme {
+  --primary: var(--done);
+  --cell: var(--done-cell);
+  --cell-image: none;
+}
+
+/* The text of Compose without a style: bodyLarge. */
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.5px;
+  color: var(--on-surface);
+  background-color: var(--surface);
+}
+
+/* BeerCSS puts a space above each block after another block. The app uses the gap of flex and grid boxes, as Compose
+   does. :where() has no specificity, so each rule of the app can set a margin. */
+:where(
+  address,
+  article,
+  blockquote,
+  code,
+  .field,
+  fieldset,
+  form,
+  .grid,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  nav,
+  ol,
+  p,
+  pre,
+  .row,
+  section,
+  aside,
+  table,
+  .tabs,
+  ul
+) {
+  margin-block-start: 0;
+}
+
+/* The keyboard focus: a clear ring in the theme color. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* The type scale of Compose Material 3: font size, line height, letter spacing and weight. */
+.headline-small {
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.title-large {
+  font-size: 22px;
+  line-height: 28px;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.title-medium {
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.15px;
+  font-weight: 500;
+}
+
+.title-small {
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  font-weight: 500;
+}
+
+.body-large {
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0.5px;
+  font-weight: 400;
+}
+
+.body-medium {
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.25px;
+  font-weight: 400;
+}
+
+.body-small {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.4px;
+  font-weight: 400;
+}
+
+.label-large {
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  font-weight: 500;
+}
+
+.label-medium {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.label-small {
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+/* A box as wide as its parent, for example a PrimaryButton. */
+.fill-width {
+  inline-size: 100%;
+}
+
+/*
+ * The progress circle of Compose (CircularProgressIndicator): an arc that turns and changes its length, without a
+ * track. 40 px with a line of 4 px. A component can set other values: --_stroke is the width of the line.
+ */
+@property --progress-arc {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 30%;
+}
+
+:where(progress.circle:not([value])) {
+  --_stroke: 4px;
+  inline-size: 40px;
+  block-size: 40px;
+  color: var(--primary);
+  background: conic-gradient(currentColor 0 var(--progress-arc), transparent var(--progress-arc));
+  mask-image: radial-gradient(
+    closest-side,
+    transparent calc(100% - var(--_stroke) - 0.5px),
+    #000 calc(100% - var(--_stroke))
+  );
+  animation:
+    progress-turn 1.2s linear infinite,
+    progress-arc 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes progress-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes progress-arc {
+  from {
+    --progress-arc: 8%;
+  }
+
+  to {
+    --progress-arc: 72%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(progress.circle:not([value])) {
+    animation-duration: 3s;
+  }
+}
+
+/*
+ * BeerCSS gives a pressed button the corners of a rounded square (Material 3 Expressive), with !important. Compose
+ * keeps the shape. A button with its own corners sets them in --button-shape too. The layer `override` comes before
+ * the layer `beer` (see beer.css), so its !important rules replace the !important rules of BeerCSS.
+ */
+@layer override {
+  :is(.button, button):not(.chip):active {
+    border-radius: var(--button-shape, var(--_round, 0.5rem)) !important;
+  }
+}
+
+/* The text for screen readers only. */
+.screen-reader-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

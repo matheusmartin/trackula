@@ -1,19 +1,20 @@
-# Build output. kmp/.gitignore has the Gradle folders.
-/build/
+# Packages and build output.
+/node_modules/
+/dist/
+/coverage/
 
 # Miscellaneous
-*.class
 *.log
 *.pyc
 *.swp
 .DS_Store
 .history
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
+# Editors
 .idea/
 
 # Local build values (OAuth client ID, API key). See config.example.env.
 config.env
+
+# Git worktrees of Claude Code agents.
+/.claude/worktrees/

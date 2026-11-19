@@ -1,0 +1,111 @@
+/* MetricDetail.jsx: the title, the window bar, the overview, the charts and the calendar, in a column. */
+.metric-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-inline-size: 0;
+}
+
+.metric-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The name: at most 2 lines. */
+.metric-detail-title {
+  flex: 1;
+  min-inline-size: 0;
+  margin: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* The window bar stays below the app bar while the page scrolls. A band in the page color around it hides the charts
+   below it. The negative margins keep the spaces of the column. */
+.window-bar-band {
+  position: sticky;
+  inset-block-start: var(--app-bar-height);
+  z-index: 2;
+  margin-block: -8px;
+  padding-block: 8px;
+  background-color: var(--surface);
+}
+
+/* One tool bar in a soft color. Phones: 2 rows, each with its buttons at the edges and its label in the center. */
+.window-bar {
+  display: flex;
+  flex-direction: column;
+  padding-inline: 4px;
+  border-radius: 12px;
+  background-color: var(--surface-container);
+}
+
+.window-bar-row {
+  display: flex;
+  align-items: center;
+}
+
+.window-zoom-label,
+.window-dates {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* The zoom label: the TextButton of Compose Material 3. */
+.window-zoom-label {
+  --button-shape: 20px;
+  box-sizing: border-box;
+  block-size: 40px;
+  min-inline-size: 58px;
+  padding: 0 12px;
+  border-radius: 20px;
+  color: var(--primary);
+  background-color: transparent;
+}
+
+/* Wide screens: the zoom buttons on the left and the dates on the right, in one row. The zoom label has a fixed
+   width, so that the zoom buttons do not move when the label changes. The longest label, "3 months", fits. */
+.window-bar-wide {
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.window-bar-wide :is(.window-zoom-label, .window-dates) {
+  flex: none;
+}
+
+.window-bar-wide .window-zoom-label {
+  min-inline-size: 96px;
+}
+
+.window-bar-wide .window-dates {
+  padding-inline: 4px;
+}
+
+/* The overview is 8 px below the window bar. */
+.metric-detail-overview {
+  margin-block-start: -8px;
+}
+
+/* The charts and the heatmap. A side drag of a finger goes to the page code, and a vertical drag scrolls the page. */
+.charts-area {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-inline-size: 0;
+  touch-action: pan-y;
+}
+
+/* While a drag moves the window, it does not select text. */
+.charts-area-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
