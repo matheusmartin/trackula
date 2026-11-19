@@ -12,13 +12,9 @@ const EXPIRED_TEXT = 'Google access lasts 1 hour. Sign in again to continue.';
 
 afterEach(cleanup);
 
-/**
- * Waits until the Today page shows the data of the sheet. The Kotlin test waits for the metric "Weight".
- * STUB: the stub of pages/TodayPage.jsx shows "Today page stub" after its load. The Today page port changes this to
- * "Weight".
- */
+/** Waits until the Today page shows the data of the sheet: the metric "Weight". */
 async function waitForTodayPage() {
-  await screen.findByText(/Today page stub/, {}, { timeout: TIMEOUT });
+  await screen.findAllByText('Weight', {}, { timeout: TIMEOUT });
 }
 
 /**
@@ -70,23 +66,28 @@ describe('App', () => {
     await signInToTodayPage(platform);
 
     click('Metrics');
-    // STUB: the Kotlin test finds "Add metric" of the metrics screen, then closes it with its Back button.
-    await screen.findByText('Today page stub: metrics screen');
+    // STUB: pages/MetricsPage.jsx shows only its heading. The Kotlin test finds "Add metric" of the metrics screen.
+    await screen.findByRole('heading', { name: 'Metrics' });
     expect(screen.queryByText('5 days')).toBeNull();
     expect(platform.history.entries).toBe(1);
+
+    click('Back');
+
+    await screen.findByText('5 days');
+    expect(screen.queryByRole('heading', { name: 'Metrics' })).toBeNull();
   });
 
   test('the Back button of the browser closes the metrics screen', async () => {
     const platform = new FakePlatform({ savedSpreadsheetId: 'sheet-1' });
     await signInToTodayPage(platform);
     click('Metrics');
-    await screen.findByText('Today page stub: metrics screen');
+    await screen.findByRole('heading', { name: 'Metrics' });
     expect(platform.history.entries).toBe(1);
 
     platform.history.userBack();
 
     await screen.findByText('5 days');
-    expect(screen.queryByText('Today page stub: metrics screen')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Metrics' })).toBeNull();
     await waitFor(() => expect(platform.history.entries).toBe(0));
   });
 
