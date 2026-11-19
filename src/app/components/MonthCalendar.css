@@ -1,0 +1,33 @@
+/* MonthCalendar.jsx: the heading, the month bar with its arrows, and one or two months. */
+.month-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.month-calendar-heading {
+  margin: 0;
+}
+
+.month-calendar-bar {
+  display: flex;
+  align-items: center;
+}
+
+.month-calendar-title {
+  flex: 1;
+  min-inline-size: 0;
+  text-align: center;
+}
+
+/* One month, or two months side by side. A side swipe goes to the page code, and a vertical swipe scrolls. */
+.month-calendar-months {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  touch-action: pan-y;
+}
+
+.month-calendar-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
