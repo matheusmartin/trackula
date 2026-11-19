@@ -77,6 +77,7 @@
    the rows are at their new places at once. */
 .metric-list-item {
   position: relative;
+  border-radius: 0;
   background-color: var(--surface-container-low);
 }
 
@@ -147,10 +148,12 @@
   min-inline-size: 0;
 }
 
+/* 19 px high, as the Symbol of the Kotlin code: a text of 16 px with the line height of the font. */
 .metric-row-goal {
   display: flex;
   align-items: center;
   gap: 4px;
+  min-block-size: 19px;
 }
 
 .metric-row-actions {

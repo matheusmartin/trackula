@@ -63,11 +63,11 @@
 }
 
 /* The OutlinedTextField of Compose Material 3: 56 px high, with the label on the border when the field has a value
-   or the focus. */
+   or the focus. Compose keeps 8 px above the border for the label. */
 .metric-form-field {
   --_input: 56px;
   min-inline-size: 0;
-  margin: 0;
+  margin: 8px 0 0;
 }
 
 .metric-form-field > input {
@@ -100,6 +100,8 @@
   align-items: center;
   gap: 8px;
   border-radius: 8px;
+  font-size: 16px;
+  line-height: 24px;
   cursor: pointer;
 }
 
