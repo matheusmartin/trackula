@@ -1,7 +1,6 @@
 {
   "name": "Trackula",
   "short_name": "Trackula",
-  "description": "Tracks habits and body measurements in a Google Sheet.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

@@ -48,7 +48,6 @@ export function SignInPage({ platform, expired, onSignedIn }) {
       <div class="sign-in-logo">
         <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" />
         <h1 class="sign-in-title">Trackula</h1>
-        <p class="body-large">Track your habits and your body measurements.</p>
       </div>
       <div class="sign-in-actions">
         {expired && <Notice text="Google access lasts 1 hour. Sign in again to continue." />}

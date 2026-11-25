@@ -40,11 +40,6 @@
   letter-spacing: -0.02px;
 }
 
-.sign-in-logo p {
-  margin: 0;
-  color: var(--on-surface-variant);
-}
-
 .sign-in-actions {
   display: flex;
   flex-direction: column;
