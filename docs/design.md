@@ -15,26 +15,27 @@ Each color has one role, the same on all screens. The table gives the light and 
 |---|---|---|---|---|---|
 | Brand | `--header-start`, `--header-end` | `#dc4a0c` → `#be123c` | the same | The app bar. | Data. |
 | Main action | `--action-start`, `--action-end` | `#c2410c` → `#9f1239` | the same | The one main button of a screen. Example: "Add metric". | Other buttons. |
-| Accent | `--primary` | `#b8321a` | `#ff8c66` | Links, text buttons, the focus ring, the current day. | Data, "done", warnings. |
+| Accent | `--primary` | `#b8321a` | `#ff8c66` | Links, text buttons, the focus ring. | Data, warnings. |
 | Selected | `--primary-container` | `#ffdfd4` | `#7a2a14` | The selected item of the navigation and of the chips. | Data. |
-| Value | `--data` | `#5b6b82` | `#9fb0c6` | The bars, lines and dots of the values of a metric. | Text. |
-| Good | `--good`, `--good-container` | `#2e7d32`, `#d7eed8` | `#81c784`, `#1e3d22` | A goal reached, the points, the score, a change for the better. | Brand parts. |
-| Warning | `--warning`, `--warning-container` | `#b45309`, `#fde7cf` | `#f0a35a`, `#4d2c0a` | A value over a limit, a change for the worse, sheet warnings. | Errors that stop an action. |
+| Data | `--cell-image`, `--cell`, `--on-cell` | `#ca4a09` → `#e41648`, `#da3625`, white | the same | The day cells (`--cell-image`), the bars, lines and dots of the charts (`--cell`), a done tile, the score, a change for the better. | Text. |
+| No points | `--cell-value` | `#e2e6eb` | `#323c49` | A day cell with a value and 0 points. | — |
+| Worse | `--worse` | `#5b6b82` | `#9fb0c6` | A change for the worse in the score tables. | Other data. |
+| Warning | `--warning`, `--warning-container` | `#b45309`, `#fde7cf` | `#f0a35a`, `#4d2c0a` | Sheet warnings, the warning sign of a tile over a limit. | Day cells, charts. |
 | Error | `--error`, `--error-container` | `#ba1a1a`, `#ffdad6` | `#ffb4ab`, `#93000a` | A failed write or load, an invalid field. | Data. |
 | Neutral | `--surface…`, `--on-surface…`, `--outline…` | slate grey | slate blue | Pages, cards, text, borders. | — |
 | Groups | `--group-1` to `--group-8` | 8 hues | lighter tones | The parts of each group in a stacked chart. | Other data. |
 
 Rules:
 
-- Red and orange-red are the brand. No day cell, chart mark or key number uses them. Example: now a done day is a red
-  cell. After phase 4 it is a green cell.
-- Green means good, everywhere: a done day, a goal reached, the score, a better week. Amber means "look at this": a
-  value over a limit, a worse week, a sheet warning.
-- The group colors do not use green, amber or red, so that a group does not look good or bad. Now `--group-1` is green
-  and `--group-3` is orange: phase 4 gives them other hues, and checks that each pair of groups differs in hue or in
-  lightness.
-- The score has no own theme. Now `.score-theme` makes the score screens green. After phase 3, the score uses the
-  Good role, as each points cell does.
+- **Decision (owner):** the data has the color of the brand. The day cells, the bars of the charts and the score all
+  use it, in the same way. Example: a done day and a day with a score of 100% are the same full brand cell.
+- The score has no own theme. Now `.score-theme` makes the score screens green. After phase 3, the score uses the Data
+  role, as each day cell does.
+- The current day has no special color and no ring. It is the last column of the table, or its day number in a
+  calendar.
+- The group colors do not use the brand hues (red, orange), so that a group does not look like data. Now `--group-3`
+  is orange and `--group-6` is crimson: phase 4 gives them other hues, and checks that each pair of groups differs in
+  hue or in lightness.
 - Each text has a contrast of 4.5:1 or more on its background. Each border of a control, and each chart mark, has 3:1
   or more.
 
@@ -47,20 +48,21 @@ points of the day, so you can see your goals at a glance.
 |---|---|---|
 | No value | No fill. A 1 px border in `--outline`. | You did not record Water on that day. |
 | Value, 0 points | `--cell-value` fill. The value in `--on-surface`. | Weight 84.1 for the goal `at most 80 from 83`. |
-| Value, some points | A mix of `--cell-value` and `--good`, from the points: 0.5 points is half of each. | Water 5 for `at least 8`: 0.625 points. |
-| Value, 1 point | `--good` fill. The value in `--on-good`. | Meditate yes for the goal `yes`. |
-| Over a limit | `--warning` fill. The value in `--on-warning`. | Coffee 3 for `at most 2`. |
-| Today | The state above, and a 2 px ring in `--primary`. | — |
+| Value, some points | `--cell-value`, with `--cell-image` on it at an opacity of 0.1 + 0.6 × points (10% to 70%). The value in `--on-surface`. | Water 5 for `at least 8`: 0.625 points, 48%. |
+| Value, 1 point | `--cell-image` fill. The value in `--on-cell`. | Meditate yes for the goal `yes`. |
+| Over a limit | 0 points: `--cell-value` fill. | Coffee 3 for `at most 2`. |
 | After today | No cell. | — |
-| Score | The same scale, from the score of the day: 0% is `--cell-value`, 100% is `--good`. | 73.1% is mostly green. |
+| Score | The same scale, from the score of the day: 0% is `--cell-value`, 100% is the full `--cell-image`. | 73.1% is a strong tint. |
 
 - A cell shows the value of a number or count metric, and no text for a yes/no metric.
-- The text color comes from the fill: dark text on a light fill, light text on a dark fill.
-- "Over a limit" applies to a yes/no or count metric with a limit goal (`no`, `at most`). A number metric shows its
-  points only, also over its target. Example: Weight 82.6 for `at most 80 from 83` has 0.13 points: a light green
-  cell, not an amber one.
+- Only a full point gets the full brand fill. So "goal reached" and "almost" look different, and the text has enough
+  contrast: dark text up to 70%, white text on the full fill. In the dark theme the text is light on all fills.
+- A number metric shows its points, also over its target. Example: Weight 82.6 for `at most 80 from 83` has 0.13
+  points: a light tint.
+- The current day looks like the other days (see "Color roles").
 - Size: 40 px or more, in a touch target of 48 px where the screen has the space. Corners: `--radius-s`.
-- Tooltip: the metric, the day, the value and the points. Example: "Water, Nov 26: 5 glasses, 0.6 points".
+- Tooltip: the metric, the day, the value and the points. Example: "Water, Nov 26: 5 glasses, 0.6 points". Over a
+  limit: "Coffee, Nov 24: 3 cups, over the limit".
 
 ## Type
 
@@ -118,8 +120,8 @@ app has no Medium font, so Medium text shows as Regular.
 | Screen | Narrow | Wide |
 |---|---|---|
 | Today | Number tiles in 1 column. Yes/no and count tiles in 2 columns. | Number tiles in 2 columns. Yes/no and count tiles in 4 to 6 columns (`--tile-min-width` 160 px). A ruler is not wider than its tile. |
-| Days, table | 5 days. The names of the metrics in the first column. | As many days as the width holds, up to 14. |
-| Days, calendars | 1 calendar card in each row. | The card grid: 2 or 3 calendars in each row. |
+| Days, table | One card. Its first row has the score bars, each bar in the column of its day, so that a bar is exactly above the cells of its day. Then the day headers and one row for each metric. 5 days. | The same card, with as many days as the width holds, up to 14. |
+| Days, calendars | The score calendar first, then 1 calendar card for each metric. | The card grid: 2 or 3 calendars in each row. |
 | Score, metric detail | The period bar, the key numbers in 2 columns, then the cards in 1 column. | The period bar in one row, the key numbers in one row, then the card grid. |
 | Metrics | The list. A tap opens the form as a screen. | The list on the left and the form on the right. |
 
@@ -143,8 +145,9 @@ Phase 3 makes these shared components. Each one replaces the current parts in th
 | `TextField` | text, number | the fields of the form and of the number editor |
 | `EmptyState` | — | the empty states of the Today page and of the metrics screen |
 
-The charts (`TimeBars`, `LineChart`, `RangeBars`, `Distribution`, `StackedBars`, `ChangeTable`) use the Value role for
-a metric and the Good role for the score.
+The charts (`TimeBars`, `LineChart`, `RangeBars`, `Distribution`, `StackedBars`, `ChangeTable`) use the Data role
+(`--cell`) for a metric and for the score. The `ChangeTable` tints a better cell with `--cell` and a worse cell with
+`--worse`.
 
 ## Numbers and dates
 
@@ -167,7 +170,7 @@ a metric and the Good role for the score.
 | Weekday | Two letters. | `Mo` |
 
 - The minus sign is `−` (U+2212), not a hyphen.
-- Today is not over. A chart shows today without a value as open (an outline), not as 0.
+- Today is not over. If today has no value yet, a chart shows no bar and no label for it, not a 0.
 
 ## Interaction
 

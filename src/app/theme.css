@@ -95,18 +95,14 @@
   --on-action: #ffffff;
   --header-start: #dc4a0c;
   --header-end: #be123c;
-  /* The color roles of docs/design.md. Phase 3 of the consolidation moves the app to them, and removes --cell,
-     --cell-image, --cell-empty, --done, --done-cell and .score-theme. */
-  --data: #5b6b82;
-  --good: #2e7d32;
-  --on-good: #ffffff;
-  --good-container: #d7eed8;
-  --on-good-container: #0f2e13;
+  /* The color roles of docs/design.md. The data keeps --cell, --cell-image and --on-cell. Phase 3 of the consolidation
+     moves the app to these roles, and removes --cell-empty, --done, --done-cell and .score-theme. */
+  --worse: #5b6b82;
   --warning: #b45309;
   --on-warning: #ffffff;
   --warning-container: #fde7cf;
   --on-warning-container: #3d1d00;
-  /* A day cell with a value and 0 points. More points mix in --good. */
+  /* A day cell with a value and 0 points. More points put --cell-image on it, at a higher opacity. */
   --cell-value: #e2e6eb;
   --group-1: #2e7d32;
   --group-2: #1565c0;
@@ -191,11 +187,7 @@
     --on-done: #0f2e13;
     /* A lighter slate, so that empty cells show the blue of the theme. */
     --cell-empty: #323c49;
-    --data: #9fb0c6;
-    --good: #81c784;
-    --on-good: #0f2e13;
-    --good-container: #1e3d22;
-    --on-good-container: #c8eec9;
+    --worse: #9fb0c6;
     --warning: #f0a35a;
     --on-warning: #2e1500;
     --warning-container: #4d2c0a;
