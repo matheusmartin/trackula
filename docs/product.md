@@ -25,8 +25,9 @@ score from 0 to 100%. All data stays in one Google Sheet that you own. You can r
    change, but only to a format that is equally easy to read and change by hand. The app accepts changes by hand.
 2. **One tap records a value.** **Decision:** a change goes to the sheet at once, on each screen. There is no Save
    button. After each write, the app shows a message with an Undo button.
-3. **One meaning for each color.** **Decision:** the Ember brand colors stay, for the app and its main actions only.
-   A done day, a good score and a warning each get their own color, the same on all screens.
+3. **One meaning for each color.** **Decision:** the Ember brand colors stay. The data has the brand color: the day
+   cells, the bars of the charts and the score, in the same way. A warning, an error and a selected item each get
+   their own color, the same on all screens. The current day has no special color.
 4. **The same thing looks and works the same everywhere.** A day cell, a chart card, a button and a number each have
    one component and one format.
 5. **Each screen has an address.** A reload shows the same screen. You can keep a link to a metric.
@@ -71,7 +72,7 @@ and "Yes days", "Habit strength (%)" and "Strength (%)", "Values and 7-day trend
 - A value uses the decimals of the step of its metric. Example: step 0.1 gives `82.6`, step 1 gives `8`.
 - A score always has 1 decimal: `57.0%`. A change of a score has 1 decimal and a sign: `+4.0%`. Now the app shows
   `57%`, `+3.95%` and `91.3%` on one screen.
-- Today is not over. A chart does not show today as 0 before you record a value: it shows today as open.
+- Today is not over. A chart does not show today as 0 before you record a value: it shows no bar for today.
 
 ## Write model
 
