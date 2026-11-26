@@ -95,6 +95,19 @@
   --on-action: #ffffff;
   --header-start: #dc4a0c;
   --header-end: #be123c;
+  /* The color roles of docs/design.md. Phase 3 of the consolidation moves the app to them, and removes --cell,
+     --cell-image, --cell-empty, --done, --done-cell and .score-theme. */
+  --data: #5b6b82;
+  --good: #2e7d32;
+  --on-good: #ffffff;
+  --good-container: #d7eed8;
+  --on-good-container: #0f2e13;
+  --warning: #b45309;
+  --on-warning: #ffffff;
+  --warning-container: #fde7cf;
+  --on-warning-container: #3d1d00;
+  /* A day cell with a value and 0 points. More points mix in --good. */
+  --cell-value: #e2e6eb;
   --group-1: #2e7d32;
   --group-2: #1565c0;
   --group-3: #e06a10;
@@ -116,6 +129,25 @@
   --form-width: 640px;
   /* The height of the app bar. Elements that stay at the top while the page scrolls go below it. */
   --app-bar-height: 64px;
+
+  /* The space, corner, width and motion tokens of docs/design.md. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+  --radius-full: 999px;
+  --page-max-width: 1200px;
+  --card-min-width: 340px;
+  --tile-min-width: 160px;
+  --duration-short: 150ms;
+  --duration-medium: 250ms;
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -159,6 +191,16 @@
     --on-done: #0f2e13;
     /* A lighter slate, so that empty cells show the blue of the theme. */
     --cell-empty: #323c49;
+    --data: #9fb0c6;
+    --good: #81c784;
+    --on-good: #0f2e13;
+    --good-container: #1e3d22;
+    --on-good-container: #c8eec9;
+    --warning: #f0a35a;
+    --on-warning: #2e1500;
+    --warning-container: #4d2c0a;
+    --on-warning-container: #ffdcc0;
+    --cell-value: #323c49;
     --group-1: #4ca352;
     --group-2: #3d8fd8;
     --group-3: #cc7a22;

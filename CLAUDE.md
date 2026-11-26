@@ -3,6 +3,9 @@
 Read `README.md` first. It has the overview, the commands, the configuration and the project structure. This file
 adds the rules for the code.
 
+`docs/product.md` gives the behavior of the app and its words. `docs/design.md` gives the look: the color roles, the
+tokens, the layout, the components and the number formats.
+
 `docs/js-port.md` has the decisions of the JavaScript app and its differences from the Kotlin app before it.
 
 ## Standards
@@ -35,8 +38,8 @@ ESLint checks these rules (`no-restricted-imports` in `eslint.config.js`).
 
 ## UI
 
-- Use Preact function components and hooks. Use the BeerCSS classes and the Material Design 3 color variables of the
-  theme, not fixed colors.
+- Use Preact function components and hooks. Follow `docs/design.md`: use its color roles and its tokens (`--space-*`,
+  `--radius-*`), not fixed colors or sizes. Do not add new uses of BeerCSS: phase 3 of the consolidation removes it.
 - Each icon button has a `title` (a tooltip) and an `aria-label`. Each cell, tile and chart mark that has a value has a
   `title`.
 - The app works with a mouse, with touch and with the keyboard. The keyboard focus is visible.
