@@ -1,8 +1,8 @@
 # Product
 
-Status: draft of phase 0 of the consolidation. The owner decided the items marked **Decision**. The items marked
-**Proposal** need the approval of the owner. After the approval, this file gives the behavior of the app.
-`docs/data-model.md` gives the sheet format. `docs/design.md` (phase 1) will give the look.
+Status: approved on 2026-11-26, in phase 0 of the consolidation. The owner decided the items marked **Decision** and
+approved all proposals (P1 to P8). This file gives the behavior of the app. Some parts are not in the app yet: phases
+2 to 4 of the consolidation make them. `docs/data-model.md` gives the sheet format. `docs/design.md` gives the look.
 
 ## Purpose
 
@@ -66,7 +66,7 @@ and "Yes days", "Habit strength (%)" and "Strength (%)", "Values and 7-day trend
 
 ## Numbers
 
-**Proposal.** Phase 1 writes the exact formats in `docs/design.md` and puts them in `Format.js`.
+**Decision.** `docs/design.md` gives the exact formats. Phase 3 puts them in `Format.js`.
 
 - A value uses the decimals of the step of its metric. Example: step 0.1 gives `82.6`, step 1 gives `8`.
 - A score always has 1 decimal: `57.0%`. A change of a score has 1 decimal and a sign: `+4.0%`. Now the app shows
@@ -116,7 +116,8 @@ The charts of the metric detail and of the Score screen:
 
 ## Proposals
 
-Each proposal has an ID. Approve, change or reject each one. Nothing goes from the app without your approval.
+The owner approved all proposals on 2026-11-26. Phase 2 makes P1, P5, P6 and P7. Phase 3 makes P8. Phase 4 makes
+P2, P3 and P4 with the redraw of their screens.
 
 | ID | Proposal | Why |
 |---|---|---|
