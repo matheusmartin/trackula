@@ -3,13 +3,12 @@ import { afterEach, describe, expect, test } from 'vitest';
 import { Day } from '../../model/Day.js';
 import { YesNoMetric } from '../../model/Metric.js';
 import { ZoomStep, ZoomWindow } from '../../model/Zoom.js';
-import { MetricCharts, ScoreCharts } from './MetricCharts.jsx';
+import { MetricCharts } from './MetricCharts.jsx';
 
 afterEach(cleanup);
 
 const today = Day.of(2026, 10, 3);
 
-// The case of MetricCharts in the Kotlin ChartsTest.
 describe('MetricCharts', () => {
   test('the charts of a metric without values say what to do', () => {
     render(
@@ -21,20 +20,7 @@ describe('MetricCharts', () => {
       />,
     );
     expect(screen.getByText('No values yet')).toBeTruthy();
-    expect(screen.queryByText('Yes rate')).toBeNull();
-  });
-
-  test('the score without values says that the Today page records the days', () => {
-    render(
-      <ScoreCharts
-        window={new ZoomWindow(ZoomStep.entries[0], today, today)}
-        values={new Map()}
-        scoreMetrics={[]}
-        points={new Map()}
-      />,
-    );
-    expect(screen.getByText('No score yet')).toBeTruthy();
-    expect(screen.getByText('Record a day on the Today page. Then the score and its charts show here.')).toBeTruthy();
+    expect(screen.queryByText('Done rate')).toBeNull();
   });
 
   test('the charts of a yes/no metric show its key numbers and its charts', () => {
@@ -52,14 +38,8 @@ describe('MetricCharts', () => {
       />,
     );
     expect(screen.getByTitle('done days: 2')).toBeTruthy();
-    expect(screen.getByTitle('current streak: 1 d')).toBeTruthy();
-    for (const title of [
-      'Yes rate',
-      'Habit strength (%)',
-      'Yes, no and no entry',
-      'Weekday pattern',
-      'Streak lengths',
-    ]) {
+    expect(screen.getByTitle('current streak: 1 day')).toBeTruthy();
+    for (const title of ['Done rate', 'Strength (%)', 'Yes, no and no value', 'Weekday pattern', 'Streak lengths']) {
       expect(screen.getByRole('heading', { name: title })).toBeTruthy();
     }
   });

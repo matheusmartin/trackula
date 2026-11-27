@@ -5,10 +5,16 @@ import {
   barTitle,
   formatCompact,
   formatDateRange,
+  formatDays,
+  formatFixed,
   formatNumber,
   formatPercent,
+  formatScore,
+  formatScoreChange,
   formatSigned,
   formatTrimmed,
+  formatValue,
+  formatValueChange,
   monthPairTitle,
   monthTitle,
   shortDay,
@@ -19,6 +25,42 @@ import {
 import { BarUnit } from './Zoom.js';
 
 describe('Format', () => {
+  test('formatNumber uses the minus sign, and a comma between the thousands from 10,000', () => {
+    expect([-2, 9500, 12500, -12500.25, 1234567].map((v) => formatNumber(v))).toEqual([
+      '−2',
+      '9500',
+      '12,500',
+      '−12,500.3',
+      '1,234,567',
+    ]);
+  });
+
+  test('formatFixed keeps the zeros at the end, and a value that rounds to 0 has no sign', () => {
+    expect(formatFixed(82, 1)).toBe('82.0');
+    expect(formatFixed(12500, 0)).toBe('12,500');
+    expect(formatFixed(-0.04, 1)).toBe('0.0');
+  });
+
+  test('a value has the decimals of the step of its metric, and its change has a sign', () => {
+    expect(formatValue(82, 0.1, 'kg')).toBe('82.0 kg');
+    expect(formatValue(12500, 1, 'steps')).toBe('12,500 steps');
+    expect(formatValue(1.25, 0.25, null)).toBe('1.25');
+    expect(formatValueChange(-1.4, 0.1, 'kg')).toBe('−1.4 kg');
+    expect(formatValueChange(2, 1, 'glasses')).toBe('+2 glasses');
+    expect(formatValueChange(0.04, 0.1, 'kg')).toBe('0.0 kg');
+  });
+
+  test('a score has 1 decimal, and its change has a sign', () => {
+    expect(formatScore(57)).toBe('57.0%');
+    expect(formatScoreChange(4)).toBe('+4.0%');
+    expect(formatScoreChange(-1.25)).toBe('−1.3%');
+    expect(formatScoreChange(0.02)).toBe('0.0%');
+  });
+
+  test('formatDays gives the word day or days', () => {
+    expect([1, 0, 105].map(formatDays)).toEqual(['1 day', '0 days', '105 days']);
+  });
+
   test('shortMonth and shortDay', () => {
     expect([shortMonth(1), shortMonth(9), shortMonth(12)]).toEqual(['Jan', 'Sep', 'Dec']);
     expect(shortDay(Day.of(2026, 9, 28))).toBe('Sep 28');
@@ -40,7 +82,7 @@ describe('Format', () => {
   });
 
   test('formatCompact gives one decimal at most, and k from 1000', () => {
-    expect([82.25, 7, 12500, 1000, -1500].map(formatCompact)).toEqual(['82.3', '7', '12.5k', '1k', '-1.5k']);
+    expect([82.25, 7, 12500, 1000, -1500].map(formatCompact)).toEqual(['82.3', '7', '12.5k', '1k', '−1.5k']);
   });
 
   test('withUnit, formatSigned and formatPercent', () => {

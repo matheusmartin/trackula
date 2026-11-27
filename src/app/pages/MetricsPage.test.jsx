@@ -8,7 +8,7 @@ import { SetMetricCells } from '../../model/MetricsWrite.js';
 import { Route } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
 import { errorText } from '../Errors.js';
-import { LocalNavigator, Navigator, useNavigator, useRoute } from '../Navigation.js';
+import { NavigatorContext, Navigator, useNavigator, useRoute } from '../Navigation.js';
 import { CountingStore } from '../testing/CountingStore.js';
 import { FakeHistory } from '../testing/FakePlatform.js';
 import { pickEmoji } from '../testing/PickEmoji.js';
@@ -48,7 +48,7 @@ afterEach(() => {
 
 /**
  * The metrics screen with the data of `store`, as the Today page shows it: the page loads the data, and each write
- * changes the `Metrics` tab and loads the data again. See `writeMetrics` in TodayPage.kt.
+ * changes the `Metrics` tab and loads the data again. See `writeMetrics` in TodayPage.jsx.
  * @param {object} props
  * @param {CountingStore} props.store
  * @param {boolean} props.hasMouse
@@ -105,9 +105,9 @@ async function showPage({ before = null, hasMouse = false } = {}) {
   history = new FakeHistory(Route.METRICS.hash);
   navigator = new Navigator(history);
   render(
-    <LocalNavigator.Provider value={navigator}>
+    <NavigatorContext.Provider value={navigator}>
       <Host store={store} hasMouse={hasMouse} />
-    </LocalNavigator.Provider>,
+    </NavigatorContext.Provider>,
   );
   await screen.findByText('Weight', {}, { timeout: TIMEOUT });
 }
@@ -276,9 +276,9 @@ describe('MetricsPage', () => {
     history = new FakeHistory('#/metrics/edit/water');
     navigator = new Navigator(history);
     render(
-      <LocalNavigator.Provider value={navigator}>
+      <NavigatorContext.Provider value={navigator}>
         <Host store={store} hasMouse={false} />
-      </LocalNavigator.Provider>,
+      </NavigatorContext.Provider>,
     );
     await screen.findByRole('heading', { name: 'Edit metric' }, { timeout: TIMEOUT });
     expect(field('Name').value).toBe('Water');
@@ -287,9 +287,9 @@ describe('MetricsPage', () => {
     history = new FakeHistory('#/metrics/edit/nothing');
     navigator = new Navigator(history);
     render(
-      <LocalNavigator.Provider value={navigator}>
+      <NavigatorContext.Provider value={navigator}>
         <Host store={store} hasMouse={false} />
-      </LocalNavigator.Provider>,
+      </NavigatorContext.Provider>,
     );
     await waitUntil(() => expect(history.hash()).toBe('#/metrics'));
     await waitForList();

@@ -121,7 +121,7 @@ describe('Stats', () => {
     [day(7), 2],
   ]);
 
-  test('countStats: total, average, best day and days logged', () => {
+  test('countStats: total, average, best day and days recorded', () => {
     const s = countStats(counts, range(8));
     expect([s.total, s.logged, s.average]).toEqual([15, 4, 3.75]);
     expect(s.best).toEqual({ day: day(1), value: 5 });

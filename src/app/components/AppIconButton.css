@@ -1,6 +1,5 @@
-/* AppIconButton.jsx: the IconButton of Compose Material 3. */
+/* AppIconButton.jsx: an icon button of Material 3. */
 .app-icon-button {
-  --button-shape: 50%;
   flex: none;
   box-sizing: border-box;
   inline-size: 48px;
@@ -15,8 +14,6 @@
 /* The highlight of the mouse and of the keyboard focus: a circle of 40 px in the button of 48 px. */
 .app-icon-button::after {
   inset: 4px;
-  inline-size: auto;
-  block-size: auto;
 }
 
 .app-icon-button:focus-visible {
@@ -37,7 +34,7 @@
   outline-offset: 0;
 }
 
-/* The disabled color of Compose: the text color at 38%. */
+/* The disabled color of Material 3: the text color at 38%. */
 .app-icon-button:disabled {
   opacity: 0.38;
   cursor: default;

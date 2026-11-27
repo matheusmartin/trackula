@@ -8,8 +8,8 @@
 // This file is a template. `npm run build` writes it to dist/sw.js with the values of BUILD and APP_FILES. See
 // `serviceWorker` in vite.config.js.
 
-// One cache for each build. When a new build activates, the worker deletes the caches of the old builds, also the
-// caches of the Dart and the KMP apps. It keeps the other caches.
+// One cache for each build. When a new build activates, the worker deletes the other caches with a name that starts
+// with "trackula": the caches of the old builds. It keeps the other caches.
 const BUILD = '/* build */';
 const CACHE = `trackula-${BUILD}`;
 

@@ -18,18 +18,6 @@
   margin: 0;
 }
 
-.app-snackbar-action {
-  --button-shape: var(--radius-full);
-  flex: none;
-  block-size: 40px;
-  padding: 0 var(--space-3);
-  border: 0;
-  border-radius: var(--radius-full);
-  color: var(--inverse-primary);
-  background-color: transparent;
-  cursor: pointer;
-}
-
 @keyframes app-snackbar-in {
   from {
     opacity: 0;

@@ -1,4 +1,4 @@
-// Metrics and helpers that many model tests use, as in the Dart tests.
+// Metrics and helpers that many model tests use.
 import { NumberGoal, NumberMetric, YesNoMetric } from '../Metric.js';
 
 /** @import { Metric } from '../Metric.js' */

@@ -1,0 +1,135 @@
+/*
+ * The base styles of the HTML elements, in the cascade layer `base`. The rules of the app are not in a layer, so they
+ * replace a base rule without a more specific selector. Each component sets the rest of its look in its own CSS file.
+ */
+@layer base {
+  /* No browser margins and paddings. A width or a height includes the padding and the border. */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  /* A heading has the look of the text around it: a type class (theme.css) gives its size. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font: inherit;
+  }
+
+  svg {
+    fill: currentcolor;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  /* A button without a look: each button of the app sets its own. The children do not get the clicks, so the target
+     of a click is always the button. */
+  button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    font: inherit;
+    color: inherit;
+    background: none;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  button > :is(span, i, img, svg) {
+    pointer-events: none;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* The state layer of a button: the text color at 10% while the mouse is on the button or it has the keyboard
+     focus. Not while the button is pressed or disabled. */
+  button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    background-color: currentColor;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  button:is(:focus-visible, :hover)::after {
+    opacity: 0.1;
+  }
+
+  button:active::after {
+    opacity: 0;
+  }
+
+  button:disabled::after {
+    display: none;
+  }
+
+  input {
+    color: inherit;
+  }
+
+  /* A value that the browser fills in has the text color of the theme, not the browser color. */
+  input:is(:-webkit-autofill, :autofill) {
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: var(--on-surface);
+  }
+
+  label {
+    user-select: none;
+  }
+
+  table {
+    border-spacing: 0;
+  }
+
+  :is(th, td) {
+    padding: 0;
+    text-align: inherit;
+    font-weight: inherit;
+  }
+
+  /* On a touch screen, the page does not scroll below an open dialog. */
+  @media (pointer: coarse) {
+    body:has(dialog[open]) {
+      overflow: hidden;
+    }
+  }
+
+  /* With a mouse: thin scroll bars. The thumb shows while the mouse is on the box or the box has the focus. */
+  @media (pointer: fine) {
+    body ::-webkit-scrollbar,
+    body ::-webkit-scrollbar-thumb,
+    body ::-webkit-scrollbar-button {
+      background: none;
+      inline-size: 0.4rem;
+      block-size: 0.4rem;
+    }
+
+    body :is(:focus, :hover)::-webkit-scrollbar-thumb,
+    body :has(:focus, :hover)::-webkit-scrollbar-thumb {
+      background: var(--outline);
+      border-radius: 1rem;
+    }
+  }
+}

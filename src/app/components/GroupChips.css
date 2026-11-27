@@ -1,7 +1,7 @@
 /* GroupChips.jsx: one row of chips that scrolls sideways. */
 .group-chips {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   inline-size: 100%;
   overflow-x: auto;
   scrollbar-width: none;
@@ -11,32 +11,31 @@
   display: none;
 }
 
-/* The FilterChip of Compose Material 3: 32 px high, 8 px corners. Not selected: a thin outline. Selected: the
+/* A filter chip of Material 3: 32 px high, 8 px corners. Not selected: a thin outline. Selected: the
    secondary container color and a check mark. */
 .group-chip {
-  --button-shape: 8px;
   flex: none;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   block-size: 32px;
-  padding: 0 16px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--outline-variant);
-  border-radius: 8px;
+  border-radius: var(--radius-s);
   color: var(--on-surface-variant);
   background-color: transparent;
   white-space: nowrap;
 }
 
 .group-chip-selected {
-  padding-inline-start: 8px;
+  padding-inline-start: var(--space-2);
   border-color: transparent;
   color: var(--on-secondary-container);
   background-color: var(--secondary-container);
 }
 
-/* Disabled: the text at 38% and the outline at 12% of the text color, as in Compose. */
+/* Disabled: the text at 38% and the outline at 12% of the text color, as in Material 3. */
 .group-chip:disabled {
   opacity: 1;
   cursor: default;

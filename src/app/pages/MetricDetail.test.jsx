@@ -5,7 +5,7 @@ import { formatDateRange, monthTitle } from '../../model/Format.js';
 import { MainView } from '../../model/MainView.js';
 import { Route, Screen } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
-import { LocalNavigator, Navigator } from '../Navigation.js';
+import { NavigatorContext, Navigator } from '../Navigation.js';
 import { CountingStore } from '../testing/CountingStore.js';
 import { FakeHistory } from '../testing/FakePlatform.js';
 import { ReloadHandle, TodayPage } from './TodayPage.jsx';
@@ -39,7 +39,7 @@ async function showPage(start = MainView.DAYS) {
     detail = route.screen === Screen.METRIC;
   });
   render(
-    <LocalNavigator.Provider value={navigator}>
+    <NavigatorContext.Provider value={navigator}>
       <TodayPage
         store={store}
         today={today}
@@ -50,7 +50,7 @@ async function showPage(start = MainView.DAYS) {
         readPref={() => null}
         writePref={() => {}}
       />
-    </LocalNavigator.Provider>,
+    </NavigatorContext.Provider>,
   );
   await waitFor(() => expect(store.last).not.toBeNull(), { timeout: TIMEOUT });
 }
@@ -96,15 +96,14 @@ async function weightAtOneMonth() {
   expect(screen.getByText(formatDateRange(Day.of(2026, 8, 31), today))).toBeTruthy();
 }
 
-// The cases of the Kotlin MetricDetailTest.
 describe('MetricDetail', () => {
   test('a metric name opens its detail screen and back closes', async () => {
     await showPage();
     await openDetail('Meditate');
     expect(detail).toBe(true);
-    expect(screen.getByText('Yes rate')).toBeTruthy();
-    expect(screen.getByText('Habit strength (%)')).toBeTruthy();
-    expect(screen.getByText('Yes days')).toBeTruthy();
+    expect(screen.getByText('Done rate')).toBeTruthy();
+    expect(screen.getByText('Strength (%)')).toBeTruthy();
+    expect(screen.getByText('Done days')).toBeTruthy();
 
     fireEvent.click(button('Back'));
     await waitFor(() => expect(detail).toBe(false));
@@ -115,7 +114,7 @@ describe('MetricDetail', () => {
     await showPage();
     await openDetail('Weight');
     expect(screen.getByText('Averages and range')).toBeTruthy();
-    expect(screen.getByText('Values and 7-day trend')).toBeTruthy();
+    expect(screen.getByText('Values and trend')).toBeTruthy();
     fireEvent.click(button('Back'));
     await openDetail('Water');
     expect(screen.getByText('Totals')).toBeTruthy();

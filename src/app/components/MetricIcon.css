@@ -9,7 +9,7 @@
   block-size: 32px;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--primary) 12%, var(--outline-variant));
-  border-radius: 8px;
+  border-radius: var(--radius-s);
   color: var(--primary);
   background-color: var(--surface-container-lowest);
   vertical-align: middle;

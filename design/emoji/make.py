@@ -30,8 +30,7 @@ from fontTools.ttLib import TTFont
 VERSION = "18.0.0"
 INTEGRITY = "sha512-TPPRRYv2zPd0jKI+pTpMquwWNZXYAsC3IVsCMeg2X8y8fEzKwOks4/5bz0YavF5r6d71aGPpb6oDnUEwSLLMoA=="
 
-# The slices of the Noto Color Emoji font of Google Fonts, and the SHA-256 hash of all slices in order. The KMP app
-# (Compose 1.12) used this version.
+# The slices of the Noto Color Emoji font of Google Fonts, and the SHA-256 hash of all slices in order.
 FONT_URL = "https://fonts.gstatic.com/s/notocoloremoji/v39/Yq6P-KqIXTD0t4D9z1ESnKM3-HpFabsE4tq3luCC7p-aXxcn.{}.woff2"
 FONT_SLICES = 10
 FONT_SHA256 = "2c1fbbf0a8378b9703e096cb76924aa8a18ca36de071136a1a0e0f21c283b689"

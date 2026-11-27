@@ -4,8 +4,7 @@ const MARGIN = 20_000;
 /**
  * A Google access token. It stays in memory only. It lasts about 1 hour, and there is no refresh token in the browser.
  *
- * The token counts as expired 20 seconds before Google ends it, as in the Dart googleapis_auth package, so that a
- * request does not start just before the end.
+ * The token counts as expired 20 seconds before Google ends it, so that a request does not start just before the end.
  */
 export class AccessToken {
   /** The time at which the token counts as expired, in the milliseconds of `timeSource`. */

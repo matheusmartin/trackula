@@ -218,7 +218,7 @@ describe('Parse', () => {
     expect(p.table.entries.map((e) => e.value)).toEqual([82, 0.5, 8]);
   });
 
-  test('the text of an exception is the message only, as in Dart', () => {
+  test('the text of an exception is the message only', () => {
     expect(new HeaderException(LOG_TITLE, ['date']).toString()).toBe('Tab "Log" has no column(s): date');
     expect(new MissingColumnException('water').toString()).toBe('The log tab has no column "water".');
   });

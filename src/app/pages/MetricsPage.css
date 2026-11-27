@@ -2,7 +2,7 @@
 .metrics-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   inline-size: 100%;
   max-inline-size: var(--form-width);
   margin-inline: auto;
@@ -17,45 +17,16 @@
   flex: 1;
   min-inline-size: 0;
   margin: 0;
-  padding-inline-start: 4px;
+  padding-inline-start: var(--space-1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.metrics-help {
-  display: block;
-  color: var(--on-surface-variant);
-}
-
-/* The Button of Compose Material 3, 48 px high: the theme color, with an icon before the text. */
-.metrics-add-button {
-  --button-shape: 24px;
-  flex: none;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-block-size: 48px;
-  block-size: auto;
-  padding: 0 24px 0 16px;
-  border-radius: 24px;
-  color: var(--on-primary);
-  background-color: var(--primary);
-}
-
-.metrics-add-button:disabled {
-  opacity: 1;
-  cursor: default;
-  color: color-mix(in srgb, var(--on-surface) 38%, transparent);
-  background-color: color-mix(in srgb, var(--on-surface) 12%, transparent);
-}
-
 .metrics-empty {
   align-items: center;
-  gap: 12px;
-  padding: 32px 16px;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
   text-align: center;
 }
 
@@ -68,125 +39,17 @@
   color: var(--on-surface-variant);
 }
 
-/* The list of the metrics. The card cuts the rows at its corners, as in Compose. */
-.metric-list {
-  overflow: hidden;
-}
-
-/* A row and the line above it. While a drag moves a row, the other rows move to make space for it. After the drop,
-   the rows are at their new places at once. */
-.metric-list-item {
-  position: relative;
-  border-radius: 0;
-  background-color: var(--surface-container-low);
-}
-
-.metric-list-item + .metric-list-item {
-  border-block-start: 1px solid var(--outline-variant);
-}
-
-.metric-list-dragging {
-  cursor: grabbing;
-  user-select: none;
-}
-
-.metric-list-dragging .metric-list-item {
-  transition: transform 200ms ease-out;
-}
-
-/* The dragged row is above the others, with a shadow. */
-.metric-list-dragging .metric-list-item-dragged {
-  z-index: 1;
-  transition: none;
-  box-shadow:
-    0 4px 8px 3px rgb(0 0 0 / 0.15),
-    0 1px 3px rgb(0 0 0 / 0.3);
-}
-
-/* A metric: the button of the full row opens the form. The arrows or the handle are on top of it, at the end. */
-.metric-row {
-  --actions: 96px;
-  position: relative;
-  display: flex;
-}
-
-.metric-row-mouse {
-  --actions: 48px;
-}
-
-.metric-row-edit {
-  --button-shape: 0;
-  flex: 1;
-  min-inline-size: 0;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-  block-size: auto;
-  padding: 10px calc(4px + var(--actions)) 10px 16px;
-  border-radius: 0;
-  color: var(--on-surface);
-  background-color: transparent;
-  text-align: start;
-}
-
-.metric-row-edit:focus-visible {
-  outline-offset: -2px;
-}
-
-/* The highlight of the row also shows when the mouse is on the arrows or on the handle, and while a drag moves the
-   row. */
-.metric-row:hover > .metric-row-edit::after,
-.metric-list-item-dragged .metric-row-edit::after {
-  background-size: 22500%;
-  opacity: 0.1;
-}
-
-.metric-row-texts {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-inline-size: 0;
-}
-
-/* 19 px high, as the Symbol of the Kotlin code: a text of 16 px with the line height of the font. */
-.metric-row-goal {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-block-size: 19px;
-}
-
-.metric-row-actions {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-end: 4px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-}
-
-/* The drag handle. The row shows the highlight of the mouse. The handle shows the focus of the keyboard. */
-.metric-handle {
-  cursor: grab;
-}
-
-.metric-handle:not(:focus-visible)::after {
-  opacity: 0;
-}
-
 /* The rows with problems and the deleted metrics. */
 .metrics-other {
-  gap: 12px;
-  padding: 16px;
+  gap: var(--space-3);
+  padding: var(--space-4);
 }
 
-/* 28 px high, as the Symbol of 24 px in the Kotlin code. */
+/* 28 px high, as a symbol of 24 px. */
 .metrics-other-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-block-size: 28px;
 }
 
@@ -197,7 +60,7 @@
 .metrics-other-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .metrics-other-texts {

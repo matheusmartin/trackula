@@ -6,7 +6,7 @@ import { NumberGoal } from '../../model/Metric.js';
 import { SetMetricCells, planEditMetric } from '../../model/MetricsWrite.js';
 import { Route } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
-import { LocalNavigator, Navigator } from '../Navigation.js';
+import { NavigatorContext, Navigator } from '../Navigation.js';
 import { CountingStore, Gate } from '../testing/CountingStore.js';
 import { FakeHistory } from '../testing/FakePlatform.js';
 import { ReloadHandle, TodayPage } from './TodayPage.jsx';
@@ -44,7 +44,7 @@ async function showPage(start = MainView.TODAY) {
     view = route.view;
   });
   render(
-    <LocalNavigator.Provider value={navigator}>
+    <NavigatorContext.Provider value={navigator}>
       <TodayPage
         store={store}
         today={today}
@@ -58,7 +58,7 @@ async function showPage(start = MainView.TODAY) {
           else prefs.set(key, value);
         }}
       />
-    </LocalNavigator.Provider>,
+    </NavigatorContext.Provider>,
   );
   await screen.findAllByText('Weight', {}, { timeout: TIMEOUT });
 }

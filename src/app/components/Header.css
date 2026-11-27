@@ -5,12 +5,12 @@
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   block-size: calc(var(--app-bar-height) + env(safe-area-inset-top, 0px));
-  padding: env(safe-area-inset-top, 0px) 12px 0;
+  padding: env(safe-area-inset-top, 0px) var(--space-3) 0;
   color: var(--on-action);
   background-color: var(--header-end);
-  /* Compose draws the gradient from the top-left corner to the bottom-right corner: on the wide bar, the angle of its
+  /* The gradient goes from the top-left corner to the bottom-right corner: on the wide bar, the angle of its
      diagonal. The first value is for browsers without atan2(). */
   background-image: linear-gradient(97deg, var(--header-start), var(--header-end));
   background-image: linear-gradient(
@@ -20,15 +20,15 @@
   );
 }
 
-/* The space after the logo: a Spacer of 8 px between two spaces of 4 px in the Kotlin code. */
+/* The logo, with a space after it. */
 .app-bar-logo {
   flex: none;
   inline-size: 32px;
   block-size: 32px;
-  margin-inline-end: 12px;
+  margin-inline-end: var(--space-3);
 }
 
-/* titleLarge, semibold. */
+/* titleLarge, Medium. */
 .app-bar-title {
   flex: 1;
   min-inline-size: 0;
@@ -36,7 +36,7 @@
   font-size: 22px;
   line-height: 28px;
   letter-spacing: 0;
-  font-weight: 600;
+  font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -64,7 +64,7 @@
   color: var(--on-action);
 }
 
-/* The "More" menu: the DropdownMenu of Compose Material 3, below the button, at its right edge. It is on a surface of
+/* The "More" menu: a Material 3 menu, below the button, at its right edge. It is on a surface of
    the theme, not on the gradient. */
 .account-menu {
   position: relative;
@@ -80,7 +80,7 @@
   flex-direction: column;
   min-inline-size: 112px;
   max-inline-size: 280px;
-  padding-block: 8px;
+  padding-block: var(--space-2);
   border-radius: 4px;
   color: var(--on-surface);
   background-color: var(--surface-container);
@@ -88,15 +88,14 @@
 }
 
 .app-menu-item {
-  --button-shape: 0;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
+  gap: var(--space-3);
   inline-size: 100%;
   block-size: 48px;
-  padding: 0 12px;
+  padding: 0 var(--space-3);
   border-radius: 0;
   color: var(--on-surface);
   background-color: transparent;

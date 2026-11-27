@@ -17,6 +17,7 @@ import { GroupChips, groupLabel } from '../components/GroupChips.jsx';
 import { HabitTable, tableDays } from '../components/HabitTable.jsx';
 import { Notice, NoticeKind } from '../components/Notice.jsx';
 import { ScoreChart } from '../components/ScoreChart.jsx';
+import { Button } from '../components/Button.jsx';
 import { SegmentedButtons } from '../components/SegmentedButtons.jsx';
 import { Snackbar } from '../components/Snackbar.jsx';
 import { Symbol } from '../components/Symbol.jsx';
@@ -72,7 +73,7 @@ export class ReloadHandle {
 /**
  * The main page: the metrics in Today tiles, a table or calendars, where the user records entries, or the score only.
  * The screen comes from the address (see `Route`): a view of the navigation, the detail screen of a metric, or the
- * metrics screen and its forms. The page needs the `Navigator` of the App in `LocalNavigator`.
+ * metrics screen and its forms. The page needs the `Navigator` of the App in `NavigatorContext`.
  *
  * Each input goes to the sheet at once: there is no Save button. The page writes one change at a time. An input that
  * comes while a write runs waits, and goes in the next write: the last value of each cell. Count taps show at once,
@@ -559,9 +560,7 @@ function NoMetrics({ onAdd }) {
       <p class="today-page-empty-text today-page-quiet">
         A metric is a thing that you record each day, for example your weight or a habit.
       </p>
-      <button type="button" class="today-page-button label-large" onClick={onAdd}>
-        Add a metric
-      </button>
+      <Button variant="filled" text="Add a metric" onClick={onAdd} class="today-page-add" />
     </div>
   );
 }

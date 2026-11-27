@@ -8,8 +8,8 @@
   align-items: center;
   justify-content: space-between;
   min-block-size: 100dvh;
-  padding: 32px 24px;
-  /* A circle of light behind the logo, as `radial-gradient(circle at 50% 38%, …)` of the Dart app. */
+  padding: var(--space-6) var(--space-5);
+  /* A circle of light behind the logo. */
   background: radial-gradient(
     circle farthest-corner at 50% 38%,
     var(--surface-container-highest) 0%,
@@ -21,8 +21,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding-block: 24px;
+  gap: var(--space-3);
+  padding-block: var(--space-5);
   text-align: center;
 }
 
@@ -36,14 +36,14 @@
   color: var(--primary);
   font-size: clamp(36px, 12dvmin, 96px);
   line-height: normal;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: -0.02px;
 }
 
 .sign-in-actions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   inline-size: 100%;
   max-inline-size: 384px;
 }
@@ -59,7 +59,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--space-3);
   color: var(--on-surface-variant);
 }
 

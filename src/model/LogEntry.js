@@ -86,7 +86,7 @@ export class MissingColumnException extends Error {
     this.metricId = metricId;
   }
 
-  /** @returns {string} The message only, without the class name, as in Dart. The app shows this text. */
+  /** @returns {string} The message only, without the class name. The app shows this text. */
   toString() {
     return this.message;
   }

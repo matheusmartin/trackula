@@ -1,3 +1,4 @@
+import { Button } from './Button.jsx';
 import './Snackbar.css';
 
 /** @import { JSX } from 'preact' */
@@ -16,9 +17,7 @@ export function Snackbar({ text, action, onAction }) {
   return (
     <div class="app-snackbar" role="status">
       <p class="app-snackbar-text body-medium">{text}</p>
-      <button type="button" class="app-snackbar-action label-large" onClick={() => onAction()}>
-        {action}
-      </button>
+      <Button text={action} tone="inverse" onClick={onAction} />
     </div>
   );
 }

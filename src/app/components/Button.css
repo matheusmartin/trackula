@@ -1,0 +1,99 @@
+/*
+ * Button.jsx: the buttons of Material 3. The rules have no specificity (:where), so that a class of a screen can
+ * change the width, the margins or the place of a button.
+ */
+:where(.button) {
+  flex: none;
+  gap: var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0.1px;
+  font-weight: 500;
+}
+
+:where(.button:disabled) {
+  opacity: 1;
+  cursor: default;
+}
+
+:where(.button-medium) {
+  block-size: 40px;
+}
+
+:where(.button-large) {
+  min-block-size: 48px;
+}
+
+/* The colors of the text (and of the outline). */
+:where(.button-tone-primary) {
+  color: var(--primary);
+}
+
+:where(.button-tone-error) {
+  color: var(--error);
+}
+
+:where(.button-tone-neutral) {
+  color: var(--on-surface-variant);
+}
+
+:where(.button-tone-inverse) {
+  color: var(--inverse-primary);
+}
+
+:where(.button-tone-inherit) {
+  color: inherit;
+}
+
+/* The main button: the darker logo gradient, in both themes. Disabled: a quiet grey button with readable text. */
+:where(.button-main) {
+  min-block-size: 52px;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-l);
+  color: var(--on-action);
+  background-color: var(--action-end);
+  /* The gradient goes from the top-left corner to the bottom-right corner. On a wide button, that is about the angle
+     of the diagonal of a phone-wide button. */
+  background-image: linear-gradient(98deg, var(--action-start), var(--action-end));
+  font-size: var(--button-text);
+}
+
+:where(.button-main:disabled) {
+  color: var(--on-surface-variant);
+  background-color: var(--surface-container-highest);
+  background-image: none;
+}
+
+:where(.button-filled) {
+  padding: 0 var(--space-5);
+  color: var(--on-primary);
+  background-color: var(--primary);
+}
+
+:where(.button-filled.button-with-icon) {
+  padding-inline-start: var(--space-4);
+}
+
+:where(.button-filled:disabled) {
+  background-color: color-mix(in srgb, var(--on-surface) 12%, transparent);
+}
+
+:where(.button-outlined) {
+  padding: 0 var(--space-5);
+  border: 1px solid var(--outline-variant);
+}
+
+:where(.button-outlined:disabled) {
+  border-color: color-mix(in srgb, var(--on-surface) 12%, transparent);
+}
+
+:where(.button-text) {
+  min-inline-size: 58px;
+  padding: 0 var(--space-3);
+}
+
+/* The disabled text of Material 3: the text color at 38%. */
+:where(.button-text:disabled, .button-outlined:disabled, .button-filled:disabled) {
+  color: color-mix(in srgb, var(--on-surface) 38%, transparent);
+}

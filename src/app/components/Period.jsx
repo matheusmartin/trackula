@@ -5,7 +5,8 @@ import { formatDateRange } from '../../model/Format.js';
 import { roundHalfAwayFromZero } from '../../model/Numbers.js';
 import { BarUnit, ZoomWindow, barStarts, threeMonthsStepIndex, zoomBars, zoomSteps } from '../../model/Zoom.js';
 import { AppIconButton } from './AppIconButton.jsx';
-import { Overview } from './Charts.jsx';
+import { Button } from './Button.jsx';
+import { Overview } from './Overview.jsx';
 import { useStickyHeight } from './StickyHeight.js';
 
 /** @import { ComponentChildren, JSX } from 'preact' */
@@ -117,15 +118,13 @@ export function PeriodBar({ period, values, aggregate, fromZero, wide }) {
         <div class={wide ? 'window-bar window-bar-wide' : 'window-bar'}>
           <div class="window-bar-row">
             <AppIconButton icon="zoom_in" title="Zoom in" onClick={() => zoom(index - 1, null)} enabled={index > 0} />
-            <button
-              type="button"
-              class="window-zoom-label label-large"
-              title={labelName}
-              aria-label={labelName}
+            <Button
+              text={atAll ? 'All' : steps[index].label}
+              description={labelName}
+              tooltip={labelName}
               onClick={() => (atAll ? zoom(back, null) : zoom(last, index))}
-            >
-              {atAll ? 'All' : steps[index].label}
-            </button>
+              class="window-zoom-label"
+            />
             <AppIconButton icon="zoom_out" title="Zoom out" onClick={() => zoom(index + 1, null)} enabled={!atAll} />
           </div>
           <div class="window-bar-row">

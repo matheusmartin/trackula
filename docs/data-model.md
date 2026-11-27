@@ -124,7 +124,7 @@ Rules:
 - The app adds a column at the end when a metric has no column, or when the tab has no `Score` column. The app does
   this when it loads the sheet.
 - The column order does not matter. You can move columns.
-- `yesno`: `yes` means "done", `no` means "not done". Case does not matter. An empty cell means no entry: the app shows it like `no`, and the [score](#score) counts it as `no`.
+- `yesno`: `yes` means "done", `no` means "not done". Case does not matter. An empty cell means no value: the app shows it like `no`, and the [score](#score) counts it as `no`.
   - A tap in the app writes `yes`, or `no` if the day is `yes`.
   - Old app versions wrote `1` for `yes`. When the app opens the sheet, it changes these cells to `yes` (and `0` to `no`). It does not change empty cells.
 - `number` and `count`: one value per day. For amounts, for example glasses of water, it is the day total. Single entries are not stored.

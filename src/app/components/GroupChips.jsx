@@ -33,7 +33,7 @@ export function GroupChips({ groups, selected, onSelect }) {
 }
 
 /**
- * The FilterChip of Compose Material 3: the chips of the group filter, and the choices of the metrics form.
+ * A filter chip of Material 3: the chips of the group filter, and the choices of the metrics form.
  * @param {object} props
  * @param {string} props.label
  * @param {boolean} props.selected

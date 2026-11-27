@@ -7,7 +7,6 @@ import { ScoreCalendar } from './ScoreCalendar.jsx';
 
 afterEach(cleanup);
 
-// The case of the score calendar in the Kotlin ChartsTest.
 describe('ScoreCalendar', () => {
   test('the score calendar shows the scores of the month and stops at the month of today', () => {
     /** @type {MonthKey} */

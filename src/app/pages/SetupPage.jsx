@@ -2,7 +2,7 @@ import { useRef, useState } from 'preact/hooks';
 import { errorText } from '../Errors.js';
 import { AppCard } from '../components/AppCard.jsx';
 import { Notice, NoticeKind } from '../components/Notice.jsx';
-import { PrimaryButton } from '../components/PrimaryButton.jsx';
+import { Button } from '../components/Button.jsx';
 import { Progress, useMounted } from './SignInPage.jsx';
 import './SetupPage.css';
 
@@ -52,7 +52,8 @@ export function SetupPage({ session, onConnected }) {
         </p>
         {error != null && <Notice text={error} kind={NoticeKind.ERROR} />}
         {busy && <Progress text="Pick a sheet in the Google window. Then the app prepares it." />}
-        <PrimaryButton
+        <Button
+          variant="main"
           text="Choose sheet"
           onClick={() => void choose()}
           enabled={!busy}

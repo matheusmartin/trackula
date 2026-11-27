@@ -4,9 +4,7 @@
  * keeps its place, and the content keeps its size and its position. Use it on a link or a button, so that the hover
  * and focus highlight has space around the content, and the content stays aligned with the other content.
  *
- * Example: `<button style={outset(8, 4)}>`. The Kotlin code is
- * `Modifier.outset(8.dp, 4.dp).clip(shape).clickable { }.padding(horizontal = 8.dp, vertical = 4.dp)`. Different from
- * Kotlin: a click in the outset space also clicks the element.
+ * Example: `<button style={outset(8, 4)}>`. A click in the outset space also clicks the element.
  * @param {number} horizontal
  * @param {number} vertical
  * @returns {{ margin: string, padding: string }}

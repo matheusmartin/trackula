@@ -1,0 +1,30 @@
+/* Symbol.jsx: a Material Symbols icon in a square of --symbol-size (24 px if not set). The font draws the icon of the
+   name in the text (a ligature). */
+.symbol {
+  --symbol-size: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  inline-size: var(--symbol-size);
+  min-inline-size: var(--symbol-size);
+  block-size: var(--symbol-size);
+  min-block-size: var(--symbol-size);
+  overflow: hidden;
+  box-sizing: content-box;
+  font-family: var(--font-icon);
+  font-size: var(--symbol-size);
+  font-style: normal;
+  font-weight: normal;
+  line-height: normal;
+  letter-spacing: normal;
+  text-align: center;
+  text-transform: none;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+  user-select: none;
+}

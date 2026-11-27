@@ -2,8 +2,8 @@ import { describe, expect, test } from 'vitest';
 import { DayLayout, MainView, dayLayoutOf, tableDayCount } from './MainView.js';
 
 describe('MainView', () => {
-  test('labels', () => {
-    expect(MainView.entries.map((v) => v.label)).toEqual(['Today', 'Days', 'Score']);
+  test('gives the views in the order of the navigation bar', () => {
+    expect(MainView.entries.map((v) => v.name)).toEqual(['TODAY', 'DAYS', 'SCORE']);
   });
 });
 

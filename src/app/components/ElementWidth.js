@@ -1,4 +1,3 @@
-// The width of an element, as BoxWithConstraints of Compose gives it.
 import { useLayoutEffect, useState } from 'preact/hooks';
 
 /**

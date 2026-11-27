@@ -32,7 +32,7 @@ export class SheetsApiException extends Error {
     this.status = status;
   }
 
-  /** @returns {string} The message only, as the Dart `ApiRequestError`. The app shows this text. */
+  /** @returns {string} The message only, without the class name. The app shows this text. */
   toString() {
     return this.message;
   }

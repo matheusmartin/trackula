@@ -4,7 +4,6 @@ import { ChangeTable, RangeBarChart } from './CompareCharts.jsx';
 
 afterEach(cleanup);
 
-// The cases of the range bar chart and the change table in the Kotlin ChartsTest.
 describe('CompareCharts', () => {
   test('a range bar chart shows the values of the marks and a legend', () => {
     const { container } = render(

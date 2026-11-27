@@ -29,8 +29,7 @@ Rules:
 
 - **Decision (owner):** the data has the color of the brand. The day cells, the bars of the charts and the score all
   use it, in the same way. Example: a done day and a day with a score of 100% are the same full brand cell.
-- The score has no own theme. Now `.score-theme` makes the score screens green. After phase 3, the score uses the Data
-  role, as each day cell does.
+- The score has no own theme: it uses the Data role, as each day cell does.
 - The current day has no special color and no ring. It is the last column of the table, or its day number in a
   calendar.
 - The group colors do not use the brand hues (red, orange), so that a group does not look like data. Now `--group-3`
@@ -66,8 +65,7 @@ points of the day, so you can see your goals at a glance.
 
 ## Type
 
-One font: Roboto, with the weights 400, 500 and 700. The app serves it itself. Phase 3 adds the weight 500: now the
-app has no Medium font, so Medium text shows as Regular.
+One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
 
 | Class | Size / line | Weight | Use for |
 |---|---|---|---|
@@ -127,22 +125,24 @@ app has no Medium font, so Medium text shows as Regular.
 
 ## Components
 
-Phase 3 makes these shared components. Each one replaces the current parts in the right column.
+The shared components. Each one replaces the parts in the right column. Phases 2 and 3 made `PeriodBar`, `Notice`,
+`Snackbar` (with Undo), `Button`, `Dialog`, `KeyNumbers` (in `ChartParts.jsx`) and a first `TextField`. Phase 4 makes
+the others with the redraw of their screens.
 
 | Component | Variants | Replaces |
 |---|---|---|
-| `Button` | `filled` (main action, the gradient), `tonal`, `outlined`, `text` | `PrimaryButton`, `today-page-button`, `today-page-text-button`, `metrics-add-button`, `metric-outlined-button`, `metric-form-text-button`, `number-editor-text-button` |
+| `Button` | `main` (the main action, the gradient), `filled`, `outlined`, `text`; 40 or 48 px high; tones primary, error, neutral, inverse, inherit | `PrimaryButton` and the button classes of the screens (done) |
 | `IconButton` | standard, small | `AppIconButton` |
 | `Chip` | filter (one or more selected) | `GroupChips`, the kind and goal chips of the form |
 | `Card` | with title, description and content | the chart cards, the calendar headings, the tiles' frame |
-| `KeyNumbers` | — | `KeyNumbers` in `Charts.jsx` |
+| `KeyNumbers` | — | `KeyNumbers` in `ChartParts.jsx` (done) |
 | `DayCell` | see "Day cell" | the cells of `HabitTable`, `MonthCalendar` and `ScoreCalendar` |
 | `Calendar` | editable, read-only | `MonthCalendar`, `ScoreCalendar` |
-| `PeriodBar` | — | `WindowBar` |
+| `PeriodBar` | — | `WindowBar` (done in phase 2: `Period.jsx`) |
 | `Notice` | info, warning, error | `Notice`, the sheet warnings |
 | `Snackbar` | with Undo, with Try again | new |
-| `Dialog` | confirm | the alert dialog of the metrics screen |
-| `TextField` | text, number | the fields of the form and of the number editor |
+| `Dialog` | confirm | the alert dialog of the metrics screen (done: `ConfirmDialog` in `Dialog.jsx`) |
+| `TextField` | text, number | the fields of the form (done) and of the number editor |
 | `EmptyState` | — | the empty states of the Today page and of the metrics screen |
 
 The charts (`TimeBars`, `LineChart`, `RangeBars`, `Distribution`, `StackedBars`, `ChangeTable`) use the Data role
@@ -151,7 +151,8 @@ The charts (`TimeBars`, `LineChart`, `RangeBars`, `Distribution`, `StackedBars`,
 
 ## Numbers and dates
 
-`Format.js` gives each format. Phase 3 changes it to these rules.
+`Format.js` gives each format. Phase 4 adds the year to a day of another year, and checks the rule for today in each
+chart.
 
 | Kind | Rule | Example |
 |---|---|---|
@@ -199,18 +200,19 @@ The charts (`TimeBars`, `LineChart`, `RangeBars`, `Distribution`, `StackedBars`,
 - A color is never the only sign. Example: an over-limit tile also has a warning icon, and a done tile a check mark.
 - Touch targets are 48 px or more. Day cells are 40 px or more.
 
-## BeerCSS
+## Base styles
 
-**Decision:** phase 3 removes BeerCSS. The app now uses 3 of its classes (`circle`, `page`, `invalid`), and it works
-around the others. In its place:
+Phase 3 removed BeerCSS. `src/app/base.css` gives the base look of the HTML elements, in the cascade layer `base`: a
+rule of the app replaces a base rule without a more specific selector.
 
-- `src/app/base.css`: the reset (box sizing, margins, the font of the form fields) and the default look of `button`,
-  `input`, `table`, `dialog` and `progress`.
-- The components of this file, each with its CSS file.
-- `theme.css` keeps the tokens and the type classes. The `override` layer and the list of class names that you must
-  not use go.
+- No browser margins and paddings, and `box-sizing: border-box`.
+- A heading has the font of the text around it. A type class gives its size.
+- A `button` has no look of its own, only a state layer: the text color at 10% while the mouse is on it or it has the
+  keyboard focus.
+- Thin scroll bars with a mouse.
 
-Each screen gets a screenshot before and after the removal, at 390 px and 1280 px, in the light and the dark theme.
+Each component sets the rest of its look in its own CSS file. `theme.css` keeps the tokens, the type classes and the
+progress circle.
 
 ## Findings that this file closes
 
@@ -221,6 +223,6 @@ Each screen gets a screenshot before and after the removal, at 390 px and 1280 p
 | U4: widths that change from screen to screen | Layout |
 | U5: sections with two styles | Layout: each part is a card |
 | U6: buttons with many looks | Components: `Button` |
-| C4: BeerCSS | BeerCSS |
+| C4: BeerCSS | Base styles |
 | C6: no spacing or radius tokens | Space, corners and sizes |
 | D4: no design document | This file |

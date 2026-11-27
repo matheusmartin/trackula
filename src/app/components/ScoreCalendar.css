@@ -2,7 +2,7 @@
 .score-calendar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .score-calendar-heading {
@@ -36,24 +36,18 @@
   border-spacing: 4px;
 }
 
-/* No line below the weekdays: BeerCSS gives the column headers of a table a line. */
+/* A weekday header. */
 .score-calendar-weekday {
-  padding: 0;
-  border: 0;
   line-height: 14px;
   font-weight: 400;
   text-align: center;
-}
-
-.score-calendar-cell {
-  padding: 0;
 }
 
 /* A day: 56 px high, the day number at the top left and the score at the bottom. The element sets --fill. */
 .score-calendar-day {
   position: relative;
   block-size: 56px;
-  border-radius: 8px;
+  border-radius: var(--radius-s);
   background-color: var(--fill);
 }
 

@@ -46,7 +46,7 @@ export function ScoreChart({ title, days, scores, onOpen }) {
             unit="%"
             showsBars
             showsValues={days.length <= MAX_DAYS_WITH_VALUES}
-            color="var(--done)"
+            color="var(--cell)"
           />
         </div>
       ) : (

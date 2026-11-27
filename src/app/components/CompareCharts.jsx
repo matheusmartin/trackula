@@ -1,7 +1,8 @@
-// The charts that compare a period with the periods before it. See CompareCharts.kt.
+// The charts that compare a period with the periods before it.
 import { formatNumber, formatSigned } from '../../model/Format.js';
 import { stepChanges } from '../../model/ScoreStats.js';
-import { ChartCard, Labels, Legend, NoValues, RangeBars, Scroller, ValueRow, spokenValues } from './Charts.jsx';
+import { ChartCard, Labels, NoValues, Scroller, ValueRow, spokenValues } from './ChartParts.jsx';
+import { Legend, RangeBars } from './Charts.jsx';
 import { useElementWidth } from './ElementWidth.js';
 import './CompareCharts.css';
 
@@ -107,8 +108,7 @@ const MIN_CHANGE_FILL = 0.2;
 export const MAX_FILL = 0.7;
 
 /**
- * The CSS color of a cell: `share` (0 to 1) of `color` on the empty cell color. The colors mix in Oklab, as `lerp` of
- * Compose.
+ * The CSS color of a cell: `share` (0 to 1) of `color` on the empty cell color. The colors mix in Oklab.
  * @param {string} color
  * @param {number} share
  * @returns {string}

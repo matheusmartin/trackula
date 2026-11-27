@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@fontsource/roboto": "5.3.0",
-    "beercss": "5.0.3",
     "preact": "10.29.8"
   },
   "devDependencies": {

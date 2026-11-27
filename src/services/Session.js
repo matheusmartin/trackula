@@ -17,7 +17,7 @@ export class SignInException extends Error {
     this.name = 'SignInException';
   }
 
-  /** @returns {string} The message only, as in Dart. The app shows this text. */
+  /** @returns {string} The message only, without the class name. The app shows this text. */
   toString() {
     return this.message;
   }

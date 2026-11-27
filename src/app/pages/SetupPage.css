@@ -5,10 +5,10 @@
 }
 
 .setup-card {
-  gap: 16px;
+  gap: var(--space-4);
   inline-size: 100%;
   max-inline-size: var(--form-width);
-  padding: 16px;
+  padding: var(--space-4);
 }
 
 .setup-card :is(h2, p) {

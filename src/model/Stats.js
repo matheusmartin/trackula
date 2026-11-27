@@ -425,8 +425,8 @@ function highest(values) {
 }
 
 /**
- * The first day with the lowest value of `values`. Null if `values` is empty. It compares with `<`, as Dart does, so
- * -0 and 0 are equal.
+ * The first day with the lowest value of `values`. Null if `values` is empty. It compares with `<`, so -0 and 0 are
+ * equal.
  * @param {DayValue[]} values
  * @returns {DayValue | null}
  */

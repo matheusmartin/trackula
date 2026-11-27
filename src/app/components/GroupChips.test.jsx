@@ -6,7 +6,6 @@ afterEach(cleanup);
 
 describe('GroupChips', () => {
   test('the label of a group has a capital first letter', () => {
-    // The cases of groupLabelStartsWithACapitalLetter in the Kotlin TileRowsTest.
     expect(['habits', 'Body', '', 'ärger'].map(groupLabel)).toEqual(['Habits', 'Body', '', 'Ärger']);
   });
 

@@ -9,7 +9,7 @@ describe('NumberInput', () => {
 
   test('stepDecimals', () => {
     expect([0.1, 0.25, 5, 1, 250].map(stepDecimals)).toEqual([1, 2, 0, 0, 0]);
-    // At most 6 decimals. Dart read the text of the step, and gave 0 for 1e-7.
+    // At most 6 decimals. The text of 1e-7 has no decimal point.
     expect(stepDecimals(1e-7)).toBe(6);
   });
 

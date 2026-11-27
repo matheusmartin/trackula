@@ -157,15 +157,15 @@ export class Navigator {
 }
 
 /** The {@link Navigator} of the App. Null without the App, for example in a test of one form. */
-export const LocalNavigator = createContext(/** @type {Navigator | null} */ (null));
+export const NavigatorContext = createContext(/** @type {Navigator | null} */ (null));
 
 /**
  * The {@link Navigator} of the App. A screen that changes the screen needs it.
  * @returns {Navigator}
  */
 export function useNavigator() {
-  const navigator = useContext(LocalNavigator);
-  if (navigator == null) throw new Error('No Navigator: put the screen in a LocalNavigator.Provider.');
+  const navigator = useContext(NavigatorContext);
+  if (navigator == null) throw new Error('No Navigator: put the screen in a NavigatorContext.Provider.');
   return navigator;
 }
 
@@ -190,7 +190,7 @@ export function useRoute(navigator) {
  * @param {(to: Route) => boolean} stays
  */
 export function useLeaveGuard(stays) {
-  const navigator = useContext(LocalNavigator);
+  const navigator = useContext(NavigatorContext);
   // The latest function: the guard stays the same while the screen shows.
   const latest = useRef(stays);
   latest.current = stays;

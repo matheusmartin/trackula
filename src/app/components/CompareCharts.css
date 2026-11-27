@@ -13,10 +13,8 @@
   padding: 0;
 }
 
-/* No line below the headers: BeerCSS gives the column headers of a table a line. */
+/* A column header. */
 .change-table-column {
-  padding: 0;
-  border: 0;
   line-height: 14px;
   overflow: hidden;
   font-weight: 400;
@@ -27,7 +25,7 @@
 /* A row label: at most 2 lines, at the end, with a space of 4 px before the cells. */
 .change-table-label {
   box-sizing: border-box;
-  padding: 0 4px 0 0;
+  padding: 0 var(--space-1) 0 0;
   font-weight: 400;
   text-align: end;
   vertical-align: middle;

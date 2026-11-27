@@ -2,7 +2,7 @@
 
 /**
  * Random numbers with a fixed seed: the same seed gives the same numbers each time. It uses the mulberry32 algorithm
- * by Tommy Ettinger. JavaScript has no generator with a seed. Kotlin `Random(7)` gives other numbers.
+ * by Tommy Ettinger. JavaScript has no generator with a seed.
  *
  * It is not for secrets.
  */
@@ -24,7 +24,7 @@ export class Random {
   }
 
   /**
-   * The next whole number from 0 (included) to `until` (not included), as Kotlin `nextInt(until)`.
+   * The next whole number from 0 (included) to `until` (not included).
    * @param {number} until A whole number above 0.
    * @returns {number}
    */

@@ -1,5 +1,5 @@
 /**
- * The rows of a grid with `columns` columns, as the CSS grid `grid-auto-flow: row dense` of the Dart app places them.
+ * The rows of a grid with `columns` columns, as the CSS grid `grid-auto-flow: row dense` places them.
  * A wide item takes a full row. A small item goes into the first row that has space, also a row before a wide item.
  * So small items fill the gaps, and the small items in a row have the same height. `isWide` tells the wide items.
  * Each row is a list of the indexes of its items.

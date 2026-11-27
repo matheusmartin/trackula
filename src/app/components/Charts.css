@@ -1,11 +1,11 @@
-/* Charts.jsx: the chart cards, the key numbers and the chart kinds of the detail screen. The charts use the colors of
-   the theme: in .score-theme, --primary and --cell are green. */
+/* The chart cards, the key numbers and the chart kinds of the detail screens (ChartParts.jsx, Charts.jsx,
+   Overview.jsx, DayHeatmap.jsx). The data has the brand color (--cell) for a metric and for the score. */
 .chart-card {
   display: flex;
   flex-direction: column;
   min-inline-size: 0;
-  padding: 16px;
-  border-radius: 12px;
+  padding: var(--space-4);
+  border-radius: var(--radius-m);
   background-color: var(--surface-container);
 }
 
@@ -13,7 +13,7 @@
   margin: 0;
 }
 
-/* The text of the chart labels: the smallest text of the app, without letter spacing (labelStyle in Charts.kt). */
+/* The text of the chart labels: the smallest text of the app, without letter spacing. */
 .chart-label {
   font-size: var(--small-text);
   line-height: 16px;
@@ -22,16 +22,15 @@
   color: var(--on-surface-variant);
 }
 
-/* Compose cuts the space above the first line and below the last line of a label (the line height style Trim.Both):
-   one line is 14 px high, the natural height of Roboto at 12 px. A label of one line has a line height of 14 px. A
-   label of more lines has negative margins. */
+/* A label has no space above its first line and below its last line: one line is 14 px high, the natural height of
+   Roboto at 12 px. A label of one line has a line height of 14 px. A label of more lines has negative margins. */
 .chart-label-trim {
   margin-block: -1.5px -0.5px;
 }
 
 .chart-card-description {
   margin-inline: 0;
-  padding-block: 4px 12px;
+  padding-block: var(--space-1) var(--space-3);
 }
 
 .chart-text {
@@ -40,7 +39,7 @@
 
 .chart-no-values {
   margin: 0;
-  padding-block: 8px;
+  padding-block: var(--space-2);
   color: var(--on-surface-variant);
 }
 
@@ -49,7 +48,7 @@
   display: grid;
   grid-template-columns: repeat(var(--chart-columns, 1), minmax(0, 1fr));
   align-items: start;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .chart-grid-item {
@@ -66,7 +65,7 @@
 .key-numbers {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(144px, 1fr));
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -77,8 +76,8 @@
   flex-direction: column;
   gap: 2px;
   min-inline-size: 0;
-  padding: 12px 16px;
-  border-radius: 12px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-m);
   background-color: var(--surface-container);
 }
 
@@ -89,8 +88,7 @@
   text-overflow: ellipsis;
 }
 
-/* The value can use 12 px of the padding on the right: the Medium weight is wider than the Regular weight that the
-   KMP app shows, and a value that fits in the KMP app, for example "94.6% · Oct 27", fits here too. */
+/* The value can use 12 px of the padding on the right, so that a long value fits. Example: "94.6% · Oct 27". */
 .key-number-value {
   margin-inline-end: -12px;
   font-weight: 500;
@@ -116,11 +114,11 @@
 }
 
 .chart-labels {
-  padding-block-start: 4px;
+  padding-block-start: var(--space-1);
 }
 
 .chart-values {
-  padding-block-end: 4px;
+  padding-block-end: var(--space-1);
   color: var(--on-surface);
 }
 
@@ -128,7 +126,7 @@
 .chart-ends {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--space-2);
   line-height: 14px;
   white-space: nowrap;
 }
@@ -143,7 +141,7 @@
    narrow. The content sets its inline size. */
 .chart-scroller {
   overflow-x: auto;
-  padding-block-end: 8px;
+  padding-block-end: var(--space-2);
 }
 
 .chart-scroller-content {
@@ -169,9 +167,9 @@
 .chart-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: var(--space-1) var(--space-3);
   margin: 0;
-  padding: 12px 0 0;
+  padding: var(--space-3) 0 0;
   list-style: none;
 }
 
@@ -191,7 +189,7 @@
 /* LineChart: the Y axis labels on the left, the plot, and the first and last day below it. */
 .line-chart {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .line-chart-y {
@@ -236,7 +234,7 @@
 .donut-chart {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .donut-chart-ring {
@@ -273,7 +271,7 @@
 .donut-chart-legend {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -347,11 +345,11 @@
 }
 
 /*
- * The text on a cell with the fill --fill: DARK_INK (#1a1e24) or LIGHT_INK (#f4f6f9), the one with the higher contrast
- * (inkOn in Charts.kt). The relative luminance Y of the fill is 0.2126 r + 0.7152 g + 0.0722 b of its linear sRGB
- * channels. The dark ink has the higher contrast if Y is 0.196704 or more: (Y + 0.05)² ≥ (0.012755 + 0.05) ×
- * (0.919842 + 0.05). The step goes from 0 (light ink) to 1 (dark ink). The channels of the inks are linear sRGB. A
- * browser without relative colors shows the text color.
+ * The text on a cell with the fill --fill: DARK_INK (#1a1e24) or LIGHT_INK (#f4f6f9), the one with the higher
+ * contrast. The relative luminance Y of the fill is 0.2126 r + 0.7152 g + 0.0722 b of its linear sRGB channels. The
+ * dark ink has the higher contrast if Y is 0.196704 or more: (Y + 0.05)² ≥ (0.012755 + 0.05) × (0.919842 + 0.05). The
+ * step goes from 0 (light ink) to 1 (dark ink). The channels of the inks are linear sRGB. A browser without relative
+ * colors shows the text color.
  */
 .chart-ink {
   color: var(--on-surface);

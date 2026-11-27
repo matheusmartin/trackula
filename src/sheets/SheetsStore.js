@@ -390,7 +390,7 @@ export class SheetsStore extends Store {
 }
 
 /**
- * The value of `key` in `map`. Throws an error if `map` has no such key, as Kotlin `getValue`.
+ * The value of `key` in `map`. Throws an error if `map` has no such key.
  * @template V
  * @param {Map<string, V>} map
  * @param {string} key
