@@ -5,12 +5,12 @@
  * - The device setting (prefers-color-scheme) selects the light or the dark theme.
  * - Neutrals: one slate blue family in both themes. Blue is opposite to orange, so the orange-red parts stand out.
  * - Accents: light uses dark tones and dark uses light tones of the same hues, as in Material Design 3.
- * - BeerCSS is in the cascade layer `beer` (see beer.css), so these rules replace its rules.
+ * - The base styles of the elements are in the cascade layer `base` (see base.css), so these rules replace them.
  */
 
 @import './roboto.css';
 
-/* Material Symbols, outlined, weight 400, size 24, not filled: the icons of the app. A <Symbol> or a BeerCSS <i>
+/* Material Symbols, outlined, weight 400, size 24, not filled: the icons of the app. A <Symbol>
    shows the icon of its text, for example "refresh". The font has all icons, because a metric icon can be any
    Material Symbol. design/symbols/make.py makes the file. Block: an icon does not show its name while the font
    loads. */
@@ -225,37 +225,6 @@ body {
   background-color: var(--surface);
 }
 
-/* BeerCSS puts a space above each block after another block. The app uses the gap of flex and grid boxes
-   instead. :where() has no specificity, so each rule of the app can set a margin. */
-:where(
-  address,
-  article,
-  blockquote,
-  code,
-  .field,
-  fieldset,
-  form,
-  .grid,
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  nav,
-  ol,
-  p,
-  pre,
-  .row,
-  section,
-  aside,
-  table,
-  .tabs,
-  ul
-) {
-  margin-block-start: 0;
-}
-
 /* The keyboard focus: a clear ring in the theme color. */
 :focus-visible {
   outline: 2px solid var(--primary);
@@ -383,17 +352,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   :where(progress.circle:not([value])) {
     animation-duration: 3s;
-  }
-}
-
-/*
- * BeerCSS gives a pressed button the corners of a rounded square (Material 3 Expressive), with !important. The app
- * keeps the shape. A button with its own corners sets them in --button-shape too. The layer `override` comes before
- * the layer `beer` (see beer.css), so its !important rules replace the !important rules of BeerCSS.
- */
-@layer override {
-  :is(.button, button):not(.chip):active {
-    border-radius: var(--button-shape, var(--_round, 0.5rem)) !important;
   }
 }
 

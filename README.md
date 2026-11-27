@@ -16,7 +16,7 @@
 - Language: JavaScript, with JSDoc types that TypeScript checks. UI: [Preact](https://preactjs.com/) with normal
   HTML elements, so the browser gives text selection, find in page, tooltips, the keyboard and screen readers. The
   browser must be Chrome or Edge 111, Firefox 114, Safari 16.4 or later.
-- UI: Material Design 3, with [BeerCSS](https://www.beercss.com/) and the app styles. Text font: Roboto. Icons:
+- UI: Material Design 3, with the styles of the app (see [docs/design.md](docs/design.md)). Text font: Roboto. Icons:
   Material Symbols, in the font `src/app/symbols.woff2`. To make it again, run `design/symbols/make.py`. The app
   serves its fonts itself. Emojis use the emoji font of the device. The emoji picker of the metrics form uses the list
   `src/app/components/emoji.txt`. To make it again, run `design/emoji/make.py`.
@@ -94,7 +94,7 @@ folder. `CLAUDE.md` gives the rules for the layers.
   demo mode data (`DemoStore`). Both stores extend `Store`. `testing/FakeSheets.js`: an in-memory sheet for the tests.
 - `src/services/`: the build values (`Config`), the count input, the double tap logic, Google sign-in (`Session`), the
   Google Picker, browser storage (`Prefs`), the browser history (`History`) and today's date.
-- `src/app/`: the UI in Preact. `pages/`, `components/`, the theme (`theme.css`, `beer.css`, `roboto.css`) and
+- `src/app/`: the UI in Preact. `pages/`, `components/`, the styles (`base.css`, `theme.css`, `roboto.css`) and
   `App.jsx`. `Platform.js` holds the browser parts, so the UI tests use a fake (`testing/FakePlatform.js`).
   `BrowserPlatform.js` is the browser version. `Navigation.js` keeps the screen and the address of the browser tab the same.
   `main.jsx` starts the app.

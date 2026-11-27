@@ -31,15 +31,16 @@ ESLint checks these rules (`no-restricted-imports` in `eslint.config.js`).
   can.
 - `src/sheets/` can use `model` and `fetch`.
 - `src/services/` can use `model` and `sheets`, and the browser APIs.
-- `src/app/` can use all the layers above, Preact and BeerCSS. It gets the browser parts through `Platform`, so the UI
-  tests can use a fake.
+- `src/app/` can use all the layers above and Preact. It gets the browser parts through `Platform`, so the UI tests
+  can use a fake.
 - If you add a layer or a package, add it to this list and to "Project structure" in `README.md`.
 - Give each package an exact version in `package.json`, and commit `package-lock.json`.
 
 ## UI
 
 - Use Preact function components and hooks. Follow `docs/design.md`: use its color roles and its tokens (`--space-*`,
-  `--radius-*`), not fixed colors or sizes. Do not add new uses of BeerCSS: phase 3 of the consolidation removes it.
+  `--radius-*`), not fixed colors or sizes. `base.css` gives the base look of the HTML elements; a component sets
+  the rest in its own CSS file.
 - Each icon button has a `title` (a tooltip) and an `aria-label`. Each cell, tile and chart mark that has a value has a
   `title`.
 - The app works with a mouse, with touch and with the keyboard. The keyboard focus is visible.

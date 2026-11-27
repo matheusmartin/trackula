@@ -79,7 +79,7 @@ html {
 }
 
 /* The navigation rail of Material 3: 80 px wide, on the surface color. It stays below the app bar while the
-   page scrolls. Not as high as the page: BeerCSS gives a nav `align-self: normal`, and a stretched rail cannot
+   page scrolls. Not as high as the page: base.css gives a nav `align-self: normal`, and a stretched rail cannot
    stay at the top. */
 .navigation-rail {
   position: sticky;

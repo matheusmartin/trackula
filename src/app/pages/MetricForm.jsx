@@ -546,7 +546,7 @@ function Field({ label, value, error = null, isNumber = false, isLast = false, o
         inputMode={isNumber ? 'decimal' : 'text'}
         enterKeyHint={isLast ? 'done' : 'next'}
         autoComplete="off"
-        // BeerCSS moves the label to the border when the placeholder does not show: when the field has a value.
+        // The label goes to the border when the placeholder does not show: when the field has a value.
         placeholder=" "
         value={value}
         aria-invalid={error != null}

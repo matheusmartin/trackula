@@ -199,18 +199,12 @@ The charts (`TimeBars`, `LineChart`, `RangeBars`, `Distribution`, `StackedBars`,
 - A color is never the only sign. Example: an over-limit tile also has a warning icon, and a done tile a check mark.
 - Touch targets are 48 px or more. Day cells are 40 px or more.
 
-## BeerCSS
+## Base styles
 
-**Decision:** phase 3 removes BeerCSS. The app now uses 3 of its classes (`circle`, `page`, `invalid`), and it works
-around the others. In its place:
-
-- `src/app/base.css`: the reset (box sizing, margins, the font of the form fields) and the default look of `button`,
-  `input`, `table`, `dialog` and `progress`.
-- The components of this file, each with its CSS file.
-- `theme.css` keeps the tokens and the type classes. The `override` layer and the list of class names that you must
-  not use go.
-
-Each screen gets a screenshot before and after the removal, at 390 px and 1280 px, in the light and the dark theme.
+Phase 3 removed BeerCSS. `src/app/base.css` gives the base look of the HTML elements (the reset, `button`, `input`,
+`table`, `dialog`, `progress`), in the cascade layer `base`: a rule of the app replaces a base rule without a more
+specific selector. Each component sets the rest of its look in its own CSS file. `theme.css` keeps the tokens and the
+type classes.
 
 ## Findings that this file closes
 
@@ -221,6 +215,6 @@ Each screen gets a screenshot before and after the removal, at 390 px and 1280 p
 | U4: widths that change from screen to screen | Layout |
 | U5: sections with two styles | Layout: each part is a card |
 | U6: buttons with many looks | Components: `Button` |
-| C4: BeerCSS | BeerCSS |
+| C4: BeerCSS | Base styles |
 | C6: no spacing or radius tokens | Space, corners and sizes |
 | D4: no design document | This file |

@@ -13,7 +13,7 @@
   padding: 0;
 }
 
-/* No line below the headers: BeerCSS gives the column headers of a table a line. */
+/* No line below the headers: base.css gives the column headers of a table a line. */
 .change-table-column {
   padding: 0;
   border: 0;

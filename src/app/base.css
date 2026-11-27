@@ -1,0 +1,527 @@
+/*
+ * The base styles of the elements, in the cascade layer `base`. The rules of the app are not in a layer, so they
+ * replace a base rule without a more specific selector.
+ */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    vertical-align: middle;
+    color: inherit;
+    margin: 0;
+    padding: 0;
+    border-radius: inherit;
+    box-sizing: border-box;
+  }
+
+  *::after,
+  *::before {
+    all: unset;
+  }
+
+  label {
+    font-size: 0.75rem;
+    vertical-align: baseline;
+  }
+
+  a,
+  b,
+  i,
+  span,
+  strong,
+  em,
+  code {
+    vertical-align: baseline;
+  }
+
+  a,
+  button {
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    border: none;
+    font-family: inherit;
+    outline: inherit;
+    justify-content: center;
+  }
+
+  button,
+  i,
+  label {
+    user-select: none;
+  }
+
+  :is(a, button, summary):focus-visible {
+    outline: 0.125rem solid var(--primary);
+    outline-offset: 0.25rem;
+  }
+
+  button > :is(span, i, img, svg) {
+    pointer-events: none;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  @media (pointer: fine) {
+    body ::-webkit-scrollbar,
+    body ::-webkit-scrollbar-thumb,
+    body ::-webkit-scrollbar-button {
+      background: none;
+      inline-size: 0.4rem;
+      block-size: 0.4rem;
+    }
+
+    body :is(:focus, :hover)::-webkit-scrollbar-thumb,
+    body :has(:focus, :hover)::-webkit-scrollbar-thumb {
+      background: var(--outline);
+      border-radius: 1rem;
+    }
+  }
+
+  @media (pointer: coarse) {
+    body:has(dialog[open]) {
+      overflow: hidden;
+    }
+  }
+
+  :has(> main) {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'left top right'
+      'left header right'
+      'left main right'
+      'left footer right'
+      'left bottom right';
+    min-block-size: 100dvh;
+    box-sizing: border-box;
+    background-color: var(--surface);
+  }
+
+  header {
+    grid-area: header;
+    display: grid;
+    align-content: center;
+    border-radius: 0;
+    padding: 0 1rem;
+    min-block-size: 4rem;
+  }
+
+  main {
+    grid-area: main;
+    padding: 0.5rem;
+    overflow: clip;
+  }
+
+  nav {
+    display: flex;
+    align-items: center;
+    align-self: normal;
+    text-align: start;
+    justify-content: flex-start;
+    white-space: nowrap;
+    gap: 1rem;
+    border-radius: 0;
+  }
+
+  nav > :not(header, footer) {
+    margin: 0;
+    white-space: normal;
+    flex: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 400;
+    display: block;
+    align-items: center;
+    line-height: normal;
+  }
+
+  h1 {
+    font-size: 3.5625rem;
+  }
+
+  h2 {
+    font-size: 2.8125rem;
+  }
+
+  h3 {
+    font-size: 2.25rem;
+  }
+
+  p {
+    margin: 0 0 0.5rem;
+  }
+
+  hr {
+    all: unset;
+    align-self: center;
+    justify-self: center;
+    min-inline-size: 1.5em;
+    inline-size: -webkit-fill-available !important;
+    min-block-size: auto;
+    block-size: 0.0625rem;
+    background-color: var(--outline-variant);
+    display: block;
+  }
+
+  hr + * {
+    margin: 0 !important;
+  }
+
+  svg {
+    fill: currentcolor;
+  }
+
+  i {
+    --_size: 1.5rem;
+    font-family: var(--font-icon);
+    font-weight: normal;
+    font-style: normal;
+    font-size: var(--_size);
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    font-feature-settings: 'liga';
+    -webkit-font-smoothing: antialiased;
+    vertical-align: middle;
+    text-align: center;
+    overflow: hidden;
+    inline-size: var(--_size);
+    min-inline-size: var(--_size);
+    block-size: var(--_size);
+    min-block-size: var(--_size);
+    box-sizing: content-box;
+    line-height: normal;
+    border-radius: 0;
+  }
+
+  [class*='-width'] {
+    max-inline-size: 100%;
+  }
+
+  button {
+    --_padding: 1rem;
+    --_size: 2.5rem;
+    --_round: calc(var(--_size) / 2);
+    box-sizing: content-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    block-size: var(--_size);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--on-primary);
+    padding: 0 var(--_padding);
+    background-color: var(--primary);
+    border-radius: var(--_round);
+    transition:
+      transform 0.3s,
+      border-radius 0.2s,
+      padding 0.3s;
+    user-select: none;
+    gap: 0.5rem;
+    line-height: normal;
+  }
+
+  button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  button[disabled]::before,
+  button[disabled]::after {
+    display: none;
+  }
+
+  button::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    inline-size: 100%;
+    block-size: 100%;
+    background-position: center;
+    background-image: radial-gradient(circle, currentColor 1%, transparent 1%);
+    opacity: 0;
+    transition: none;
+    pointer-events: none;
+  }
+
+  button:is(:focus-visible, :hover)::after {
+    background-size: 22500%;
+    opacity: 0.1;
+    transition: background-size 0.2s linear;
+  }
+
+  button:active::after {
+    background-size: 0%;
+    opacity: 0;
+    transition: none;
+  }
+
+  table {
+    inline-size: 100%;
+    border-spacing: 0;
+    font-size: 0.875rem;
+    text-align: start;
+  }
+
+  table :is(thead, tbody, tfoot, tr, th, td) {
+    background-color: inherit;
+    color: inherit;
+  }
+
+  :is(th, td) {
+    inline-size: auto;
+    text-align: inherit;
+    padding: 0.5rem;
+    border-radius: 0;
+  }
+
+  :is(th, td) > * {
+    vertical-align: middle;
+  }
+
+  thead > tr > th {
+    border-block-end: 0.0625rem solid var(--outline);
+  }
+
+  dialog {
+    --_padding: 1.5rem;
+    display: block;
+    visibility: hidden;
+    border: none;
+    opacity: 0;
+    position: fixed;
+    box-shadow: var(--elevate2);
+    color: var(--on-surface);
+    background-color: var(--surface-container-high);
+    padding: var(--_padding);
+    z-index: 100;
+    inset: 10% auto auto 50%;
+    min-inline-size: 20rem;
+    max-inline-size: 100%;
+    max-block-size: 80%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    transition:
+      all 0.3s,
+      0s background-color;
+    border-radius: 1.75rem;
+    transform: translate(-50%, -4rem);
+    outline: none;
+  }
+
+  dialog[open] {
+    visibility: visible;
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  dialog::backdrop {
+    display: block !important;
+    opacity: 0;
+    visibility: hidden;
+    position: fixed;
+    inset: 0;
+    color: var(--on-surface);
+    background-color: rgb(0 0 0 / 0.5);
+    z-index: 100;
+    transition:
+      all 0.3s,
+      0s background-color;
+    border-radius: 0;
+  }
+
+  progress {
+    position: relative;
+    inline-size: 100%;
+    block-size: 0.25rem;
+    color: var(--primary);
+    border-radius: 1rem;
+    flex: none;
+    border: none;
+    overflow: hidden;
+    writing-mode: horizontal-tb;
+    direction: ltr;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  progress::-webkit-progress-bar {
+    background: none;
+  }
+
+  progress.circle {
+    border-radius: 50%;
+  }
+
+  progress.circle::-webkit-progress-value {
+    background: none;
+  }
+
+  input::-webkit-date-and-time-value {
+    text-align: start;
+  }
+
+  input::-webkit-calendar-picker-indicator {
+    opacity: 0;
+    position: absolute;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    z-index: 2 !important;
+  }
+
+  input::-webkit-search-decoration,
+  input::-webkit-search-cancel-button,
+  input::-webkit-search-results-button,
+  input::-webkit-search-results-decoration,
+  input::-webkit-inner-spin-button,
+  input::-webkit-outer-spin-button {
+    display: none;
+  }
+
+  :is(input, select, textarea):is(:-webkit-autofill, :autofill) {
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: var(--on-surface);
+  }
+
+  /* The outlined text field: .field.label.border, with an input, a label and an output. */
+  .field {
+    --_input: 3rem;
+    border-radius: 0.25rem;
+    min-block-size: var(--_input);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .field > input {
+    all: unset;
+    position: relative;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    border-radius: inherit;
+    border: 0.0625rem solid var(--outline);
+    padding: 0 0.9375rem;
+    font-family: inherit;
+    font-size: 1rem;
+    min-block-size: var(--_input);
+    outline: none;
+    z-index: 1;
+    background: none;
+    resize: none;
+    text-align: start;
+    cursor: text;
+  }
+
+  .field > input:focus {
+    border: 0.125rem solid var(--primary);
+    padding-inline: 0.875rem;
+  }
+
+  .field.invalid > input,
+  .field.invalid > input:focus {
+    border-color: var(--error);
+  }
+
+  .field:has(> :disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .field > :disabled {
+    cursor: not-allowed;
+  }
+
+  .field > label {
+    --_start: 1rem;
+    position: absolute;
+    inset: -0.5rem 0.9375rem 0 var(--_start);
+    display: flex;
+    block-size: calc(var(--_input, 0) + 1rem);
+    line-height: calc(var(--_input, 0) + 1rem);
+    font-size: 1rem;
+    transition: all 0.2s;
+    gap: 0.25rem;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .field > :is(:focus + label, [placeholder]:not(:placeholder-shown) + label) {
+    block-size: 1rem;
+    line-height: 1rem;
+    font-size: 0.75rem;
+  }
+
+  .field > label::after {
+    content: '';
+    display: block;
+    margin: 0.5rem 0 0 0;
+    border-block-start: 0.0625rem solid var(--outline);
+    block-size: 1rem;
+    transition: none;
+    flex: auto;
+  }
+
+  .field > :focus + label::after {
+    border-block-start: 0.125rem solid var(--primary);
+  }
+
+  .field > input:is(:focus, [placeholder]:not(:placeholder-shown)) {
+    clip-path: polygon(
+      -2% -2%,
+      0.75rem -2%,
+      0.75rem 0.5rem,
+      calc(100% - 1rem) 0.5rem,
+      calc(100% - 1rem) -2%,
+      102% -2%,
+      102% 102%,
+      -2% 102%
+    );
+  }
+
+  .field > :focus + label {
+    color: var(--primary);
+  }
+
+  .field.invalid > label,
+  .field.invalid > label::after {
+    color: var(--error) !important;
+    border-color: var(--error) !important;
+  }
+
+  .field > output {
+    display: inline-block;
+    font-size: 0.75rem;
+    background: none !important;
+    padding: 0.25rem 1rem;
+    line-height: 1.25rem;
+    align-self: start;
+  }
+
+  .field > output.invalid {
+    color: var(--error) !important;
+  }
+}

@@ -1,6 +1,6 @@
 // Starts the app in the element `app` of index.html.
 import { render } from 'preact';
-import './beer.css';
+import './base.css';
 import './theme.css';
 import { App } from './App.jsx';
 import { browserPlatform } from './BrowserPlatform.js';
