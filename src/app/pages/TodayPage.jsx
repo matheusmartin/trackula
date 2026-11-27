@@ -16,7 +16,6 @@ import { useElementWidth } from '../components/ElementWidth.js';
 import { GroupChips, groupLabel } from '../components/GroupChips.jsx';
 import { HabitTable, tableDays } from '../components/HabitTable.jsx';
 import { Notice, NoticeKind } from '../components/Notice.jsx';
-import { ScoreChart } from '../components/ScoreChart.jsx';
 import { Button } from '../components/Button.jsx';
 import { SegmentedButtons } from '../components/SegmentedButtons.jsx';
 import { Snackbar } from '../components/Snackbar.jsx';
@@ -454,7 +453,6 @@ export function TodayPage({
             writePref('days-layout', layout);
           }}
         />
-        <ScoreChart title={scoreTitle} days={days} scores={scores} onOpen={() => navigator.show(Route.SCORE)} />
         <HabitTable
           metrics={shown}
           log={snapshot.log}
@@ -466,6 +464,9 @@ export function TodayPage({
           pending={pending}
           onCount={count}
           onOpen={openDetail}
+          scores={scores}
+          scoreTitle={scoreTitle}
+          onScore={() => navigator.show(Route.SCORE)}
           // Number metrics also get a line chart of the same days.
           calendarExtra={(m, values) =>
             m instanceof NumberMetric ? (
@@ -505,17 +506,8 @@ export function TodayPage({
       {data == null && error == null && <Loading />}
       {data != null && metrics.length === 0 && <NoMetrics onAdd={() => navigator.go(Route.METRICS)} />}
       {data != null && metrics.length > 0 && (
-        // A short fade between the views of the navigation. The table of the Days view is not wider than 720 px: on a
-        // wide screen, the cells stay near the names, and it holds 14 days.
-        <div
-          key={view.name}
-          ref={view === MainView.DAYS ? measureDays : undefined}
-          class={
-            view === MainView.DAYS && dayLayout === DayLayout.TABLE
-              ? 'today-page-view today-page-table'
-              : 'today-page-view'
-          }
-        >
+        // A short fade between the views of the navigation.
+        <div key={view.name} ref={view === MainView.DAYS ? measureDays : undefined} class="today-page-view">
           {viewContent(data)}
         </div>
       )}

@@ -19,11 +19,6 @@
   animation: today-page-fade 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* The table of the Days view is not wider than 720 px: on a wide screen, the cells stay near the names. */
-.today-page-table {
-  max-inline-size: 720px;
-}
-
 @keyframes today-page-fade {
   from {
     opacity: 0;

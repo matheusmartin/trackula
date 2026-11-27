@@ -1,29 +1,85 @@
 /* HabitTable.jsx: the table of the last days, the small calendars, the metric names and the day cells. */
 
-/* The table: one row per metric, one column per day. The table scrolls sideways in its card on very narrow
-   screens. */
+/* The table: one card with a title, the score bars, the day headers, one row for each metric and the legend. The
+   table scrolls sideways in its card if the screen is too narrow. */
 .habit-table-card {
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.habit-table-head,
+.habit-calendar-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) 0;
+}
+
+.habit-table-text,
+.habit-calendar-text {
+  color: var(--on-surface-variant);
+}
+
+.habit-table-scroll {
   overflow-x: auto;
   overflow-y: hidden;
 }
 
+/* The columns have fixed widths: the day columns are 40 px, with 4 px between them and at the edges. */
 .habit-table {
+  inline-size: 100%;
   table-layout: fixed;
   border-collapse: separate;
-  border-spacing: 0;
-  font-size: inherit;
+  border-spacing: var(--space-1);
 }
 
 .habit-table :is(th, td) {
   padding: 0;
-  border: 0;
   text-align: center;
-  font-weight: 400;
+  vertical-align: middle;
 }
 
-/* The weekday and the day number. Today is bold, in the app color. */
-.habit-table thead :is(th, td) {
-  padding-block: var(--space-2);
+/* The score bars: each bar in the column of its day, with the score above it. The bars stand on one line. */
+.habit-table-scores > :is(th, td) {
+  vertical-align: bottom;
+}
+
+.score-bar-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-1);
+  block-size: 96px;
+}
+
+.score-bar-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.score-bar {
+  inline-size: 100%;
+  border-radius: var(--radius-s);
+  background-image: var(--cell-image);
+}
+
+/* The name of the score. */
+.score-name {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-inline-size: 100%;
+  text-align: start;
+}
+
+.score-name-link {
+  border-radius: var(--radius-s);
+}
+
+/* The weekday and the day number, below a line. */
+.habit-table-days > :is(th, td) {
+  padding-block-start: var(--space-1);
+  border-block-start: 1px solid var(--outline-variant);
 }
 
 .day-header > span {
@@ -31,53 +87,52 @@
 }
 
 .day-header-weekday {
-  font-size: var(--small-text);
-  line-height: 16px;
   color: var(--on-surface-variant);
-}
-
-.day-header-day {
-  color: var(--on-surface);
-}
-
-.day-header-today :is(.day-header-weekday, .day-header-day) {
-  color: var(--primary);
-}
-
-.day-header-today .day-header-day {
-  font-weight: 700;
-}
-
-/* A line above each metric. A row is 48 px high or more. */
-.habit-table-row > :is(th, td) {
-  block-size: 49px;
-  padding-block: 6px;
-  border-block-start: 1px solid var(--outline-variant);
-}
-
-.habit-table-name {
-  padding-inline: var(--space-4) var(--space-1);
 }
 
 .habit-table :is(th, td).habit-table-name {
   text-align: start;
 }
 
-.habit-table :is(th, td).habit-table-name-narrow {
-  padding-inline-start: var(--space-3);
-}
-
 /* The number editor of a metric: below its row, as wide as the table. */
 .habit-table .habit-table-editor-row > td {
   padding: var(--space-3);
   text-align: start;
+  border-radius: var(--radius-m);
   background-color: var(--surface-container);
 }
 
-/* The calendars: as many columns as fit, each at least 280 px wide. Each card has the height of its content. */
+/* The colors of the cells. */
+.cell-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0 var(--space-1);
+  list-style: none;
+}
+
+.cell-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--on-surface-variant);
+}
+
+.cell-swatch {
+  position: relative;
+  inline-size: 16px;
+  block-size: 16px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+/* The calendars: the card grid. Each card has the height of its content. */
 .habit-calendars {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(var(--card-min-width), 100%), 1fr));
   align-items: start;
   gap: var(--space-3);
 }
@@ -117,6 +172,14 @@
   justify-content: center;
 }
 
+/* A calendar cell fills its column, up to 40 px. */
+.month-grid-day > .day-cell {
+  inline-size: 100%;
+  max-inline-size: 40px;
+  block-size: auto;
+  aspect-ratio: 1;
+}
+
 /* The icon and the name of a metric. The name has at most 2 lines. */
 .metric-name {
   display: inline-flex;
@@ -129,6 +192,16 @@
 
 .habit-calendar > .metric-name {
   align-self: flex-start;
+}
+
+.metric-name-texts {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.metric-name-goal {
+  color: var(--on-surface-variant);
 }
 
 .metric-name-text {
@@ -150,68 +223,4 @@
   background-color: transparent;
   font: inherit;
   letter-spacing: inherit;
-}
-
-/*
- * A day cell. With a value: the logo gradient (--cell-image). Without a value: the empty color and a thin border. The
- * border and the ring of today are shadows in the cell, so that they do not change its size. The open editor and the
- * keyboard focus have a ring around the cell.
- */
-.day-cell {
-  flex: none;
-  box-sizing: border-box;
-  display: inline-flex;
-  inline-size: var(--cell-size);
-  min-inline-size: 0;
-  block-size: var(--cell-size);
-  padding: 0;
-  overflow: hidden;
-  border-radius: var(--radius-s);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--outline) 45%, transparent);
-  color: var(--on-surface);
-  background-color: var(--cell-empty);
-  font-size: 11px;
-  line-height: 14px;
-  letter-spacing: 0;
-  font-weight: 500;
-  white-space: nowrap;
-  vertical-align: middle;
-  /* Count cells use double taps: no double-tap zoom, no text selection and no iOS menu. */
-  touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-}
-
-.day-cell-filled {
-  box-shadow: none;
-  color: var(--on-cell);
-  background-color: var(--cell);
-  background-image: var(--cell-image);
-}
-
-.day-cell-today {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--on-surface) 55%, transparent);
-}
-
-.day-cell:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 1px;
-}
-
-.day-cell-selected,
-.day-cell-selected:focus-visible {
-  outline: 2px solid var(--on-surface);
-  outline-offset: 1px;
-}
-
-/* During a write, a yes/no cell does nothing, and it looks the same. */
-.day-cell:disabled {
-  opacity: 1;
-  cursor: default;
-}
-
-.day-cell-future {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--outline) 13.5%, transparent);
-  background-color: transparent;
 }

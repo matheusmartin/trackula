@@ -127,7 +127,7 @@ One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
 
 The shared components. Each one replaces the parts in the right column. Phases 2 and 3 made `PeriodBar`, `Notice`,
 `Snackbar` (with Undo), `Button`, `Dialog`, `KeyNumbers` (in `ChartParts.jsx`) and a first `TextField`. Phase 4 makes
-the others with the redraw of their screens.
+the others with the redraw of their screens: the Days screen made `DayCell`.
 
 | Component | Variants | Replaces |
 |---|---|---|
@@ -136,7 +136,7 @@ the others with the redraw of their screens.
 | `Chip` | filter (one or more selected) | `GroupChips`, the kind and goal chips of the form |
 | `Card` | with title, description and content | the chart cards, the calendar headings, the tiles' frame |
 | `KeyNumbers` | — | `KeyNumbers` in `ChartParts.jsx` (done) |
-| `DayCell` | see "Day cell" | the cells of `HabitTable`, `MonthCalendar` and `ScoreCalendar` |
+| `DayCell` | see "Day cell" | the cells of `HabitTable` and `MonthCalendar` (done: `DayCell` and `ScoreCell` in `DayCell.jsx`), and of `ScoreCalendar` |
 | `Calendar` | editable, read-only | `MonthCalendar`, `ScoreCalendar` |
 | `PeriodBar` | — | `WindowBar` (done in phase 2: `Period.jsx`) |
 | `Notice` | info, warning, error | `Notice`, the sheet warnings |

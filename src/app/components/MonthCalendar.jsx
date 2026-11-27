@@ -81,7 +81,6 @@ export function MonthCalendar({ metric, log, today, busy, onRecord, pending, onC
       onCount={onCount}
       showsTitle={false}
       calendarColumns={1}
-      calendarCellSize={34}
     />
   );
 
