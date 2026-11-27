@@ -19,10 +19,10 @@ const SETTLE_MILLIS = 150;
 /** The time without side scroll events after which a side scroll ends and the strip settles, in milliseconds. */
 const SCROLL_END_MILLIS = 120;
 
-/** The distance that a touch or a pen moves before a drag starts, in CSS pixels, as the touch slop of Compose. */
+/** The distance that a touch or a pen moves before a drag starts, in CSS pixels. */
 export const TOUCH_SLOP = 18;
 
-/** The distance that a mouse moves before a drag starts, in CSS pixels, as the mouse slop of Compose. */
+/** The distance that a mouse moves before a drag starts, in CSS pixels. */
 const MOUSE_SLOP = 0.125;
 
 /**
@@ -537,7 +537,7 @@ function bezier(u, p1, p2) {
 }
 
 /**
- * The FastOutSlowIn easing of Compose, the CSS `cubic-bezier(0.4, 0, 0.2, 1)`: the part of the move at the part `t` of
+ * The standard easing of Material, the CSS `cubic-bezier(0.4, 0, 0.2, 1)`: the part of the move at the part `t` of
  * the time.
  * @param {number} t From 0 to 1.
  * @returns {number} From 0 to 1.

@@ -33,7 +33,7 @@
   inline-size: 8px;
 }
 
-/* The TextButton of Compose: 40 px high, in a touch target of 48 px. */
+/* A text button: 40 px high, in a touch target of 48 px. */
 .notice-action {
   --button-shape: 20px;
   flex: none;

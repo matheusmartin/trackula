@@ -28,7 +28,7 @@
   color: var(--on-surface-variant);
 }
 
-/* The Button of Compose Material 3, 48 px high: the theme color, with an icon before the text. */
+/* A filled button of Material 3, 48 px high: the theme color, with an icon before the text. */
 .metrics-add-button {
   --button-shape: 24px;
   flex: none;
@@ -68,7 +68,7 @@
   color: var(--on-surface-variant);
 }
 
-/* The list of the metrics. The card cuts the rows at its corners, as in Compose. */
+/* The list of the metrics. The card cuts the rows at its corners. */
 .metric-list {
   overflow: hidden;
 }
@@ -150,7 +150,7 @@
   min-inline-size: 0;
 }
 
-/* 19 px high, as the Symbol of the Kotlin code: a text of 16 px with the line height of the font. */
+/* 19 px high: a text of 16 px with the line height of the font. */
 .metric-row-goal {
   display: flex;
   align-items: center;
@@ -182,7 +182,7 @@
   padding: 16px;
 }
 
-/* 28 px high, as the Symbol of 24 px in the Kotlin code. */
+/* 28 px high, as a symbol of 24 px. */
 .metrics-other-title {
   display: flex;
   align-items: center;

@@ -107,8 +107,7 @@ const MIN_CHANGE_FILL = 0.2;
 export const MAX_FILL = 0.7;
 
 /**
- * The CSS color of a cell: `share` (0 to 1) of `color` on the empty cell color. The colors mix in Oklab, as `lerp` of
- * Compose.
+ * The CSS color of a cell: `share` (0 to 1) of `color` on the empty cell color. The colors mix in Oklab.
  * @param {string} color
  * @param {number} share
  * @returns {string}

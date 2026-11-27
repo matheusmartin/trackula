@@ -22,9 +22,8 @@
   color: var(--on-surface-variant);
 }
 
-/* Compose cuts the space above the first line and below the last line of a label (the line height style Trim.Both):
-   one line is 14 px high, the natural height of Roboto at 12 px. A label of one line has a line height of 14 px. A
-   label of more lines has negative margins. */
+/* A label has no space above its first line and below its last line: one line is 14 px high, the natural height of
+   Roboto at 12 px. A label of one line has a line height of 14 px. A label of more lines has negative margins. */
 .chart-label-trim {
   margin-block: -1.5px -0.5px;
 }
@@ -89,8 +88,7 @@
   text-overflow: ellipsis;
 }
 
-/* The value can use 12 px of the padding on the right: the Medium weight is wider than the Regular weight that the
-   KMP app shows, and a value that fits in the KMP app, for example "94.6% · Oct 27", fits here too. */
+/* The value can use 12 px of the padding on the right, so that a long value fits. Example: "94.6% · Oct 27". */
 .key-number-value {
   margin-inline-end: -12px;
   font-weight: 500;

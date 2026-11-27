@@ -20,7 +20,7 @@ export class ActionBarHost {
 }
 
 /** The {@link ActionBarHost} of the App. Null without the App, for example in a test of one page. */
-export const LocalActionBarHost = createContext(/** @type {ActionBarHost | null} */ (null));
+export const ActionBarContext = createContext(/** @type {ActionBarHost | null} */ (null));
 
 /**
  * Shows `children` as the main action of the page. With an {@link ActionBarHost}, it shows there, and here it shows
@@ -30,7 +30,7 @@ export const LocalActionBarHost = createContext(/** @type {ActionBarHost | null}
  * @returns {JSX.Element | null}
  */
 export function ActionBar({ children }) {
-  const host = useContext(LocalActionBarHost);
+  const host = useContext(ActionBarContext);
   if (host == null) return <>{children}</>;
   if (host.element == null) return null;
   return createPortal(<div class="action-bar-content">{children}</div>, host.element);

@@ -78,7 +78,7 @@ export function TrendChart({
    */
   const tooltip = (day, value) => <title>{`${shortDay(day)}: ${withUnit(format(value), unit)}`}</title>;
 
-  // A grid as in the Dart app: the Y axis labels on the left of the plot, and the first and last day below it.
+  // A grid: the Y axis labels on the left of the plot, and the first and last day below it.
   return (
     <div class={classes.join(' ')} role="img" aria-label={label} style={color == null ? undefined : { color }}>
       <div class={onlyBottom ? 'trend-chart-y trend-chart-y-bottom' : 'trend-chart-y'}>

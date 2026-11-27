@@ -1,10 +1,10 @@
 /*
- * Roboto, the text font of the KMP app, from @fontsource/roboto: the weights 400, 600 and 700, with the Latin
+ * Roboto, the text font of the app, from @fontsource/roboto: the weights 400, 600 and 700, with the Latin
  * characters (latin) and the other European characters with Latin letters (latin-ext). The browser downloads a file
  * only when a text needs it. Other scripts use the fonts of the device.
  *
- * There is no weight 500 (Medium): the browser shows a text of weight 500 with the 400 font, as the KMP app does. The
- * KMP app has only Roboto Regular. Example: the labels of the navigation bar.
+ * There is no weight 500 (Medium): the browser shows a text of weight 500 with the 400 font. Example: the labels of
+ * the navigation bar.
  *
  * Not @fontsource/roboto/400.css: it also has the subset `symbols`, with black and white glyphs for some emojis.
  * Emojis use the color font of the device: see --font in theme.css.

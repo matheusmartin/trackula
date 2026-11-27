@@ -1,4 +1,4 @@
-/* AppCard.jsx: the Card of Compose Material 3, with the color of the cards of the Dart app. */
+/* AppCard.jsx: a card of Material 3, on the surface-container-low color. */
 .app-card {
   display: flex;
   flex-direction: column;

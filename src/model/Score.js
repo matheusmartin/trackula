@@ -236,7 +236,7 @@ function shows(cell, score) {
 }
 
 /**
- * The average of `values`, as Kotlin `average()`: the sum in order, divided by the number of values.
+ * The average of `values`: the sum in order, divided by the number of values. NaN if `values` is empty.
  * @param {number[]} values
  * @returns {number}
  */

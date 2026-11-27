@@ -1,6 +1,5 @@
-/* EmojiPicker.jsx: the LazyVerticalGrid of the KMP app. 6 rows of 48 px show, and the grid scrolls. Each column is
-   48 px or wider, as GridCells.Adaptive. The border and a padding of 3 px (GRID_PADDING) put the first row 4 px below
-   the top edge, as in Compose. */
+/* EmojiPicker.jsx: a grid of emojis. 6 rows of 48 px show, and the grid scrolls. Each column is 48 px or wider. The
+   border and a padding of 3 px (GRID_PADDING) put the first row 4 px below the top edge. */
 .emoji-grid {
   position: relative;
   box-sizing: border-box;

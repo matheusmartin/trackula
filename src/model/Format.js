@@ -45,7 +45,7 @@ export function shortDay(day) {
  * `value` without zeros at the end. Examples: 82 → "82", 2.5 → "2.5".
  *
  * This also removes float noise, for example 82.10000000000001 → "82.1" and 82.00000000000001 → "82". For values of
- * about 1e9 and more with decimals, the last decimals can be different from Dart, which gives the shortest text.
+ * about 1e9 and more with decimals, the last decimals can be different from the shortest text.
  * @param {number} value
  * @returns {string}
  */
@@ -105,7 +105,7 @@ export function formatSigned(value, unit) {
  */
 export function formatPercent(rate) {
   const percent = roundHalfAwayFromZero(rate * 100);
-  // Kotlin `toLong()` gives 0 for NaN.
+  // NaN gives 0%.
   return `${numberText(Number.isNaN(percent) ? 0 : percent)}%`;
 }
 
@@ -212,7 +212,7 @@ export function barTitle(start, unit) {
 }
 
 /**
- * The last 2 digits of the year of `day`, without a zero at the start, as Kotlin `year.mod(100)`. Example: 2026 → 26,
+ * The last 2 digits of the year of `day`, without a zero at the start. Example: 2026 → 26,
  * 2005 → 5.
  * @param {Day} day
  * @returns {number}

@@ -6,7 +6,7 @@ export class ScriptException extends Error {
     this.name = 'ScriptException';
   }
 
-  /** @returns {string} The message only, as in Dart. The app shows this text. */
+  /** @returns {string} The message only, without the class name. The app shows this text. */
   toString() {
     return this.message;
   }

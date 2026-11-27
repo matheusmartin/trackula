@@ -5,7 +5,7 @@ import { monthTitle } from '../../model/Format.js';
 import { MainView } from '../../model/MainView.js';
 import { Route } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
-import { LocalNavigator, Navigator } from '../Navigation.js';
+import { NavigatorContext, Navigator } from '../Navigation.js';
 import { CountingStore } from '../testing/CountingStore.js';
 import { FakeHistory } from '../testing/FakePlatform.js';
 import { ReloadHandle, TodayPage } from './TodayPage.jsx';
@@ -33,7 +33,7 @@ afterEach(() => {
 async function showPage(start = MainView.DAYS) {
   const navigator = new Navigator(new FakeHistory(Route.ofView(start).hash));
   render(
-    <LocalNavigator.Provider value={navigator}>
+    <NavigatorContext.Provider value={navigator}>
       <TodayPage
         store={store}
         today={today}
@@ -44,7 +44,7 @@ async function showPage(start = MainView.DAYS) {
         readPref={() => null}
         writePref={() => {}}
       />
-    </LocalNavigator.Provider>,
+    </NavigatorContext.Provider>,
   );
   await waitFor(() => expect(store.last).not.toBeNull(), { timeout: TIMEOUT });
 }

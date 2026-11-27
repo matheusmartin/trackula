@@ -103,7 +103,7 @@ export class DemoStore extends Store {
   }
 
   /**
-   * Waits `delay` milliseconds, as a network call. A delay of 0 or less does not wait, as Kotlin `delay`.
+   * Waits `delay` milliseconds, as a network call. A delay of 0 or less does not wait.
    * @returns {Promise<void>}
    */
   async #wait() {

@@ -5,7 +5,6 @@ import { TrendChart } from './TrendChart.jsx';
 
 afterEach(cleanup);
 
-// The cases of the TrendChart in the Kotlin ChartsTest.
 const days = daysBetween(Day.of(2026, 9, 29), Day.of(2026, 10, 3));
 
 describe('TrendChart', () => {

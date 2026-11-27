@@ -663,7 +663,7 @@ export function DonutChart({ title, description, parts, center }) {
       </ChartCard>
     );
   }
-  // The radius of the ring is 40 % of the size, and its width 16 %, as in the Dart chart.
+  // The radius of the ring is 40 % of the size, and its width 16 %.
   const radius = DONUT_SIZE * 0.4;
   const circumference = 2 * Math.PI * radius;
   /**
@@ -867,7 +867,7 @@ export function RangeBars({
         if (r == null) return null;
         return (
           <g key={i}>
-            {/* A stroke with round ends that keeps its width, as in the Dart chart. */}
+            {/* A stroke with round ends that keeps its width. */}
             <line
               class="range-bar"
               x1={x(i)}
@@ -1043,7 +1043,7 @@ export function DayHeatmap({ title, from, to, filled, today, onDay = null, dayTi
         aria-label={`Days from ${from} to ${to}`}
       >
         {days.map((d, i) => (
-          // The gap is 2 of 12 units, as in the Dart chart.
+          // The gap is 2 of 12 units.
           <rect
             key={d.toString()}
             class={[

@@ -157,7 +157,7 @@ export class Day {
 }
 
 /**
- * The remainder of `a / b` with the sign of `b`, as Kotlin `mod`. Example: mod(-1, 7) → 6.
+ * The remainder of `a / b` with the sign of `b`. Example: mod(-1, 7) → 6.
  * @param {number} a
  * @param {number} b
  * @returns {number}

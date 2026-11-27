@@ -7,7 +7,7 @@ weight 400, size 24, not filled.
 
 The font is 0.33 MB. The app finds an icon by its name (a ligature), so the font keeps only the character codes of the
 names, and no glyph names. The variable WOFF2 of BeerCSS (0.46 MB) is an older version, with a fill axis that the app
-does not use. The KMP app had the same glyphs in a TTF.
+does not use.
 
 Run it again to change the version. It needs Python 3 and fonttools with brotli. The same versions give the same
 bytes:

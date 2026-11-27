@@ -379,9 +379,8 @@ describe('SheetsStore', () => {
 });
 
 /**
- * The JSON of the `:batchUpdate` requests, field by field. The Dart app used the typed classes of the googleapis
- * package. The code writes the JSON itself, so these tests find a wrong field name before the real API does. The
- * expected JSON is in the form of the Sheets API v4 reference.
+ * The JSON of the `:batchUpdate` requests, field by field. The code writes the JSON itself, so these tests find a
+ * wrong field name before the real API does. The expected JSON is in the form of the Sheets API v4 reference.
  */
 describe('SheetsRequests', () => {
   /**

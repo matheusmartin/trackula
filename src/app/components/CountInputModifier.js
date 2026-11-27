@@ -4,7 +4,7 @@ import { CountInput } from '../../services/CountInput.js';
 
 /** @import { JSX } from 'preact' */
 
-/** The time after which a touch press is a long press, in milliseconds, as in Compose. A long press does nothing. */
+/** The time after which a touch press is a long press, in milliseconds. A long press does nothing. */
 const LONG_PRESS_MILLIS = 500;
 
 /**

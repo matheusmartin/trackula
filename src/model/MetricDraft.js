@@ -13,7 +13,7 @@ import { InvalidMetricException, cellText, parseMetricRow } from './Parse.js';
 /** The kind of a metric in the metrics form. */
 export class MetricKind {
   /**
-   * @param {string} name The name, as the Kotlin enum. Example: `YES_NO`.
+   * @param {string} name The name in capital letters. Example: `YES_NO`.
    * @param {string} label
    * @param {string} cell The text of the `kind` cell.
    */
@@ -57,7 +57,7 @@ export function canChangeKind(from, to, hasValues) {
 /** The goal direction of a `number` or `count` metric in the metrics form. */
 export class GoalDirection {
   /**
-   * @param {string} name The name, as the Kotlin enum. Example: `AT_LEAST`.
+   * @param {string} name The name in capital letters. Example: `AT_LEAST`.
    * @param {string} label
    */
   constructor(name, label) {
@@ -159,7 +159,7 @@ export class MetricDraft {
   }
 
   /**
-   * True if `other` has the same values as this draft, as Kotlin `==` on two drafts. Example: the form asks before it
+   * True if `other` has the same values as this draft. Example: the form asks before it
    * discards the changes only if the draft is not equal to the draft at the start.
    * @param {MetricDraft} other
    * @returns {boolean}

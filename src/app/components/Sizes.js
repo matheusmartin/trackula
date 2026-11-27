@@ -17,7 +17,7 @@ export const RAIL_WIDTH = 840;
 export const FORM_WIDTH = 640;
 
 /**
- * The content width of a wide screen: a 640 px window, as the `min-width: 640px` of the Dart CSS, without the 16 px
- * page padding on each side. From this width, the Today tiles have 4 columns and the month calendar shows 2 months.
+ * The content width of a wide screen: a 640 px window, without the 16 px page padding on each side. From this width,
+ * the Today tiles have 4 columns and the month calendar shows 2 months.
  */
 export const WIDE_CONTENT = 608;

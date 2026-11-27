@@ -590,7 +590,7 @@ function Help({ text }) {
 }
 
 /**
- * The AlertDialog of Compose Material 3: a modal dialog with a `title`, a `text`, and two buttons at the end. The
+ * A Material 3 alert dialog: a modal dialog with a `title`, a `text`, and two buttons at the end. The
  * confirm button is the last one, in the error color. Escape and a click out of the dialog call `onDismiss`.
  * @param {object} props
  * @param {string} props.title

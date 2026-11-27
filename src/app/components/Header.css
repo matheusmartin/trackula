@@ -10,7 +10,7 @@
   padding: env(safe-area-inset-top, 0px) 12px 0;
   color: var(--on-action);
   background-color: var(--header-end);
-  /* Compose draws the gradient from the top-left corner to the bottom-right corner: on the wide bar, the angle of its
+  /* The gradient goes from the top-left corner to the bottom-right corner: on the wide bar, the angle of its
      diagonal. The first value is for browsers without atan2(). */
   background-image: linear-gradient(97deg, var(--header-start), var(--header-end));
   background-image: linear-gradient(
@@ -20,7 +20,7 @@
   );
 }
 
-/* The space after the logo: a Spacer of 8 px between two spaces of 4 px in the Kotlin code. */
+/* The logo, with a space after it. */
 .app-bar-logo {
   flex: none;
   inline-size: 32px;
@@ -64,7 +64,7 @@
   color: var(--on-action);
 }
 
-/* The "More" menu: the DropdownMenu of Compose Material 3, below the button, at its right edge. It is on a surface of
+/* The "More" menu: a Material 3 menu, below the button, at its right edge. It is on a surface of
    the theme, not on the gradient. */
 .account-menu {
   position: relative;

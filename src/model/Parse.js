@@ -44,7 +44,7 @@ export class HeaderException extends Error {
     this.missing = missing;
   }
 
-  /** @returns {string} The message only, without the class name, as in Dart. The app shows this text. */
+  /** @returns {string} The message only, without the class name. The app shows this text. */
   toString() {
     return this.message;
   }
@@ -475,7 +475,7 @@ export function isEmpty(cell) {
 }
 
 /**
- * The text of a `cell`, as Dart compiled to JavaScript gives it. A number has no ".0": 8 is "8". Null is "".
+ * The text of a `cell`. A number has no ".0": 8 is "8". Null is "".
  * @param {Cell} cell
  * @returns {string}
  */

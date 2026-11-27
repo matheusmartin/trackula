@@ -3,7 +3,7 @@ import './AppCard.css';
 /** @import { ComponentChildren, JSX } from 'preact' */
 
 /**
- * A card as the BeerCSS `article` of the Dart app: the surface-container-low color and a soft shadow. Not the
+ * A card: the surface-container-low color and a soft shadow. Not the
  * Material 3 card color: that is the color of an empty day cell, so empty cells do not show on it. The card has no
  * padding: its content gives the padding.
  * @param {object} props

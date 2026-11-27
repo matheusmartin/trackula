@@ -19,7 +19,7 @@ export const BarUnit = Object.freeze({ DAY: 'DAY', WEEK: 'WEEK', MONTH: 'MONTH',
  */
 export class ZoomStep {
   /**
-   * @param {string} name The name, as the Kotlin enum. Example: `MONTH3`.
+   * @param {string} name The name in capital letters. Example: `MONTH3`.
    * @param {string} label
    * @param {BarUnit} unit
    * @param {number} bars The number of bars in view.
@@ -223,7 +223,7 @@ export class ZoomWindow {
     this.#toIndex =
       end === null
         ? this.allStarts.length
-        : coerceIn(this.allStarts.indexOf(barStart(end, step.unit)) + 1, count, this.allStarts.length);
+        : clamp(this.allStarts.indexOf(barStart(end, step.unit)) + 1, count, this.allStarts.length);
     this.#fromIndex = this.#toIndex - count;
     Object.freeze(this);
   }
@@ -291,7 +291,7 @@ export class ZoomWindow {
    * @returns {Day | null}
    */
   endMovedBy(bars) {
-    return this.#endAt(coerceIn(this.#toIndex + bars, this.#toIndex - this.#fromIndex, this.allStarts.length));
+    return this.#endAt(clamp(this.#toIndex + bars, this.#toIndex - this.#fromIndex, this.allStarts.length));
   }
 
   /**
@@ -302,7 +302,7 @@ export class ZoomWindow {
   endCenteredOn(day) {
     const count = this.#toIndex - this.#fromIndex;
     const index = this.allStarts.indexOf(barStart(day, this.unit));
-    return this.#endAt(coerceIn(index + 1 + Math.trunc(count / 2), count, this.allStarts.length));
+    return this.#endAt(clamp(index + 1 + Math.trunc(count / 2), count, this.allStarts.length));
   }
 
   /**
@@ -316,13 +316,13 @@ export class ZoomWindow {
 }
 
 /**
- * `value` in the range from `min` to `max`, as Kotlin `coerceIn`.
+ * `value` in the range from `min` to `max`. Example: clamp(12, 0, 10) → 10.
  * @param {number} value
  * @param {number} min
  * @param {number} max
  * @returns {number}
  */
-function coerceIn(value, min, max) {
+function clamp(value, min, max) {
   if (value < min) return min;
   return value > max ? max : value;
 }

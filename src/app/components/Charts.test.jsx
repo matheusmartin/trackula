@@ -18,7 +18,6 @@ function tooltips(container) {
   return [...container.querySelectorAll('title')].map((t) => t.textContent);
 }
 
-// The cases of the bar charts in the Kotlin ChartsTest, and the tooltips of the JavaScript app.
 describe('Charts', () => {
   test('a stacked bar chart shows the sum of each bar and a legend', () => {
     render(

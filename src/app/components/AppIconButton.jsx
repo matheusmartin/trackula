@@ -18,7 +18,7 @@ import './AppIconButton.css';
  * A round, transparent button with the Material Symbols `icon`. `title` is its name for screen readers and tests
  * (`aria-label`), and the text of its tooltip (`title`): the tooltip shows when the mouse is on the button.
  *
- * The button is 48 px: the size of a touch target. Its highlight is a circle of 40 px, as in Compose. `small` is a
+ * The button is 48 px: the size of a touch target. Its highlight is a circle of 40 px, as in Material 3. `small` is a
  * button of 32 px with an icon of 20 px, for the tool bars of the detail screen.
  * @param {AppIconButtonProps & Omit<ButtonHTMLAttributes<HTMLButtonElement>, keyof AppIconButtonProps>} props
  * @returns {JSX.Element}

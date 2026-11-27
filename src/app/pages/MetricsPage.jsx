@@ -108,7 +108,7 @@ function targetOf(route, data) {
  * the `Metrics` tab that are not valid, and the deleted metrics: the `Log` columns without a metric. A click on a
  * metric, Add metric, Fix or Restore opens the form (see {@link MetricForm}). Each form has its own address (see
  * `Route`), so the Back button of the browser closes it. Wide screens: the screen is at most `FORM_WIDTH` wide and
- * centered. The screen needs the `Navigator` of the App in `LocalNavigator`.
+ * centered. The screen needs the `Navigator` of the App in `NavigatorContext`.
  * @param {object} props
  * @param {Snapshot} props.data The latest data of the sheet.
  * @param {boolean} props.busy True while data loads or saves. The buttons that write are disabled.
@@ -280,8 +280,8 @@ function capitalized(text) {
 
 /**
  * The setup of the form of `target`, and its version. The setup stays the same while the target and the values of
- * the edited metric stay the same, as `remember(target, edited)` in Kotlin: a load of the same data keeps the changes
- * in the form. A new setup gets a new version: the form starts again with its values.
+ * the edited metric stay the same: a load of the same data keeps the changes in the form. A new setup gets a new
+ * version: the form starts again with its values.
  * @param {FormTarget | null} target
  * @param {Metric | null} edited The metric of an {@link EditTarget}.
  * @param {Snapshot} data
@@ -365,7 +365,7 @@ function planSave(target, table, metric) {
 }
 
 /**
- * The button that opens the form of a new metric: the filled Button of Compose Material 3.
+ * The button that opens the form of a new metric: a filled button of Material 3.
  * @param {object} props
  * @param {boolean} props.enabled
  * @param {() => void} props.onClick

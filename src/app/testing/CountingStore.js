@@ -70,7 +70,7 @@ export class CountingStore extends Store {
   }
 }
 
-/** A promise that the test resolves with `open()`: the `CompletableDeferred` of the Kotlin test. */
+/** A promise that the test resolves with `open()`. */
 export class Gate {
   constructor() {
     /** @type {() => void} */

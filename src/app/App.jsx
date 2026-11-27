@@ -2,12 +2,12 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/ho
 import { MainView } from '../model/MainView.js';
 import { Route } from '../model/Route.js';
 import { DemoStore } from '../sheets/DemoStore.js';
-import { ActionBarHost, LocalActionBarHost } from './components/ActionBar.jsx';
+import { ActionBarHost, ActionBarContext } from './components/ActionBar.jsx';
 import { Header } from './components/Header.jsx';
 import { Notice } from './components/Notice.jsx';
 import { RAIL_WIDTH } from './components/Sizes.js';
 import { Symbol } from './components/Symbol.jsx';
-import { LocalNavigator, Navigator, useRoute } from './Navigation.js';
+import { NavigatorContext, Navigator, useRoute } from './Navigation.js';
 import { SetupPage } from './pages/SetupPage.jsx';
 import { SignInPage } from './pages/SignInPage.jsx';
 import { ReloadHandle, TodayPage } from './pages/TodayPage.jsx';
@@ -28,9 +28,9 @@ import './App.css';
 export function App({ platform }) {
   const navigator = useMemo(() => new Navigator(platform.history), [platform]);
   return (
-    <LocalNavigator.Provider value={navigator}>
+    <NavigatorContext.Provider value={navigator}>
       <AppContent platform={platform} navigator={navigator} />
-    </LocalNavigator.Provider>
+    </NavigatorContext.Provider>
   );
 }
 
@@ -194,7 +194,6 @@ function AppContent({ platform, navigator }) {
 
 /**
  * The time of each call of the demo store, in milliseconds, as a network call: the app bar shows its progress circle.
- * The KMP app waits 400 ms.
  */
 const DEMO_DELAY = 400;
 
@@ -243,7 +242,7 @@ function Layout({ header, showsNavigation, view, onView, screen, children }) {
       <div class="app-body">
         {showsNavigation && hasRail && <Navigation kind="rail" view={view} onView={onView} />}
         <main class="app-main">
-          <LocalActionBarHost.Provider value={actionBar}>{children}</LocalActionBarHost.Provider>
+          <ActionBarContext.Provider value={actionBar}>{children}</ActionBarContext.Provider>
         </main>
       </div>
       <div class="app-bottom" ref={bottom}>
@@ -254,8 +253,15 @@ function Layout({ header, showsNavigation, view, onView, screen, children }) {
   );
 }
 
+/** The label and the Material Symbols icon of each view in the navigation bar. */
+const VIEW_ITEMS = new Map([
+  [MainView.TODAY, { label: 'Today', icon: 'today' }],
+  [MainView.DAYS, { label: 'Days', icon: 'view_week' }],
+  [MainView.SCORE, { label: 'Score', icon: 'show_chart' }],
+]);
+
 /**
- * The bottom navigation bar or the navigation rail of Compose Material 3: one item for each view.
+ * The bottom navigation bar or the navigation rail of Material 3: one item for each view.
  * @param {object} props
  * @param {'bar' | 'rail'} props.kind
  * @param {MainView} props.view
@@ -265,20 +271,23 @@ function Layout({ header, showsNavigation, view, onView, screen, children }) {
 function Navigation({ kind, view, onView }) {
   return (
     <nav class={kind === 'rail' ? 'navigation-rail' : 'navigation-bar'} aria-label="Views">
-      {MainView.entries.map((v) => (
-        <button
-          key={v.name}
-          type="button"
-          class="navigation-item"
-          aria-current={v === view ? 'page' : undefined}
-          onClick={() => onView(v)}
-        >
-          <span class="navigation-indicator">
-            <Symbol name={v.icon} />
-          </span>
-          <span class="navigation-label label-medium">{v.label}</span>
-        </button>
-      ))}
+      {MainView.entries.map((v) => {
+        const item = /** @type {{ label: string, icon: string }} */ (VIEW_ITEMS.get(v));
+        return (
+          <button
+            key={v.name}
+            type="button"
+            class="navigation-item"
+            aria-current={v === view ? 'page' : undefined}
+            onClick={() => onView(v)}
+          >
+            <span class="navigation-indicator">
+              <Symbol name={item.icon} />
+            </span>
+            <span class="navigation-label label-medium">{item.label}</span>
+          </button>
+        );
+      })}
     </nav>
   );
 }

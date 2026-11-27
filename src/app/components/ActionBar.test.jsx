@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, test } from 'vitest';
-import { ActionBar, ActionBarHost, LocalActionBarHost } from './ActionBar.jsx';
+import { ActionBar, ActionBarHost, ActionBarContext } from './ActionBar.jsx';
 
 afterEach(cleanup);
 
@@ -24,7 +24,7 @@ describe('ActionBar', () => {
      * @returns {import('preact').JSX.Element}
      */
     const Page = ({ shows }) => (
-      <LocalActionBarHost.Provider value={new ActionBarHost(element)}>
+      <ActionBarContext.Provider value={new ActionBarHost(element)}>
         <div class="page">
           {shows && (
             <ActionBar>
@@ -32,7 +32,7 @@ describe('ActionBar', () => {
             </ActionBar>
           )}
         </div>
-      </LocalActionBarHost.Provider>
+      </ActionBarContext.Provider>
     );
     const { container, rerender } = render(<Page shows />);
     expect(container.querySelector('.page button')).toBeNull();

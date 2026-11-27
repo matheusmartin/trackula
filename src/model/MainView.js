@@ -4,19 +4,15 @@
 export class MainView {
   /**
    * @param {string} name The name of the view. Example: `DAYS`.
-   * @param {string} label The label in the navigation bar.
-   * @param {string} icon The Material Symbols icon in the navigation bar.
    */
-  constructor(name, label, icon) {
+  constructor(name) {
     this.name = name;
-    this.label = label;
-    this.icon = icon;
     Object.freeze(this);
   }
 
-  static TODAY = new MainView('TODAY', 'Today', 'today');
-  static DAYS = new MainView('DAYS', 'Days', 'view_week');
-  static SCORE = new MainView('SCORE', 'Score', 'show_chart');
+  static TODAY = new MainView('TODAY');
+  static DAYS = new MainView('DAYS');
+  static SCORE = new MainView('SCORE');
 
   /** All views, in the order of the navigation bar. */
   static entries = [MainView.TODAY, MainView.DAYS, MainView.SCORE];

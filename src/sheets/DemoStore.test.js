@@ -29,7 +29,7 @@ describe('DemoStore', () => {
   });
 
   test('the sample waist is once a week in steps of a half centimeter', () => {
-    // 187.5 half centimeters rounds away from zero, as Dart does.
+    // 187.5 half centimeters rounds away from zero.
     expect(DemoStore.sampleWaist(70)).toBe(94);
     expect(DemoStore.sampleWaist(7)).toBe(92);
     expect(DemoStore.sampleWaist(112)).toBe(95);

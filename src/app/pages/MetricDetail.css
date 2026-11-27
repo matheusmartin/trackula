@@ -59,7 +59,7 @@
   white-space: nowrap;
 }
 
-/* The zoom label: the TextButton of Compose Material 3. */
+/* The zoom label: a text button of Material 3. */
 .window-zoom-label {
   --button-shape: 20px;
   box-sizing: border-box;

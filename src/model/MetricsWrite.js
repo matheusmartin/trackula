@@ -214,7 +214,7 @@ function rowOf(table, old) {
 }
 
 /**
- * True if `a` and `b` have the same names and the same values, as Kotlin `==` on two maps.
+ * True if `a` and `b` have the same names and the same values.
  * @param {Map<string, Cell>} a
  * @param {Map<string, Cell>} b
  * @returns {boolean}

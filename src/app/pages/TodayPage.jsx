@@ -72,7 +72,7 @@ export class ReloadHandle {
 /**
  * The main page: the metrics in Today tiles, a table or calendars, where the user records entries, or the score only.
  * The screen comes from the address (see `Route`): a view of the navigation, the detail screen of a metric, or the
- * metrics screen and its forms. The page needs the `Navigator` of the App in `LocalNavigator`.
+ * metrics screen and its forms. The page needs the `Navigator` of the App in `NavigatorContext`.
  *
  * Each input goes to the sheet at once: there is no Save button. The page writes one change at a time. An input that
  * comes while a write runs waits, and goes in the next write: the last value of each cell. Count taps show at once,

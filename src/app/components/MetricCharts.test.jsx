@@ -9,7 +9,6 @@ afterEach(cleanup);
 
 const today = Day.of(2026, 10, 3);
 
-// The case of MetricCharts in the Kotlin ChartsTest.
 describe('MetricCharts', () => {
   test('the charts of a metric without values say what to do', () => {
     render(

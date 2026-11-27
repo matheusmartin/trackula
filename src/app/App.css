@@ -70,8 +70,7 @@ html {
   max-inline-size: var(--form-width);
 }
 
-/* The NavigationBar of Compose Material 3 (material3 1.9): 80 px high, 4 items with a space of 8 px. The indicator
-   is 56 × 36 px, as in the KMP app. */
+/* The navigation bar of Material 3: 80 px high, the items with a space of 8 px. The indicator is 56 × 36 px. */
 .navigation-bar {
   display: flex;
   gap: 8px;
@@ -79,7 +78,7 @@ html {
   background-color: var(--surface-container);
 }
 
-/* The NavigationRail of Compose Material 3: 80 px wide, on the surface color. It stays below the app bar while the
+/* The navigation rail of Material 3: 80 px wide, on the surface color. It stays below the app bar while the
    page scrolls. Not as high as the page: BeerCSS gives a nav `align-self: normal`, and a stretched rail cannot
    stay at the top. */
 .navigation-rail {
@@ -119,7 +118,7 @@ html {
   padding: 0;
 }
 
-/* The highlight of the mouse and of the focus is on the indicator, as in Compose. */
+/* The highlight of the mouse and of the focus is on the indicator, as in Material 3. */
 .navigation-item::after {
   display: none;
 }

@@ -127,7 +127,7 @@ function AccountMenu({ onDisconnect, onSignOut }) {
 }
 
 /**
- * The DropdownMenuItem of Compose Material 3, with a leading icon.
+ * An item of a Material 3 menu, with a leading icon.
  * @param {object} props
  * @param {string} props.icon
  * @param {string} props.text

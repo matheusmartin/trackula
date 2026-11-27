@@ -6,7 +6,7 @@
   min-inline-size: 0;
 }
 
-/* The chips have a touch target of 48 px, as in Compose: 8 px above and below the chips of 32 px. */
+/* The chips have a touch target of 48 px: 8 px above and below the chips of 32 px. */
 .today-page > .group-chips {
   padding-block: 8px;
 }
@@ -68,7 +68,7 @@
   max-inline-size: 360px;
 }
 
-/* The Button of Compose Material 3: 40 px high in a touch target of 48 px. */
+/* A filled button of Material 3: 40 px high in a touch target of 48 px. */
 .today-page-button {
   --button-shape: 20px;
   box-sizing: border-box;

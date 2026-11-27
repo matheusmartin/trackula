@@ -1,5 +1,5 @@
 /* TodayTiles.jsx: one tile for each metric. Phones: 2 columns. Wider screens: 4 columns. Number tiles take a full
-   row. Each tile has the height of its content, as in a Row of Compose. */
+   row. Each tile has the height of its content. */
 .today-tiles {
   display: flex;
   flex-direction: column;
@@ -81,8 +81,8 @@
   align-items: flex-start;
 }
 
-/* The Symbol of Compose is a text box of 28 px for an icon of 24 px, with the icon in the middle. So the mark is 2 px
-   below the top of the tile content, and a row with a mark is 28 px high. */
+/* A symbol is a text box of 28 px for an icon of 24 px, with the icon in the middle. So the mark is 2 px below the
+   top of the tile content, and a row with a mark is 28 px high. */
 .tile-top > .symbol,
 .tile-counter-row > .symbol {
   margin-block: 2px;

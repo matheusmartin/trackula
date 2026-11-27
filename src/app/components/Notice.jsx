@@ -36,7 +36,7 @@ export function Notice({ text, kind = NoticeKind.INFO, action = null, onAction =
           {action}
         </button>
       ) : (
-        // The same space at the end as in the Kotlin code.
+        // A space at the end, so that the text does not touch the edge.
         <span class="notice-end" />
       )}
     </div>

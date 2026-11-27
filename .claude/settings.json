@@ -1,17 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
-    "allow": [
-      "Bash(./gradlew build:*)",
-      "Bash(./gradlew ktlintFormat:*)",
-      "Bash(./gradlew :app:wasmJsBrowserDistribution:*)",
-      "Bash(./gradlew :app:jvmTest:*)"
-    ],
-    "deny": [
-      "Read(./config.env)",
-      "Edit(./config.env)",
-      "Edit(./kmp/**/build/**)",
-      "Edit(./kmp/kotlin-js-store/**)"
-    ]
+    "deny": ["Read(./config.env)", "Edit(./config.env)"]
   }
 }
