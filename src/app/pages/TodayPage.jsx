@@ -4,7 +4,7 @@ import { daysBetween } from '../../model/Day.js';
 import { CALENDAR_DAYS, DayLayout, MainView, dayLayoutOf } from '../../model/MainView.js';
 import { NumberMetric, groupOf, metricsOf } from '../../model/Metric.js';
 import { Route, Screen } from '../../model/Route.js';
-import { dayScores, groupScoreMetric, pointsByMetric, pointsOf, scoreMetric } from '../../model/Score.js';
+import { dayScores, pointsByMetric, pointsOf } from '../../model/Score.js';
 import { errorText } from '../Errors.js';
 import { useNavigator, useRoute } from '../Navigation.js';
 import { useElementWidth } from '../components/ElementWidth.js';
@@ -18,6 +18,7 @@ import { TodayTiles } from '../components/TodayTiles.jsx';
 import { TrendChart } from '../components/TrendChart.jsx';
 import { MetricDetail } from './MetricDetail.jsx';
 import { MetricsPage } from './MetricsPage.jsx';
+import { ScorePage } from './ScorePage.jsx';
 import './TodayPage.css';
 
 /** @import { JSX } from 'preact' */
@@ -249,7 +250,7 @@ export function TodayPage({
     [data, today, pending, selectedGroup],
   );
   const scores = useMemo(() => dayScores(points), [points]);
-  const score = selectedGroup == null ? scoreMetric : groupScoreMetric(selectedGroup, groupLabel(selectedGroup));
+  const scoreTitle = selectedGroup == null ? 'Score' : `Score · ${groupLabel(selectedGroup)}`;
 
   /** @param {Metric} m */
   function openDetail(m) {
@@ -266,29 +267,6 @@ export function TodayPage({
     if (detailId != null && data != null && detailMetric == null && navigator.route.equals(route)) closeDetail();
   }, [detailId, detailMetric == null, data == null]);
 
-  /**
-   * The detail screen of `metric`.
-   * @param {Metric} metric
-   * @param {(() => void) | null} onBack
-   * @returns {JSX.Element}
-   */
-  const detail = (metric, onBack) => (
-    <MetricDetail
-      key={metric.id}
-      metric={metric}
-      log={/** @type {Snapshot} */ (data).log}
-      today={today}
-      busy={busy}
-      onWrite={write}
-      pending={pending}
-      onCount={count}
-      scores={scores}
-      onBack={onBack}
-      scoreMetrics={shown}
-      points={points}
-    />
-  );
-
   if (managing && data != null) {
     return <MetricsPage data={data} busy={busy} error={error} hasMouse={hasMouse} onWrite={writeMetrics} />;
   }
@@ -297,7 +275,17 @@ export function TodayPage({
     return (
       <div class="today-page">
         {error != null && <Notice text={error} kind={NoticeKind.ERROR} />}
-        {detail(detailMetric, closeDetail)}
+        <MetricDetail
+          key={detailMetric.id}
+          metric={detailMetric}
+          log={data.log}
+          today={today}
+          busy={busy}
+          onWrite={write}
+          pending={pending}
+          onCount={count}
+          onBack={closeDetail}
+        />
       </div>
     );
   }
@@ -320,7 +308,18 @@ export function TodayPage({
         />
       );
     }
-    if (view === MainView.SCORE) return detail(score, null);
+    if (view === MainView.SCORE) {
+      return (
+        <ScorePage
+          key={selectedGroup ?? ''}
+          title={scoreTitle}
+          scores={scores}
+          today={today}
+          metrics={shown}
+          points={points}
+        />
+      );
+    }
     const dayCount = dayLayout === DayLayout.CALENDARS ? CALENDAR_DAYS : tableDays(daysWidth);
     const days = daysBetween(today.addDays(1 - dayCount), today);
     return (
@@ -335,7 +334,7 @@ export function TodayPage({
             writePref('days-layout', layout);
           }}
         />
-        <ScoreChart score={score} days={days} scores={scores} onOpen={() => navigator.show(Route.SCORE)} />
+        <ScoreChart title={scoreTitle} days={days} scores={scores} onOpen={() => navigator.show(Route.SCORE)} />
         <HabitTable
           metrics={shown}
           log={snapshot.log}

@@ -1,7 +1,7 @@
 // The score: the points of each metric on each day, and the score of each day. See docs/data-model.md.
 import { daysBetween, earliestDay } from './Day.js';
 import { withoutFloatNoise } from './LogEntry.js';
-import { NumberGoal, NumberMetric, YesNoMetric, metricsOf } from './Metric.js';
+import { NumberMetric, YesNoMetric, metricsOf } from './Metric.js';
 import { roundHalfAwayFromZero } from './Numbers.js';
 import { cellText, logDate, parseLog } from './Parse.js';
 import { trend } from './Stats.js';
@@ -14,42 +14,6 @@ import { metricValues } from './Summary.js';
 
 /** The header of the score column of the `Log` tab. It starts with a capital letter, so it cannot be a metric id. */
 export const SCORE_HEADER = 'Score';
-
-/**
- * The score as a count metric, for the table, the calendars and the detail screen. It is not a row of the `Metrics`
- * tab, and its cells are read-only: {@link dayScores} calculates its values, from 0 to 100. It has no icon: the score
- * card and the score detail screen show only its name. Its goal is 100% because each {@link NumberMetric} has a goal.
- * The app does not use this goal: the score does not give points to itself.
- */
-export const scoreMetric = new NumberMetric({
-  id: SCORE_HEADER,
-  name: 'Score',
-  icon: '',
-  goal: new NumberGoal({ target: 100 }),
-  unit: '%',
-  isCount: true,
-});
-
-/**
- * The score of the metrics of one `group`, for the group filter. `label` is the group name that the app shows. Its id
- * starts with {@link SCORE_HEADER} and a colon, so it cannot be a metric id. Example: the group "habits" with the label
- * "Habits" gives the id "Score:habits" and the name "Score · Habits".
- * @param {string} group
- * @param {string} label
- * @returns {NumberMetric}
- */
-export function groupScoreMetric(group, label) {
-  return scoreMetric.copy({ id: `${SCORE_HEADER}:${group}`, name: `${scoreMetric.name} · ${label}` });
-}
-
-/**
- * True if `metric` is {@link scoreMetric} or a {@link groupScoreMetric}.
- * @param {Metric} metric
- * @returns {boolean}
- */
-export function isScore(metric) {
-  return metric.id === SCORE_HEADER || metric.id.startsWith(`${SCORE_HEADER}:`);
-}
 
 /**
  * True if `metric` counts on each day from its first value: a yes/no or a count metric. A day without a value has the

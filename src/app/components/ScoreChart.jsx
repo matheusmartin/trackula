@@ -6,7 +6,6 @@ import './ScoreChart.css';
 
 /** @import { JSX } from 'preact' */
 /** @import { Day } from '../../model/Day.js' */
-/** @import { NumberMetric } from '../../model/Metric.js' */
 
 /** The largest number of days that show the value above each bar. Longer periods have too little space. */
 const MAX_DAYS_WITH_VALUES = 7;
@@ -17,13 +16,13 @@ const MAX_DAYS_WITH_VALUES = 7;
  *
  * The score is green, not the theme red.
  * @param {object} props
- * @param {NumberMetric} props.score `scoreMetric`, or a `groupScoreMetric` with a group filter. Its name is the title.
+ * @param {string} props.title "Score", or the score of the group of the filter, for example "Score · Habits".
  * @param {Day[]} props.days
  * @param {Map<Day, number>} props.scores The score of each day. See `dayScores`.
  * @param {() => void} props.onOpen
  * @returns {JSX.Element}
  */
-export function ScoreChart({ score, days, scores, onOpen }) {
+export function ScoreChart({ title, days, scores, onOpen }) {
   return (
     <AppCard class="score-chart">
       {/* The arrow shows that the title opens the Score view. */}
@@ -35,7 +34,7 @@ export function ScoreChart({ score, days, scores, onOpen }) {
         aria-label="Show the score only"
         onClick={() => onOpen()}
       >
-        <span class="title-medium">{score.name}</span>
+        <span class="title-medium">{title}</span>
         <Symbol name="chevron_right" size={20} color="var(--on-surface-variant)" />
       </button>
       {days.some((d) => scores.has(d)) ? (
@@ -44,7 +43,7 @@ export function ScoreChart({ score, days, scores, onOpen }) {
           <TrendChart
             days={days}
             values={scores}
-            unit={score.unit}
+            unit="%"
             showsBars
             showsValues={days.length <= MAX_DAYS_WITH_VALUES}
             color="var(--done)"
