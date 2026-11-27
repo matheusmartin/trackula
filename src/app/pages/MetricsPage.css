@@ -2,7 +2,7 @@
 .metrics-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   inline-size: 100%;
   max-inline-size: var(--form-width);
   margin-inline: auto;
@@ -17,7 +17,7 @@
   flex: 1;
   min-inline-size: 0;
   margin: 0;
-  padding-inline-start: 4px;
+  padding-inline-start: var(--space-1);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -28,33 +28,10 @@
   color: var(--on-surface-variant);
 }
 
-/* A filled button of Material 3, 48 px high: the theme color, with an icon before the text. */
-.metrics-add-button {
-  flex: none;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-block-size: 48px;
-  block-size: auto;
-  padding: 0 24px 0 16px;
-  border-radius: 24px;
-  color: var(--on-primary);
-  background-color: var(--primary);
-}
-
-.metrics-add-button:disabled {
-  opacity: 1;
-  cursor: default;
-  color: color-mix(in srgb, var(--on-surface) 38%, transparent);
-  background-color: color-mix(in srgb, var(--on-surface) 12%, transparent);
-}
-
 .metrics-empty {
   align-items: center;
-  gap: 12px;
-  padding: 32px 16px;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
   text-align: center;
 }
 
@@ -120,9 +97,9 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
+  gap: var(--space-3);
   block-size: auto;
-  padding: 10px calc(4px + var(--actions)) 10px 16px;
+  padding: 10px calc(var(--space-1) + var(--actions)) 10px var(--space-4);
   border-radius: 0;
   color: var(--on-surface);
   background-color: transparent;
@@ -151,7 +128,7 @@
 .metric-row-goal {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   min-block-size: 19px;
 }
 
@@ -175,15 +152,15 @@
 
 /* The rows with problems and the deleted metrics. */
 .metrics-other {
-  gap: 12px;
-  padding: 16px;
+  gap: var(--space-3);
+  padding: var(--space-4);
 }
 
 /* 28 px high, as a symbol of 24 px. */
 .metrics-other-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-block-size: 28px;
 }
 
@@ -194,7 +171,7 @@
 .metrics-other-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .metrics-other-texts {

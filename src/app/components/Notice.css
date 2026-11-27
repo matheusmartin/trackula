@@ -2,10 +2,10 @@
 .notice {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   inline-size: 100%;
-  padding-inline: 12px 4px;
-  border-radius: 12px;
+  padding-inline: var(--space-3) var(--space-1);
+  border-radius: var(--radius-m);
   background-color: var(--surface-container-high);
   color: var(--on-surface-variant);
 }
@@ -35,13 +35,5 @@
 
 /* A text button: 40 px high, in a touch target of 48 px. */
 .notice-action {
-  flex: none;
-  box-sizing: border-box;
-  block-size: 40px;
-  min-inline-size: 58px;
-  margin-block: 4px;
-  padding: 0 12px;
-  border-radius: 20px;
-  background-color: transparent;
-  color: inherit;
+  margin-block: var(--space-1);
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { errorText } from '../Errors.js';
 import { Notice, NoticeKind } from '../components/Notice.jsx';
-import { PrimaryButton } from '../components/PrimaryButton.jsx';
+import { Button } from '../components/Button.jsx';
 import './SignInPage.css';
 
 /** @import { JSX } from 'preact' */
@@ -53,7 +53,8 @@ export function SignInPage({ platform, expired, onSignedIn }) {
         {expired && <Notice text="Google access lasts 1 hour. Sign in again to continue." />}
         {error != null && <Notice text={error} kind={NoticeKind.ERROR} />}
         {busy && <Progress text="Continue in the Google window." />}
-        <PrimaryButton
+        <Button
+          variant="main"
           text="Sign in with Google"
           onClick={() => void signIn()}
           enabled={!busy}

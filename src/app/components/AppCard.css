@@ -2,7 +2,7 @@
 .app-card {
   display: flex;
   flex-direction: column;
-  border-radius: 12px;
+  border-radius: var(--radius-m);
   color: var(--on-surface);
   background-color: var(--surface-container-low);
   box-shadow: var(--elevate1);

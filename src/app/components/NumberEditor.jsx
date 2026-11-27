@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { formatTrimmed, withUnit } from '../../model/Format.js';
 import { formatStep, parseDecimal, roundToStep } from '../../model/NumberInput.js';
 import { roundHalfAwayFromZero } from '../../model/Numbers.js';
+import { Button } from './Button.jsx';
 import './NumberEditor.css';
 
 /** @import { JSX } from 'preact' */
@@ -226,21 +227,18 @@ export function NumberEditor({
       )}
       {onClose != null && (
         <div class="number-editor-actions">
-          <button type="button" class="number-editor-text-button label-large" onClick={enter}>
-            Close
-          </button>
+          <Button text="Close" onClick={enter} class="number-editor-action" />
           {current != null && (
-            <button
-              type="button"
-              class="number-editor-text-button number-editor-clear label-large"
-              disabled={busy}
+            <Button
+              text="Clear"
+              tone="error"
+              enabled={!busy}
               onClick={() => {
                 s.touched = false;
                 onCommit(null);
               }}
-            >
-              Clear
-            </button>
+              class="number-editor-action"
+            />
           )}
         </div>
       )}

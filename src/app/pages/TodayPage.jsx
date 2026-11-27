@@ -17,6 +17,7 @@ import { GroupChips, groupLabel } from '../components/GroupChips.jsx';
 import { HabitTable, tableDays } from '../components/HabitTable.jsx';
 import { Notice, NoticeKind } from '../components/Notice.jsx';
 import { ScoreChart } from '../components/ScoreChart.jsx';
+import { Button } from '../components/Button.jsx';
 import { SegmentedButtons } from '../components/SegmentedButtons.jsx';
 import { Snackbar } from '../components/Snackbar.jsx';
 import { Symbol } from '../components/Symbol.jsx';
@@ -559,9 +560,7 @@ function NoMetrics({ onAdd }) {
       <p class="today-page-empty-text today-page-quiet">
         A metric is a thing that you record each day, for example your weight or a habit.
       </p>
-      <button type="button" class="today-page-button label-large" onClick={onAdd}>
-        Add a metric
-      </button>
+      <Button variant="filled" text="Add a metric" onClick={onAdd} class="today-page-add" />
     </div>
   );
 }

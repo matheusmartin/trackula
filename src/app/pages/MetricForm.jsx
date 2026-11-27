@@ -10,7 +10,7 @@ import { FilterChip, groupLabel } from '../components/GroupChips.jsx';
 import { MetricIcon } from '../components/MetricIcon.jsx';
 import { Notice, NoticeKind } from '../components/Notice.jsx';
 import { outset } from '../components/Outset.js';
-import { PrimaryButton } from '../components/PrimaryButton.jsx';
+import { Button } from '../components/Button.jsx';
 import { Symbol } from '../components/Symbol.jsx';
 import './MetricForm.css';
 
@@ -122,23 +122,20 @@ export function MetricForm({ setup, takenIds, groups, busy, error, onSave, onDel
       {/* The fields with errors can be out of view: this text is next to the Save button. */}
       {errors.size > 0 && <Notice text={errorSummary(errors)} kind={NoticeKind.ERROR} />}
       {error != null && <Notice text={error} kind={NoticeKind.ERROR} />}
-      <PrimaryButton text={busy ? 'Saving…' : 'Save'} onClick={save} enabled={!busy} class="fill-width" />
-      <button type="button" class="metric-form-text-button label-large" onClick={close}>
-        Cancel
-      </button>
+      <Button variant="main" text={busy ? 'Saving…' : 'Save'} onClick={save} enabled={!busy} class="fill-width" />
+      <Button text="Cancel" size="large" onClick={close} class="fill-width" />
       {/* Delete is the last button, after a line: not next to Save. */}
       {setup.deleteQuestion != null && (
         <>
           <hr class="metric-form-line" />
-          <button
-            type="button"
-            class="metric-outlined-button metric-outlined-button-error label-large"
-            disabled={busy}
+          <Button
+            variant="outlined"
+            tone="error"
+            icon="delete"
+            text={setup.deleteLabel}
+            enabled={!busy}
             onClick={() => setConfirmsDelete(true)}
-          >
-            <Symbol name="delete" size={20} />
-            {setup.deleteLabel}
-          </button>
+          />
         </>
       )}
 
@@ -627,12 +624,8 @@ function AlertDialog({ title, text, confirm, dismiss, onConfirm, onDismiss }) {
           {text}
         </p>
         <div class="alert-dialog-buttons">
-          <button type="button" class="metric-form-text-button label-large" onClick={onDismiss}>
-            {dismiss}
-          </button>
-          <button type="button" class="metric-form-text-button metric-form-error label-large" onClick={onConfirm}>
-            {confirm}
-          </button>
+          <Button text={dismiss} onClick={onDismiss} />
+          <Button text={confirm} tone="error" onClick={onConfirm} />
         </div>
       </div>
     </dialog>

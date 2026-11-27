@@ -1,4 +1,4 @@
-// The charts that compare a period with the periods before it. See CompareCharts.kt.
+// The charts that compare a period with the periods before it.
 import { formatNumber, formatSigned } from '../../model/Format.js';
 import { stepChanges } from '../../model/ScoreStats.js';
 import { ChartCard, Labels, Legend, NoValues, RangeBars, Scroller, ValueRow, spokenValues } from './Charts.jsx';

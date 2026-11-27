@@ -2,7 +2,7 @@
 .metric-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   inline-size: 100%;
   max-inline-size: var(--form-width);
   margin-inline: auto;
@@ -19,13 +19,13 @@
 
 .metric-form-title {
   margin: 0;
-  padding-inline-start: 4px;
+  padding-inline-start: var(--space-1);
 }
 
 /* A card with a title and its fields. */
 .metric-form-section {
-  gap: 12px;
-  padding: 16px;
+  gap: var(--space-3);
+  padding: var(--space-4);
 }
 
 .metric-form-section-title {
@@ -43,7 +43,7 @@
 .metric-form-icon-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .metric-form-icon-text {
@@ -55,7 +55,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: start;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .metric-form-pair-unit {
@@ -72,7 +72,7 @@
   flex-direction: column;
   min-inline-size: 0;
   min-block-size: var(--field-height);
-  margin: 8px 0 0;
+  margin: var(--space-2) 0 0;
   border-radius: 4px;
 }
 
@@ -118,7 +118,7 @@
   position: absolute;
   inset: -8px 15px 0 16px;
   display: flex;
-  gap: 4px;
+  gap: var(--space-1);
   block-size: calc(var(--field-height) + 16px);
   font-size: 16px;
   line-height: calc(var(--field-height) + 16px);
@@ -139,7 +139,7 @@
   display: block;
   flex: auto;
   block-size: 16px;
-  margin: 8px 0 0;
+  margin: var(--space-2) 0 0;
   border-block-start: 1px solid var(--outline);
 }
 
@@ -170,7 +170,7 @@
 .metric-form-field > output {
   display: inline-block;
   align-self: start;
-  padding: 4px 16px 0;
+  padding: var(--space-1) var(--space-4) 0;
   font-size: 12px;
   line-height: 16px;
   letter-spacing: 0.4px;
@@ -181,19 +181,19 @@
 .metric-form-choices {
   display: flex;
   flex-wrap: wrap;
-  column-gap: 8px;
+  column-gap: var(--space-2);
 }
 
 .metric-form-choices > .group-chip {
-  margin-block: 8px;
+  margin-block: var(--space-2);
 }
 
 /* The trend checkbox: the row is a label, so a click on the text changes the checkbox too. */
 .metric-form-trend {
   display: flex;
   align-items: center;
-  gap: 8px;
-  border-radius: 8px;
+  gap: var(--space-2);
+  border-radius: var(--radius-s);
   font-size: 16px;
   line-height: 24px;
   cursor: pointer;
@@ -268,10 +268,10 @@
 .metric-form-preview {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: var(--space-2);
+  padding: var(--space-3);
   border: 1px solid var(--outline-variant);
-  border-radius: 12px;
+  border-radius: var(--radius-m);
   background-color: var(--surface-container-lowest);
 }
 
@@ -309,53 +309,6 @@
   block-size: 1px;
   border: 0;
   background-color: var(--outline-variant);
-}
-
-/* A text button of Material 3: 40 px high, the text in the theme color. In the form: the full width and
-   48 px high. */
-.metric-form-text-button {
-  box-sizing: border-box;
-  min-inline-size: 48px;
-  block-size: 40px;
-  padding: 0 12px;
-  border-radius: 20px;
-  color: var(--primary);
-  background-color: transparent;
-}
-
-.metric-form > .metric-form-text-button {
-  inline-size: 100%;
-  block-size: 48px;
-  border-radius: 24px;
-}
-
-/* An outlined button of Material 3, 48 px high: the Delete button of the form, and the Fix and Restore buttons of
-   the metrics screen. The text has the color of secondary text. */
-.metric-outlined-button {
-  flex: none;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-block-size: 48px;
-  block-size: auto;
-  padding: 0 24px;
-  border: 1px solid var(--outline-variant);
-  border-radius: 24px;
-  color: var(--on-surface-variant);
-  background-color: transparent;
-}
-
-.metric-outlined-button-error {
-  color: var(--error);
-}
-
-.metric-outlined-button:disabled {
-  opacity: 1;
-  cursor: default;
-  border-color: color-mix(in srgb, var(--on-surface) 12%, transparent);
-  color: color-mix(in srgb, var(--on-surface) 38%, transparent);
 }
 
 /* A Material 3 alert dialog: in the middle of the window, with 28 px corners. It is on a scrim of 60% black, and it
@@ -401,15 +354,15 @@
 .alert-dialog-content {
   display: flex;
   flex-direction: column;
-  padding: 24px;
+  padding: var(--space-5);
 }
 
 .alert-dialog-title {
-  margin: 0 0 16px;
+  margin: 0 0 var(--space-4);
 }
 
 .alert-dialog .alert-dialog-text {
-  margin: 0 0 24px;
+  margin: 0 0 var(--space-5);
   color: var(--on-surface-variant);
 }
 
@@ -418,13 +371,9 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 0 8px;
+  gap: 0 var(--space-2);
 }
 
 .alert-dialog-buttons > button {
-  margin-block: 4px;
-}
-
-.alert-dialog .metric-form-error {
-  color: var(--error);
+  margin-block: var(--space-1);
 }

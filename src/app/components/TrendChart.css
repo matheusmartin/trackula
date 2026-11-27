@@ -2,8 +2,8 @@
    the text color of .trend-chart: the theme primary color, or the color of the color prop. */
 .trend-chart {
   display: flex;
-  gap: 8px;
-  padding-block-start: 12px;
+  gap: var(--space-2);
+  padding-block-start: var(--space-3);
   color: var(--primary);
 }
 
@@ -44,7 +44,7 @@
 /* Room at the sides for the labels of the first and the last dot. The X axis gets the same room, so that the days stay
    below the dots. */
 .trend-chart-side-padding :is(.trend-chart-canvas, .trend-chart-x) {
-  margin-inline: 12px;
+  margin-inline: var(--space-3);
 }
 
 .trend-chart-svg {
@@ -97,5 +97,5 @@
 .trend-chart-x {
   display: flex;
   justify-content: space-between;
-  padding-block-start: 4px;
+  padding-block-start: var(--space-1);
 }

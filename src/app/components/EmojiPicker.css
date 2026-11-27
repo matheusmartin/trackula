@@ -11,7 +11,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   border: 1px solid var(--outline-variant);
-  border-radius: 12px;
+  border-radius: var(--radius-m);
   background-color: var(--surface-container-lowest);
   scrollbar-width: thin;
   scrollbar-color: var(--outline-variant) transparent;
@@ -58,7 +58,7 @@
 /* The grid while the list loads, or if it does not load: a text. */
 .emoji-grid-empty {
   display: block;
-  padding: 12px;
+  padding: var(--space-3);
 }
 
 .emoji-picker-help {

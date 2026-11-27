@@ -131,7 +131,7 @@ Phase 3 makes these shared components. Each one replaces the current parts in th
 
 | Component | Variants | Replaces |
 |---|---|---|
-| `Button` | `filled` (main action, the gradient), `tonal`, `outlined`, `text` | `PrimaryButton`, `today-page-button`, `today-page-text-button`, `metrics-add-button`, `metric-outlined-button`, `metric-form-text-button`, `number-editor-text-button` |
+| `Button` | `main` (the main action, the gradient), `filled`, `outlined`, `text`; 40 or 48 px high; tones primary, error, neutral, inverse, inherit | done in phase 3: `PrimaryButton` and the button classes of the screens |
 | `IconButton` | standard, small | `AppIconButton` |
 | `Chip` | filter (one or more selected) | `GroupChips`, the kind and goal chips of the form |
 | `Card` | with title, description and content | the chart cards, the calendar headings, the tiles' frame |

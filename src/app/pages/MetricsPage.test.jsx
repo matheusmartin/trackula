@@ -48,7 +48,7 @@ afterEach(() => {
 
 /**
  * The metrics screen with the data of `store`, as the Today page shows it: the page loads the data, and each write
- * changes the `Metrics` tab and loads the data again. See `writeMetrics` in TodayPage.kt.
+ * changes the `Metrics` tab and loads the data again. See `writeMetrics` in TodayPage.jsx.
  * @param {object} props
  * @param {CountingStore} props.store
  * @param {boolean} props.hasMouse

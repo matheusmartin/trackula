@@ -1,4 +1,4 @@
-// The chart cards of the detail screen and their chart kinds. See Charts.kt.
+// The chart cards of the detail screen and their chart kinds.
 import { useLayoutEffect, useRef } from 'preact/hooks';
 import { daysBetween } from '../../model/Day.js';
 import { barLabel, barTitle, formatNumber, formatPercent, shortDay } from '../../model/Format.js';

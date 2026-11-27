@@ -4,12 +4,12 @@
   --quiet-border: color-mix(in srgb, var(--primary) 12%, var(--outline));
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   inline-size: 100%;
 }
 
 .number-editor-compact {
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 /* The field and the unit, together in the middle. */
@@ -17,7 +17,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 /* The field has the frame of the ruler: the two inputs of the editor look the same. The frame is a shadow, so that the
@@ -27,9 +27,9 @@
   inline-size: 128px;
   block-size: auto;
   margin: 0;
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-s);
   outline: none;
   box-shadow: inset 0 0 0 1px var(--quiet-border);
   color: var(--on-surface);
@@ -71,7 +71,7 @@
   display: block;
   block-size: 52px;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: var(--radius-s);
   outline: none;
   box-shadow: inset 0 0 0 1px var(--quiet-border);
   background-color: var(--surface-container-lowest);
@@ -154,27 +154,9 @@
 .number-editor-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
-.number-editor-text-button {
-  box-sizing: border-box;
-  block-size: 40px;
-  min-inline-size: 58px;
-  margin-block: 4px;
-  padding: 0 12px;
-  border-radius: 20px;
-  color: var(--primary);
-  background-color: transparent;
-}
-
-.number-editor-clear {
-  color: var(--error);
-}
-
-/* The disabled colors of Material 3: the text color at 38%. */
-.number-editor-text-button:disabled {
-  opacity: 1;
-  cursor: default;
-  color: color-mix(in srgb, var(--on-surface) 38%, transparent);
+.number-editor-action {
+  margin-block: var(--space-1);
 }

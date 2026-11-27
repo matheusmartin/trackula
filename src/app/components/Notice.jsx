@@ -1,3 +1,4 @@
+import { Button } from './Button.jsx';
 import { Symbol } from './Symbol.jsx';
 import './Notice.css';
 
@@ -32,9 +33,7 @@ export function Notice({ text, kind = NoticeKind.INFO, action = null, onAction =
       <Symbol name={ICONS[/** @type {'INFO' | 'WARNING' | 'ERROR'} */ (kind)]} size={20} />
       <p class="notice-text body-medium">{text}</p>
       {action != null && onAction != null ? (
-        <button type="button" class="notice-action label-large" onClick={() => onAction()}>
-          {action}
-        </button>
+        <Button text={action} tone="inherit" onClick={onAction} class="notice-action" />
       ) : (
         // A space at the end, so that the text does not touch the edge.
         <span class="notice-end" />

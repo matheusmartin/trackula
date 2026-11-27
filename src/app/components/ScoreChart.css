@@ -1,24 +1,24 @@
 /* ScoreChart.jsx: the score card above the table and the calendars of the Days view. */
 .score-chart {
-  padding: 16px;
+  padding: var(--space-4);
 }
 
 /* The title is a link to the Score view: on the left, as wide as its text. */
 .score-chart-title {
   align-self: flex-start;
-  gap: 4px;
+  gap: var(--space-1);
   block-size: auto;
-  border-radius: 8px;
+  border-radius: var(--radius-s);
   color: var(--on-surface);
   background-color: transparent;
 }
 
 .score-chart-chart {
-  padding-block-start: 12px;
+  padding-block-start: var(--space-3);
 }
 
 .score-chart-empty {
   margin: 0;
-  padding-block-start: 8px;
+  padding-block-start: var(--space-2);
   color: var(--on-surface-variant);
 }

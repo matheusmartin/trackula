@@ -23,6 +23,7 @@ import { Route, Screen } from '../../model/Route.js';
 import { useNavigator, useRoute } from '../Navigation.js';
 import { AppCard } from '../components/AppCard.jsx';
 import { AppIconButton } from '../components/AppIconButton.jsx';
+import { Button } from '../components/Button.jsx';
 import { MetricIcon } from '../components/MetricIcon.jsx';
 import { Notice, NoticeKind } from '../components/Notice.jsx';
 import { Symbol } from '../components/Symbol.jsx';
@@ -372,12 +373,7 @@ function planSave(target, table, metric) {
  * @returns {JSX.Element}
  */
 function AddButton({ enabled, onClick }) {
-  return (
-    <button type="button" class="metrics-add-button label-large" disabled={!enabled} onClick={onClick}>
-      <Symbol name="add" size={20} />
-      Add metric
-    </button>
-  );
+  return <Button variant="filled" size="large" icon="add" text="Add metric" enabled={enabled} onClick={onClick} />;
 }
 
 /**
@@ -713,15 +709,7 @@ function OtherRow({ title, text, button, enabled, onClick }) {
         </span>
         <Help text={text} />
       </span>
-      <button
-        type="button"
-        class="metric-outlined-button label-large"
-        disabled={!enabled}
-        aria-describedby={titleId}
-        onClick={onClick}
-      >
-        {button}
-      </button>
+      <Button variant="outlined" text={button} enabled={enabled} describedBy={titleId} onClick={onClick} />
     </div>
   );
 }

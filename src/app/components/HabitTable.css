@@ -23,7 +23,7 @@
 
 /* The weekday and the day number. Today is bold, in the app color. */
 .habit-table thead :is(th, td) {
-  padding-block: 8px;
+  padding-block: var(--space-2);
 }
 
 .day-header > span {
@@ -56,7 +56,7 @@
 }
 
 .habit-table-name {
-  padding-inline: 16px 4px;
+  padding-inline: var(--space-4) var(--space-1);
 }
 
 .habit-table :is(th, td).habit-table-name {
@@ -64,12 +64,12 @@
 }
 
 .habit-table :is(th, td).habit-table-name-narrow {
-  padding-inline-start: 12px;
+  padding-inline-start: var(--space-3);
 }
 
 /* The number editor of a metric: below its row, as wide as the table. */
 .habit-table .habit-table-editor-row > td {
-  padding: 12px;
+  padding: var(--space-3);
   text-align: start;
   background-color: var(--surface-container);
 }
@@ -79,13 +79,13 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
   align-items: start;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 .habit-calendar {
-  gap: 8px;
+  gap: var(--space-2);
   min-inline-size: 0;
-  padding: 16px;
+  padding: var(--space-4);
 }
 
 /* The weekday letters on top, and the first day of each week row on the left. */
@@ -93,7 +93,7 @@
   display: grid;
   grid-template-columns: 48px repeat(7, minmax(0, 1fr));
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .month-grid-label {
@@ -108,7 +108,7 @@
 }
 
 .month-grid-week {
-  padding-inline-end: 4px;
+  padding-inline-end: var(--space-1);
   text-align: end;
 }
 
@@ -145,7 +145,7 @@
   justify-content: flex-start;
   block-size: auto;
   max-inline-size: calc(100% + 8px);
-  border-radius: 8px;
+  border-radius: var(--radius-s);
   color: inherit;
   background-color: transparent;
   font: inherit;
@@ -166,7 +166,7 @@
   block-size: var(--cell-size);
   padding: 0;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: var(--radius-s);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--outline) 45%, transparent);
   color: var(--on-surface);
   background-color: var(--cell-empty);

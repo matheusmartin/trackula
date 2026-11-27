@@ -67,7 +67,7 @@
   --on-error-container: #410002;
 
   /*
-   * The colors of the app that Material Design 3 does not have (ExtraColors in Theme.kt).
+   * The colors of the app that Material Design 3 does not have.
    * - --done, --on-done: the green of the score.
    * - --cell, --on-cell: the fill of a day with a value: table cells, calendars, heatmap and bars. The same in both
    *   themes. --cell-image: the logo gradient on the table and calendar cells. --cell-empty: a day with no value.
@@ -205,7 +205,7 @@
 }
 
 /*
- * The green theme of the score (ScoreTheme in Theme.kt): the charts and the icons use --done in place of the theme
+ * The green theme of the score: the charts and the icons use --done in place of the theme
  * red, and the day fills use the green cell color without the logo gradient.
  */
 .score-theme {

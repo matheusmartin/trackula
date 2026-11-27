@@ -1,4 +1,4 @@
-// The key numbers and the charts of one metric in the time window of the detail screen. See MetricCharts.kt.
+// The key numbers and the charts of one metric in the time window of the detail screen.
 import { useMemo } from 'preact/hooks';
 import { withoutFloatNoise } from '../../model/LogEntry.js';
 import { YesNoMetric, groupOf } from '../../model/Metric.js';
