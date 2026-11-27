@@ -125,22 +125,24 @@ One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
 
 ## Components
 
-Phase 3 makes these shared components. Each one replaces the current parts in the right column.
+The shared components. Each one replaces the parts in the right column. Phases 2 and 3 made `PeriodBar`, `Notice`,
+`Snackbar` (with Undo), `Button`, `Dialog`, `KeyNumbers` (in `ChartParts.jsx`) and a first `TextField`. Phase 4 makes
+the others with the redraw of their screens.
 
 | Component | Variants | Replaces |
 |---|---|---|
-| `Button` | `main` (the main action, the gradient), `filled`, `outlined`, `text`; 40 or 48 px high; tones primary, error, neutral, inverse, inherit | done in phase 3: `PrimaryButton` and the button classes of the screens |
+| `Button` | `main` (the main action, the gradient), `filled`, `outlined`, `text`; 40 or 48 px high; tones primary, error, neutral, inverse, inherit | `PrimaryButton` and the button classes of the screens (done) |
 | `IconButton` | standard, small | `AppIconButton` |
 | `Chip` | filter (one or more selected) | `GroupChips`, the kind and goal chips of the form |
 | `Card` | with title, description and content | the chart cards, the calendar headings, the tiles' frame |
-| `KeyNumbers` | — | `KeyNumbers` in `Charts.jsx` |
+| `KeyNumbers` | — | `KeyNumbers` in `ChartParts.jsx` (done) |
 | `DayCell` | see "Day cell" | the cells of `HabitTable`, `MonthCalendar` and `ScoreCalendar` |
 | `Calendar` | editable, read-only | `MonthCalendar`, `ScoreCalendar` |
-| `PeriodBar` | — | `WindowBar` |
+| `PeriodBar` | — | `WindowBar` (done in phase 2: `Period.jsx`) |
 | `Notice` | info, warning, error | `Notice`, the sheet warnings |
 | `Snackbar` | with Undo, with Try again | new |
-| `Dialog` | confirm | the alert dialog of the metrics screen |
-| `TextField` | text, number | the fields of the form and of the number editor |
+| `Dialog` | confirm | the alert dialog of the metrics screen (done: `ConfirmDialog` in `Dialog.jsx`) |
+| `TextField` | text, number | the fields of the form (done) and of the number editor |
 | `EmptyState` | — | the empty states of the Today page and of the metrics screen |
 
 The charts (`TimeBars`, `LineChart`, `RangeBars`, `Distribution`, `StackedBars`, `ChangeTable`) use the Data role
