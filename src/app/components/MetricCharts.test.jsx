@@ -20,7 +20,7 @@ describe('MetricCharts', () => {
       />,
     );
     expect(screen.getByText('No values yet')).toBeTruthy();
-    expect(screen.queryByText('Yes rate')).toBeNull();
+    expect(screen.queryByText('Done rate')).toBeNull();
   });
 
   test('the charts of a yes/no metric show its key numbers and its charts', () => {
@@ -38,14 +38,8 @@ describe('MetricCharts', () => {
       />,
     );
     expect(screen.getByTitle('done days: 2')).toBeTruthy();
-    expect(screen.getByTitle('current streak: 1 d')).toBeTruthy();
-    for (const title of [
-      'Yes rate',
-      'Habit strength (%)',
-      'Yes, no and no entry',
-      'Weekday pattern',
-      'Streak lengths',
-    ]) {
+    expect(screen.getByTitle('current streak: 1 day')).toBeTruthy();
+    for (const title of ['Done rate', 'Strength (%)', 'Yes, no and no value', 'Weekday pattern', 'Streak lengths']) {
       expect(screen.getByRole('heading', { name: title })).toBeTruthy();
     }
   });

@@ -1,6 +1,6 @@
 import { useMemo } from 'preact/hooks';
 import { monthOf } from '../../model/Day.js';
-import { formatNumber, shortDay, withUnit } from '../../model/Format.js';
+import { formatValue, shortDay } from '../../model/Format.js';
 import { NumberMetric, YesNoMetric } from '../../model/Metric.js';
 import { yesNoStates } from '../../model/Stats.js';
 import { dayValues } from '../../model/Summary.js';
@@ -67,11 +67,11 @@ export function MetricDetail({ metric, log, today, busy, onRecord, pending, onCo
   function dayTitle(d) {
     if (metric instanceof YesNoMetric) {
       const state = states.get(d);
-      return `${shortDay(d)}: ${state == null ? 'no entry' : state ? 'yes' : 'no'}`;
+      return `${shortDay(d)}: ${state == null ? 'no value' : state ? 'yes' : 'no'}`;
     }
     const value = values.get(d);
-    const unit = metric instanceof NumberMetric ? metric.unit : null;
-    return `${shortDay(d)}: ${value == null ? 'no value' : withUnit(formatNumber(value, 2), unit)}`;
+    const text = metric instanceof NumberMetric ? formatValue(value ?? 0, metric.step, metric.unit) : '';
+    return `${shortDay(d)}: ${value == null ? 'no value' : text}`;
   }
 
   // On wide screens, the chart grid has more columns, so that the cards keep their shape.
@@ -92,7 +92,7 @@ export function MetricDetail({ metric, log, today, busy, onRecord, pending, onCo
       <ChartsArea period={period}>
         <MetricCharts metric={metric} window={window} values={values} states={states} />
         <DayHeatmap
-          title={metric instanceof YesNoMetric ? 'Yes days' : 'Days with a value'}
+          title={metric instanceof YesNoMetric ? 'Done days' : 'Days with a value'}
           from={window.from}
           to={window.to}
           today={today}

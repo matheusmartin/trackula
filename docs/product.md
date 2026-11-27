@@ -62,8 +62,8 @@ that the app must not use for the same thing.
 | Period | The days that a screen or a chart shows. | window, range |
 | Sheet | The Google Sheet with the data. | spreadsheet, file |
 
-The app now uses some words of the right column. Examples: "no entry" and "no value" for the same thing, "done days"
-and "Yes days", "Habit strength (%)" and "Strength (%)", "Values and 7-day trend", "days logged".
+Phase 3 applied this list to the texts of the app (P8). The names in the code can still use other words, for example
+`ZoomWindow` for a period.
 
 ## Numbers
 
@@ -118,9 +118,9 @@ The charts of the metric detail and of the Score screen:
 
 | Kind | Key numbers | Charts | Days |
 |---|---|---|---|
-| yes/no | done days, rate, missed (no), no entry, current streak, longest streak | yes rate, habit strength, yes and no and no entry, weekday pattern, streak lengths | heatmap, month calendar |
-| count | total, per day, best day, days logged | totals, running total, weekday averages, distribution | heatmap, month calendar |
-| number | latest, change, lowest, highest, average, days logged | averages and range, values and 7-day trend, distribution | heatmap, month calendar |
+| yes/no | done days, rate, missed (no), no value, current streak, longest streak | done rate, strength, yes and no and no value, weekday pattern, streak lengths | heatmap, month calendar |
+| count | total, per day, best day, days recorded | totals, running total, weekday averages, distribution | heatmap, month calendar |
+| number | latest, change, lowest, highest, average, days recorded | averages and range, values and trend, distribution | heatmap, month calendar |
 | score | per day, change, best day, best weekday | average per day, strength, this week and the 4 weeks before, score by group and week, score by group and month, weekday averages | score calendar |
 
 ## Proposals

@@ -1,5 +1,5 @@
-/* Charts.jsx: the chart cards, the key numbers and the chart kinds of the detail screen. The charts use the colors of
-   the theme: in .score-theme, --primary and --cell are green. */
+/* The chart cards, the key numbers and the chart kinds of the detail screens (ChartParts.jsx, Charts.jsx,
+   Overview.jsx, DayHeatmap.jsx). The data has the brand color (--cell) for a metric and for the score. */
 .chart-card {
   display: flex;
   flex-direction: column;

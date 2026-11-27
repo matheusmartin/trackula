@@ -15,7 +15,7 @@ describe('DayHeatmap', () => {
     const from = Day.of(2026, 9, 29);
     render(
       <DayHeatmap
-        title="Yes days"
+        title="Done days"
         from={from}
         to={Day.of(2026, 10, 3)}
         filled={(d) => d === from}
@@ -36,7 +36,7 @@ describe('DayHeatmap', () => {
   test('a heatmap of more than a year asks for a zoom', () => {
     render(
       <DayHeatmap
-        title="Yes days"
+        title="Done days"
         from={Day.of(2025, 1, 1)}
         to={Day.of(2026, 10, 3)}
         filled={() => true}
@@ -44,6 +44,6 @@ describe('DayHeatmap', () => {
       />,
     );
     expect(screen.getByText('Zoom in to 1 year or less to see single days.')).toBeTruthy();
-    expect(screen.getByText('One cell for each day of the window.')).toBeTruthy();
+    expect(screen.getByText('One cell for each day of the period.')).toBeTruthy();
   });
 });

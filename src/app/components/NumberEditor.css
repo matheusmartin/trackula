@@ -116,13 +116,13 @@
   background-color: var(--on-surface-variant);
 }
 
-/* The start value: a green tick over the full height, 2 px wide as the needle. */
+/* The start value: a tick over the full height, 2 px wide as the needle, in the color of secondary text. */
 .ruler-start {
   position: absolute;
   inset-block: 0;
   inline-size: 2px;
   margin-inline-start: -1px;
-  background-color: var(--done);
+  background-color: var(--on-surface-variant);
 }
 
 /* The labels have no space above and below: 14 px is the natural height of Roboto at 12 px. */

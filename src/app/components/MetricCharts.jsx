@@ -1,6 +1,17 @@
 // The key numbers and the charts of one metric in the time window of the detail screen.
 import { YesNoMetric } from '../../model/Metric.js';
-import { formatNumber, formatPercent, formatSigned, shortDay, weekdayNames, withUnit } from '../../model/Format.js';
+import {
+  formatDays,
+  formatFixed,
+  formatNumber,
+  formatPercent,
+  formatValue,
+  formatValueChange,
+  shortDay,
+  weekdayNames,
+  withUnit,
+} from '../../model/Format.js';
+import { stepDecimals } from '../../model/NumberInput.js';
 import { roundHalfAwayFromZero } from '../../model/Numbers.js';
 import { countStats, numberStats, streakLengths, streakRanges, yesNoStats } from '../../model/Stats.js';
 import { Aggregate, zoomBars } from '../../model/Zoom.js';
@@ -141,19 +152,16 @@ function YesNoCharts({ window, values, stats }) {
           ['done days', formatNumber(stats.yes)],
           ['rate', formatPercent(stats.rate)],
           ['missed (no)', formatNumber(stats.no)],
-          ['no entry', formatNumber(stats.none)],
-          [
-            window.atEnd ? 'current streak' : `streak on ${shortDay(window.to)}`,
-            `${formatNumber(stats.currentStreak)} d`,
-          ],
-          ['longest streak', `${formatNumber(stats.longestStreak)} d`],
+          ['no value', formatNumber(stats.none)],
+          [window.atEnd ? 'current streak' : `streak on ${shortDay(window.to)}`, formatDays(stats.currentStreak)],
+          ['longest streak', formatDays(stats.longestStreak)],
         ]}
       />
       <ChartGrid
         items={[
           timeBarItem(
-            'Yes rate',
-            `The percentage of yes days in each ${unitName(window)}.`,
+            'Done rate',
+            `The percentage of done days in each ${unitName(window)}.`,
             window,
             values,
             Aggregate.RATE,
@@ -164,8 +172,8 @@ function YesNoCharts({ window, values, stats }) {
             wide: true,
             content: () => (
               <LineChart
-                title="Habit strength (%)"
-                description="It goes up on yes days and down on all other days."
+                title="Strength (%)"
+                description="It goes up on done days and down on all other days."
                 days={window.days}
                 values={stats.strength.map((s) => s * 100)}
                 dots={false}
@@ -179,13 +187,13 @@ function YesNoCharts({ window, values, stats }) {
             wide: false,
             content: () => (
               <DonutChart
-                title="Yes, no and no entry"
-                description="The share of days with yes, with no and with no entry."
+                title="Yes, no and no value"
+                description="The share of days with yes, with no and with no value."
                 center={formatPercent(stats.rate)}
                 parts={[
                   { label: 'Yes', value: stats.yes, color: 'var(--cell)' },
                   { label: 'No', value: stats.no, color: 'var(--tertiary)' },
-                  { label: 'No entry', value: stats.none, color: 'var(--cell-empty)' },
+                  { label: 'No value', value: stats.none, color: 'var(--cell-empty)' },
                 ]}
               />
             ),
@@ -196,7 +204,7 @@ function YesNoCharts({ window, values, stats }) {
             content: () => (
               <BarChart
                 title="Weekday pattern"
-                description="The percentage of yes days on each weekday."
+                description="The percentage of done days on each weekday."
                 bars={stats.weekdayRates.map((rate, i) => ({
                   label: weekdayNames[i].substring(0, 1),
                   value: rate == null ? null : rate * 100,
@@ -212,7 +220,7 @@ function YesNoCharts({ window, values, stats }) {
             content: () => (
               <BarChart
                 title="Streak lengths"
-                description="The number of runs of yes days in a row, for each length in days."
+                description="The number of runs of done days in a row, for each length in days."
                 bars={streakLengths(stats.streaks).map((count, i) => {
                   const { from, to } = streakRanges[i];
                   const label =
@@ -258,10 +266,13 @@ function CountCharts({ metric, window, values, stats }) {
     <>
       <KeyNumbers
         items={[
-          ['total', withMetricUnit(stats.total, metric)],
+          ['total', formatValue(stats.total, metric.step, metric.unit)],
           ['per day', average == null ? '–' : withMetricUnit(average, metric)],
-          ['best day', best == null ? '–' : `${formatNumber(best.value)} · ${shortDay(best.day)}`],
-          ['days logged', formatNumber(stats.logged)],
+          [
+            'best day',
+            best == null ? '–' : `${formatFixed(best.value, stepDecimals(metric.step))} · ${shortDay(best.day)}`,
+          ],
+          ['days recorded', formatNumber(stats.logged)],
         ]}
       />
       <ChartGrid
@@ -275,7 +286,7 @@ function CountCharts({ metric, window, values, stats }) {
             content: () => (
               <LineChart
                 title="Running total"
-                description="The sum of all values from the start of the window."
+                description="The sum of all values from the start of the period."
                 days={window.days}
                 values={stats.running}
                 dots={false}
@@ -322,7 +333,7 @@ function CountCharts({ metric, window, values, stats }) {
  * @returns {string}
  */
 function dayValue(dayValue, metric) {
-  return dayValue == null ? '–' : withMetricUnit(dayValue.value, metric, 2);
+  return dayValue == null ? '–' : formatValue(dayValue.value, metric.step, metric.unit);
 }
 
 /**
@@ -350,11 +361,11 @@ function NumberCharts({ metric, window, values, stats }) {
       <KeyNumbers
         items={[
           [dayLabel('latest', stats.latest), dayValue(stats.latest, metric)],
-          ['change', stats.change == null ? '–' : formatSigned(stats.change, metric.unit)],
+          ['change', stats.change == null ? '–' : formatValueChange(stats.change, metric.step, metric.unit)],
           [dayLabel('lowest', stats.low), dayValue(stats.low, metric)],
           [dayLabel('highest', stats.high), dayValue(stats.high, metric)],
           ['average', average == null ? '–' : withMetricUnit(average, metric, 2)],
-          ['days logged', formatNumber(stats.logged)],
+          ['days recorded', formatNumber(stats.logged)],
         ]}
       />
       <ChartGrid
@@ -372,8 +383,8 @@ function NumberCharts({ metric, window, values, stats }) {
             wide: true,
             content: () => (
               <LineChart
-                title="Values and 7-day trend"
-                description="Dots are the values. The line is a smooth average that ignores small daily changes."
+                title="Values and trend"
+                description="Dots are the values. The line is the trend: it ignores small daily changes."
                 days={window.days}
                 values={stats.values}
                 trend={stats.trend}

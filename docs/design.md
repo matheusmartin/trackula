@@ -29,8 +29,7 @@ Rules:
 
 - **Decision (owner):** the data has the color of the brand. The day cells, the bars of the charts and the score all
   use it, in the same way. Example: a done day and a day with a score of 100% are the same full brand cell.
-- The score has no own theme. Now `.score-theme` makes the score screens green. After phase 3, the score uses the Data
-  role, as each day cell does.
+- The score has no own theme: it uses the Data role, as each day cell does.
 - The current day has no special color and no ring. It is the last column of the table, or its day number in a
   calendar.
 - The group colors do not use the brand hues (red, orange), so that a group does not look like data. Now `--group-3`
@@ -66,8 +65,7 @@ points of the day, so you can see your goals at a glance.
 
 ## Type
 
-One font: Roboto, with the weights 400, 500 and 700. The app serves it itself. Phase 3 adds the weight 500: now the
-app has no Medium font, so Medium text shows as Regular.
+One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
 
 | Class | Size / line | Weight | Use for |
 |---|---|---|---|
@@ -151,7 +149,8 @@ The charts (`TimeBars`, `LineChart`, `RangeBars`, `Distribution`, `StackedBars`,
 
 ## Numbers and dates
 
-`Format.js` gives each format. Phase 3 changes it to these rules.
+`Format.js` gives each format. Phase 4 adds the year to a day of another year, and checks the rule for today in each
+chart.
 
 | Kind | Rule | Example |
 |---|---|---|

@@ -21,7 +21,7 @@ import './Charts.css';
  */
 export function DayHeatmap({ title, from, to, filled, today, onDay = null, dayTitle = shortDay }) {
   const description =
-    onDay == null ? 'One cell for each day of the window.' : 'Tap a day to show its month in the calendar.';
+    onDay == null ? 'One cell for each day of the period.' : 'Tap a day to show its month in the calendar.';
   if (to.serial - from.serial + 1 > MAX_HEATMAP_DAYS) {
     return (
       <ChartCard title={title} description={description}>

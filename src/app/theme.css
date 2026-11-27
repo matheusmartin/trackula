@@ -68,10 +68,8 @@
 
   /*
    * The colors of the app that Material Design 3 does not have.
-   * - --done, --on-done: the green of the score.
    * - --cell, --on-cell: the fill of a day with a value: table cells, calendars, heatmap and bars. The same in both
    *   themes. --cell-image: the logo gradient on the table and calendar cells. --cell-empty: a day with no value.
-   * - --done-cell: the green cell fill of the score.
    * - --action-start, --action-end: a darker logo gradient for the main buttons, with --on-action text (5:1 or more).
    *   --action-image: the gradient on a square.
    * - --header-start, --header-end: the gradient of the app bar, in both themes. It starts darker than the logo
@@ -81,22 +79,19 @@
    * A gradient goes from the top-left corner to the bottom-right corner of the box. On a square, this is a CSS
    * gradient of 135deg.
    */
-  --done: #2e7d32;
-  --on-done: #ffffff;
   --cell: #da3625;
   --on-cell: #ffffff;
   --cell-image: linear-gradient(135deg, #ca4a09, #e41648);
   /* Darker than the cards and the tiles, so that an empty day shows as a cell. */
   --cell-empty: #d5dbe3;
-  --done-cell: #318535;
   --action-start: #c2410c;
   --action-end: #9f1239;
   --action-image: linear-gradient(135deg, var(--action-start), var(--action-end));
   --on-action: #ffffff;
   --header-start: #dc4a0c;
   --header-end: #be123c;
-  /* The color roles of docs/design.md. The data keeps --cell, --cell-image and --on-cell. Phase 3 of the consolidation
-     moves the app to these roles, and removes --cell-empty, --done, --done-cell and .score-theme. */
+  /* The color roles of docs/design.md. The data keeps --cell, --cell-image and --on-cell, also for the score. The day
+     cell of phase 4 of the consolidation replaces --cell-empty with --cell-value and a border. */
   --worse: #5b6b82;
   --warning: #b45309;
   --on-warning: #ffffff;
@@ -183,8 +178,6 @@
     --error-container: #93000a;
     --on-error-container: #ffb4ab;
 
-    --done: #86d38c;
-    --on-done: #0f2e13;
     /* A lighter slate, so that empty cells show the blue of the theme. */
     --cell-empty: #323c49;
     --worse: #9fb0c6;
@@ -202,16 +195,6 @@
     --group-7: #a1887f;
     --group-8: #90a4ae;
   }
-}
-
-/*
- * The green theme of the score: the charts and the icons use --done in place of the theme
- * red, and the day fills use the green cell color without the logo gradient.
- */
-.score-theme {
-  --primary: var(--done);
-  --cell: var(--done-cell);
-  --cell-image: none;
 }
 
 /* The text without a style: bodyLarge. */

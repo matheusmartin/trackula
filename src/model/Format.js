@@ -1,4 +1,5 @@
 // Text for the user: numbers, units, days, months and bar labels.
+import { stepDecimals } from './NumberInput.js';
 import { numberText, roundHalfAwayFromZero, toFixed } from './Numbers.js';
 import { BarUnit } from './Zoom.js';
 
@@ -54,14 +55,110 @@ export function formatTrimmed(value) {
   return text === '-0' ? '0' : text;
 }
 
+/** The minus sign of the texts for the user: U+2212, not a hyphen. */
+export const MINUS = '−';
+
+/** From this size, a number has a comma between the thousands. Example: 12500 → "12,500", but 9500 → "9500". */
+const GROUPS_FROM = 10000;
+
 /**
- * `value` with at most `decimals` decimals and no zeros at the end. Example: 81.25 → "81.3".
+ * The text of a number for the user, from its plain text: the minus sign {@link MINUS}, and a comma between the
+ * thousands from {@link GROUPS_FROM}. Example: "-12500.5" → "−12,500.5".
+ * @param {string} text A number as `formatTrimmed` or `toFixed` gives it.
+ * @returns {string}
+ */
+function display(text) {
+  const negative = text.startsWith('-');
+  const digits = negative ? text.substring(1) : text;
+  const [whole, decimals] = digits.split('.');
+  const grouped = Number(whole) >= GROUPS_FROM ? whole.replace(/\B(?=(\d{3})+$)/g, ',') : whole;
+  return `${negative ? MINUS : ''}${grouped}${decimals == null ? '' : `.${decimals}`}`;
+}
+
+/**
+ * `value` with at most `decimals` decimals and no zeros at the end, for the user. Examples: 81.25 → "81.3",
+ * −2 → "−2", 12500 → "12,500".
  * @param {number} value
  * @param {number} [decimals] 1 by default.
  * @returns {string}
  */
 export function formatNumber(value, decimals = 1) {
-  return formatTrimmed(Number(toFixed(value, decimals)));
+  return display(formatTrimmed(Number(toFixed(value, decimals))));
+}
+
+/**
+ * `value` with exactly `decimals` decimals, for the user. Examples: (82, 1) → "82.0", (12500, 0) → "12,500".
+ * @param {number} value
+ * @param {number} decimals
+ * @returns {string}
+ */
+export function formatFixed(value, decimals) {
+  const text = toFixed(value, decimals);
+  return display(Number(text) === 0 ? toFixed(0, decimals) : text);
+}
+
+/**
+ * A value of a metric with the decimals of its `step` and its `unit`. Examples: (82, 0.1, "kg") → "82.0 kg",
+ * (12500, 1, "steps") → "12,500 steps".
+ * @param {number} value
+ * @param {number} step
+ * @param {string | null} unit
+ * @returns {string}
+ */
+export function formatValue(value, step, unit) {
+  return withUnit(formatFixed(value, stepDecimals(step)), unit);
+}
+
+/**
+ * The change of a value of a metric: its sign, the decimals of the `step` and the `unit`. Examples:
+ * (−1.4, 0.1, "kg") → "−1.4 kg", (2, 1, "glasses") → "+2 glasses", (0, 0.1, "kg") → "0.0 kg".
+ * @param {number} value
+ * @param {number} step
+ * @param {string | null} unit
+ * @returns {string}
+ */
+export function formatValueChange(value, step, unit) {
+  const text = formatFixed(Math.abs(value), stepDecimals(step));
+  return `${signOf(value, text)}${withUnit(text, unit)}`;
+}
+
+/**
+ * A score from 0 to 100 with 1 decimal and `%`. Example: 57 → "57.0%".
+ * @param {number} value
+ * @returns {string}
+ */
+export function formatScore(value) {
+  return `${formatFixed(value, 1)}%`;
+}
+
+/**
+ * The change of a score: its sign, 1 decimal and `%`. Examples: 4 → "+4.0%", −1.25 → "−1.3%", 0 → "0.0%".
+ * @param {number} value
+ * @returns {string}
+ */
+export function formatScoreChange(value) {
+  const text = formatFixed(Math.abs(value), 1);
+  return `${signOf(value, text)}${text}%`;
+}
+
+/**
+ * A number of days with the word. Examples: 1 → "1 day", 105 → "105 days".
+ * @param {number} count
+ * @returns {string}
+ */
+export function formatDays(count) {
+  return `${formatNumber(count, 0)} ${count === 1 ? 'day' : 'days'}`;
+}
+
+/**
+ * The sign before the text of a change: "+", {@link MINUS}, or nothing if the text shows 0.
+ * @param {number} value
+ * @param {string} text The text of the size of the change.
+ * @returns {string}
+ */
+function signOf(value, text) {
+  if (Number(text.replaceAll(',', '')) === 0) return '';
+  return value > 0 ? '+' : MINUS;
 }
 
 /**
@@ -92,10 +189,8 @@ export function withUnit(text, unit) {
  * @returns {string}
  */
 export function formatSigned(value, unit) {
-  let sign = '';
-  if (value > 0) sign = '+';
-  else if (value < 0) sign = '−';
-  return `${sign}${withUnit(formatNumber(Math.abs(value), 2), unit)}`;
+  const text = formatNumber(Math.abs(value), 2);
+  return `${signOf(value, text)}${withUnit(text, unit)}`;
 }
 
 /**

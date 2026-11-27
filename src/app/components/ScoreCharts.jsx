@@ -4,12 +4,12 @@ import { monthOf } from '../../model/Day.js';
 import {
   formatNumber,
   formatPercent,
-  formatSigned,
+  formatScore,
+  formatScoreChange,
   monthTitle,
   shortDay,
   shortMonth,
   weekdayNames,
-  withUnit,
 } from '../../model/Format.js';
 import { withoutFloatNoise } from '../../model/LogEntry.js';
 import { groupOf } from '../../model/Metric.js';
@@ -112,16 +112,13 @@ export function ScoreCharts({ window, values, scoreMetrics, points }) {
   );
 }
 
-/** The unit of the score. */
-const SCORE_UNIT = '%';
-
 /**
- * A score with its unit. Example: 57 gives "57%".
+ * A score with its unit. Example: 57 gives "57.0%".
  * @param {number} value
  * @returns {string}
  */
 function scoreText(value) {
-  return withUnit(formatNumber(value, 1), SCORE_UNIT);
+  return formatScore(value);
 }
 
 /**
@@ -165,7 +162,7 @@ function ScoreContent({ window, values, scoreMetrics, points }) {
       <KeyNumbers
         items={[
           ['per day', perDay == null ? '–' : scoreText(perDay)],
-          ['change', average != null && previous != null ? formatSigned(average - previous, SCORE_UNIT) : '–'],
+          ['change', average != null && previous != null ? formatScoreChange(average - previous) : '–'],
           ['best day', best == null ? '–' : `${scoreText(best.value)} · ${shortDay(best.day)}`],
           [
             'best weekday',

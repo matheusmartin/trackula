@@ -101,9 +101,9 @@ describe('MetricDetail', () => {
     await showPage();
     await openDetail('Meditate');
     expect(detail).toBe(true);
-    expect(screen.getByText('Yes rate')).toBeTruthy();
-    expect(screen.getByText('Habit strength (%)')).toBeTruthy();
-    expect(screen.getByText('Yes days')).toBeTruthy();
+    expect(screen.getByText('Done rate')).toBeTruthy();
+    expect(screen.getByText('Strength (%)')).toBeTruthy();
+    expect(screen.getByText('Done days')).toBeTruthy();
 
     fireEvent.click(button('Back'));
     await waitFor(() => expect(detail).toBe(false));
@@ -114,7 +114,7 @@ describe('MetricDetail', () => {
     await showPage();
     await openDetail('Weight');
     expect(screen.getByText('Averages and range')).toBeTruthy();
-    expect(screen.getByText('Values and 7-day trend')).toBeTruthy();
+    expect(screen.getByText('Values and trend')).toBeTruthy();
     fireEvent.click(button('Back'));
     await openDetail('Water');
     expect(screen.getByText('Totals')).toBeTruthy();

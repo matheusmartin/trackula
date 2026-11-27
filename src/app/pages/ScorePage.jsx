@@ -30,7 +30,7 @@ export function ScorePage({ title, scores, today, metrics, points }) {
   const [measure, width] = useElementWidth();
   const period = usePeriod(scores, today, (steps) => defaultStepIndex(null, steps));
   return (
-    <div ref={measure} class="metric-detail score-theme">
+    <div ref={measure} class="metric-detail">
       <div class="metric-detail-header">
         <h2 class="metric-detail-title headline-small">{title}</h2>
       </div>

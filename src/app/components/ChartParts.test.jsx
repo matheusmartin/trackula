@@ -13,11 +13,11 @@ describe('ChartParts', () => {
       <KeyNumbers
         items={[
           ['total', '12 l'],
-          ['days logged', '3'],
+          ['days recorded', '3'],
         ]}
       />,
     );
     expect(screen.getByText('12 l')).toBeTruthy();
-    expect(screen.getByTitle('days logged: 3')).toBeTruthy();
+    expect(screen.getByTitle('days recorded: 3')).toBeTruthy();
   });
 });

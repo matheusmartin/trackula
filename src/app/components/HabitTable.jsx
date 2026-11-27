@@ -1,6 +1,6 @@
 import { Fragment } from 'preact';
 import { useMemo, useRef, useState } from 'preact/hooks';
-import { formatCompact, formatNumber, weekdayNames, weekLabels, withUnit } from '../../model/Format.js';
+import { formatCompact, formatNumber, formatValue, weekdayNames, weekLabels } from '../../model/Format.js';
 import { weekRows } from '../../model/Day.js';
 import { metricDayKey, parseMetricDay } from '../../model/LogEntry.js';
 import { DayLayout, tableDayCount } from '../../model/MainView.js';
@@ -406,5 +406,5 @@ function hint(m) {
 function valueText(m, v) {
   if (v == null) return '';
   if (m instanceof YesNoMetric) return ': yes';
-  return `: ${withUnit(formatNumber(v, 3), m.unit)}`;
+  return `: ${formatValue(v, m.step, m.unit)}`;
 }
