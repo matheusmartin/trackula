@@ -15,6 +15,11 @@
   color: var(--on-error-container);
 }
 
+.notice-warning {
+  background-color: var(--warning-container);
+  color: var(--on-warning-container);
+}
+
 .notice-text {
   flex: 1;
   min-inline-size: 0;

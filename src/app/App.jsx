@@ -1,12 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { MainView } from '../model/MainView.js';
+import { Route } from '../model/Route.js';
 import { DemoStore } from '../sheets/DemoStore.js';
-import { BackDispatcher, LocalBackDispatcher, useOnBack } from './Back.js';
 import { ActionBarHost, LocalActionBarHost } from './components/ActionBar.jsx';
 import { Header } from './components/Header.jsx';
 import { Notice } from './components/Notice.jsx';
 import { RAIL_WIDTH } from './components/Sizes.js';
 import { Symbol } from './components/Symbol.jsx';
+import { LocalNavigator, Navigator, useRoute } from './Navigation.js';
 import { SetupPage } from './pages/SetupPage.jsx';
 import { SignInPage } from './pages/SignInPage.jsx';
 import { ReloadHandle, TodayPage } from './pages/TodayPage.jsx';
@@ -18,17 +19,18 @@ import './App.css';
 /** @import { Platform, Session } from './Platform.js' */
 
 /**
- * The root of the UI. Shows sign-in, then sheet setup, then the Today page. In demo mode, only the Today page.
+ * The root of the UI. Shows sign-in, then sheet setup, then the Today page. In demo mode, only the Today page. The
+ * address of the browser tab gives the screen: see {@link Navigator} and `Route`.
  * @param {object} props
  * @param {Platform} props.platform
  * @returns {JSX.Element}
  */
 export function App({ platform }) {
-  const back = useMemo(() => new BackDispatcher(platform.history), [platform]);
+  const navigator = useMemo(() => new Navigator(platform.history), [platform]);
   return (
-    <LocalBackDispatcher.Provider value={back}>
-      <AppContent platform={platform} />
-    </LocalBackDispatcher.Provider>
+    <LocalNavigator.Provider value={navigator}>
+      <AppContent platform={platform} navigator={navigator} />
+    </LocalNavigator.Provider>
   );
 }
 
@@ -36,34 +38,30 @@ export function App({ platform }) {
  * The screens of the app: see {@link App}.
  * @param {object} props
  * @param {Platform} props.platform
+ * @param {Navigator} props.navigator
  * @returns {JSX.Element}
  */
-function AppContent({ platform }) {
+function AppContent({ platform, navigator }) {
   const [session, setSession] = useState(/** @type {Session | null} */ (null));
   const [spreadsheetId, setSpreadsheetId] = useState(() => savedSpreadsheetId(platform));
   const [expired, setExpired] = useState(false);
 
-  // The view of the Today page. The app always opens on the Today tiles.
-  const [view, setView] = useState(MainView.TODAY);
+  // The screen of the address. A view of the navigation shows the navigation. The other screens have their own title
+  // and back button at the top.
+  const route = useRoute(navigator);
+  const view = route.view;
   const reload = useMemo(() => new ReloadHandle(), []);
 
   // True while the Today page loads or writes: the app bar shows a progress circle instead of the reload button.
   const [busy, setBusy] = useState(false);
 
-  // True while the Today page shows a metric detail screen: then the navigation is hidden.
-  const [showsDetail, setShowsDetail] = useState(false);
-
-  // True while the Today page shows the metrics screen. The navigation is hidden there too.
-  const [managing, setManaging] = useState(false);
-
   const demo = useMemo(() => (platform.isDemo ? new DemoStore(platform.today(), DEMO_DELAY) : null), [platform]);
   const config = platform.config;
 
   // The screen in the page area. Each screen has its own scroll position: see Layout.
-  const screen = managing ? 'metrics' : showsDetail ? 'detail' : view.name;
-
-  // The Back button of the browser closes the metrics screen. The Today page does the same for its detail screen.
-  useOnBack(managing, () => setManaging(false));
+  const screen = view?.name ?? route.screen;
+  const showView = (/** @type {MainView} */ v) => navigator.show(Route.ofView(v));
+  const openMetrics = () => navigator.go(Route.METRICS);
 
   /**
    * The Today page with the state of the App.
@@ -78,13 +76,8 @@ function AppContent({ platform }) {
       today={platform.today()}
       expired={isExpired}
       onExpired={onExpired}
-      view={view}
-      onView={setView}
       reload={reload}
       onBusy={setBusy}
-      onDetail={setShowsDetail}
-      managing={managing}
-      onManaging={setManaging}
       hasMouse={platform.hasMouse}
       readPref={(key) => platform.readPref(key)}
       writePref={(key, value) => platform.writePref(key, value)}
@@ -94,14 +87,14 @@ function AppContent({ platform }) {
   if (demo != null) {
     return (
       <Layout
-        header={<Header onReload={() => reload.run?.()} busy={busy} onMetrics={() => setManaging(true)} />}
-        showsNavigation={!showsDetail && !managing}
-        view={view}
-        onView={setView}
+        header={<Header onReload={() => reload.run?.()} busy={busy} onMetrics={openMetrics} />}
+        showsNavigation={view != null}
+        view={view ?? MainView.TODAY}
+        onView={showView}
         screen={screen}
       >
         {/* Only on the main views: a detail screen and a form have their own title at the top. */}
-        {!showsDetail && !managing && <Notice text="Demo mode: sample data. Nothing goes to Google Sheets." />}
+        {view != null && <Notice text="Demo mode: sample data. Nothing goes to Google Sheets." />}
         {todayPage(
           demo,
           () => false,
@@ -169,13 +162,13 @@ function AppContent({ platform }) {
         <Header
           onReload={connected ? () => reload.run?.() : null}
           busy={busy}
-          onMetrics={connected ? () => setManaging(true) : null}
+          onMetrics={connected ? openMetrics : null}
           onSignOut={
             session == null
               ? null
               : () => {
                   setSession(null);
-                  setManaging(false);
+                  navigator.show(Route.TODAY);
                 }
           }
           onDisconnect={
@@ -183,15 +176,15 @@ function AppContent({ platform }) {
               ? () => {
                   saveSpreadsheetId(platform, null);
                   setSpreadsheetId(null);
-                  setManaging(false);
+                  navigator.show(Route.TODAY);
                 }
               : null
           }
         />
       }
-      showsNavigation={connected && !showsDetail && !managing}
-      view={view}
-      onView={setView}
+      showsNavigation={connected && view != null}
+      view={view ?? MainView.TODAY}
+      onView={showView}
       screen={connected ? screen : 'setup'}
     >
       {content()}
@@ -220,7 +213,7 @@ function SheetPage({ session, spreadsheetId, children }) {
 }
 
 /**
- * The app bar, the main content and the navigation: Today, 5 days, 31 days, Score. A narrow window has a bottom
+ * The app bar, the main content and the navigation: Today, Days, Score. A narrow window has a bottom
  * navigation bar. A window of {@link RAIL_WIDTH} or more has a navigation rail on the left.
  *
  * - The page scrolls as a normal web page. The app bar stays at the top, and the navigation bar at the bottom.
@@ -311,7 +304,7 @@ function useWideWindow(width) {
 /**
  * Keeps the height of the bottom area (the action bar and the navigation bar) in the CSS variable
  * `--app-bottom-height` of the page. `App.css` uses it as the scroll padding, so the browser does not put a focused
- * element below the bottom area. Example: the Tab key moves the focus to a tile below the Save button.
+ * element below the bottom area. Example: the Tab key moves the focus to a tile below the Undo message.
  * @param {{ current: HTMLElement | null }} ref
  */
 function useBottomHeight(ref) {

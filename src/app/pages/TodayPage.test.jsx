@@ -1,12 +1,14 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
-import { useState } from 'preact/hooks';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { Day } from '../../model/Day.js';
 import { MainView } from '../../model/MainView.js';
 import { NumberGoal } from '../../model/Metric.js';
-import { planEditMetric } from '../../model/MetricsWrite.js';
+import { SetMetricCells, planEditMetric } from '../../model/MetricsWrite.js';
+import { Route } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
+import { LocalNavigator, Navigator } from '../Navigation.js';
 import { CountingStore, Gate } from '../testing/CountingStore.js';
+import { FakeHistory } from '../testing/FakePlatform.js';
 import { ReloadHandle, TodayPage } from './TodayPage.jsx';
 
 /** @import { Metric } from '../../model/Metric.js' */
@@ -19,10 +21,10 @@ const today = Day.of(2026, 10, 3);
 let store;
 /** @type {Map<string, string>} */
 let prefs;
-/** The view of the navigation: the page changes it with `onView`, and a test with `setView`. */
-let view = MainView.TODAY;
-/** @type {(view: MainView) => void} */
-let setView = () => {};
+/** @type {Navigator} */
+let navigator;
+/** The view of the navigation: the page changes it with the navigator, and a test with `changeView`. */
+let view = /** @type {MainView | null} */ (MainView.TODAY);
 
 beforeEach(() => {
   store = new CountingStore(new DemoStore(today, 0));
@@ -32,40 +34,32 @@ beforeEach(() => {
 afterEach(cleanup);
 
 /**
- * The page with the view state of the App.
- * @param {{ start: MainView }} props
- * @returns {import('preact').JSX.Element}
- */
-function Page({ start }) {
-  const [shown, setShown] = useState(start);
-  view = shown;
-  setView = setShown;
-  return (
-    <TodayPage
-      store={store}
-      today={today}
-      expired={() => false}
-      onExpired={() => {}}
-      view={shown}
-      onView={setShown}
-      reload={new ReloadHandle()}
-      onBusy={() => {}}
-      onDetail={() => {}}
-      readPref={(key) => prefs.get(key) ?? null}
-      writePref={(key, value) => {
-        if (value == null) prefs.delete(key);
-        else prefs.set(key, value);
-      }}
-    />
-  );
-}
-
-/**
- * Shows the page on the view `start` and waits for the data.
+ * Shows the page on the view `start`, with the navigator of the App, and waits for the data.
  * @param {MainView} [start]
  */
 async function showPage(start = MainView.TODAY) {
-  render(<Page start={start} />);
+  navigator = new Navigator(new FakeHistory(Route.ofView(start).hash));
+  view = start;
+  navigator.subscribe((route) => {
+    view = route.view;
+  });
+  render(
+    <LocalNavigator.Provider value={navigator}>
+      <TodayPage
+        store={store}
+        today={today}
+        expired={() => false}
+        onExpired={() => {}}
+        reload={new ReloadHandle()}
+        onBusy={() => {}}
+        readPref={(key) => prefs.get(key) ?? null}
+        writePref={(key, value) => {
+          if (value == null) prefs.delete(key);
+          else prefs.set(key, value);
+        }}
+      />
+    </LocalNavigator.Provider>,
+  );
   await screen.findAllByText('Weight', {}, { timeout: TIMEOUT });
 }
 
@@ -74,7 +68,7 @@ async function showPage(start = MainView.TODAY) {
  * @param {MainView} next
  */
 async function changeView(next) {
-  await act(() => setView(next));
+  await act(() => navigator.show(Route.ofView(next)));
 }
 
 /**
@@ -159,36 +153,44 @@ function scoreChartLabel() {
 }
 
 describe('TodayPage', () => {
-  test('a yes/no tile is unsaved until save, and save shows the table', async () => {
+  test('a tap on a yes/no tile writes yes at once, the page stays, and Undo writes the value before', async () => {
     await showPage();
-    expect(button('No changes').disabled).toBe(true);
-
     fireEvent.click(screen.getByText('Meditate'));
-    expect(button('Save: Meditate').disabled).toBe(false);
-    expect(valueToday('meditate')).toBeNull();
+    await waitUntil(() => valueToday('meditate') === 1);
+    expect(view).toBe(MainView.TODAY);
+    await screen.findByText('Meditate: yes on Oct 3.', {}, { timeout: TIMEOUT });
 
-    fireEvent.click(button('Save: Meditate'));
-    await waitUntil(() => view === MainView.SHORT);
-    expect(valueToday('meditate')).toBe(1);
+    fireEvent.click(button('Undo'));
+
+    await waitUntil(() => valueToday('meditate') === null);
+    expect(screen.queryByText('Meditate: yes on Oct 3.')).toBeNull();
+    // Undo shows no message of its own.
+    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
   });
 
-  test('a second tap on a yes/no tile goes back, and the saved value again is not unsaved', async () => {
+  test('a second tap on a yes/no tile writes no', async () => {
     await showPage();
-    fireEvent.click(screen.getByText('Meditate'));
-    fireEvent.click(screen.getByText('Meditate'));
-    expect(button('No changes')).toBeTruthy();
+    const tile = /** @type {HTMLButtonElement} */ (screen.getByRole('checkbox', { name: 'Meditate' }));
+    fireEvent.click(tile);
+    await waitUntil(() => valueToday('meditate') === 1);
+    await waitFor(() => expect(tile.disabled).toBe(false));
+    fireEvent.click(tile);
+    await waitUntil(() => valueToday('meditate') === 0);
   });
 
   test('a yes tile of the goal no is over the limit', async () => {
     await changeMetric('vitamins', (m) => m.copy({ goalIsYes: false }));
     await showPage();
-    fireEvent.click(screen.getByText('Vitamins'));
-    const vitamins = screen.getByRole('checkbox', { name: 'Vitamins' });
-    expect(vitamins.getAttribute('title')).toBe('Yes, over the limit of the goal no');
+    const vitamins = /** @type {HTMLButtonElement} */ (screen.getByRole('checkbox', { name: 'Vitamins' }));
+    fireEvent.click(vitamins);
+    await waitFor(() => expect(vitamins.getAttribute('title')).toBe('Yes, over the limit of the goal no'), {
+      timeout: TIMEOUT,
+    });
     // A yes tile of the goal yes reaches the goal: it is checked, without a limit.
-    fireEvent.click(screen.getByText('Meditate'));
-    const meditate = screen.getByRole('checkbox', { name: 'Meditate' });
-    expect(meditate.getAttribute('aria-checked')).toBe('true');
+    const meditate = /** @type {HTMLButtonElement} */ (screen.getByRole('checkbox', { name: 'Meditate' }));
+    await waitFor(() => expect(meditate.disabled).toBe(false));
+    fireEvent.click(meditate);
+    await waitFor(() => expect(meditate.getAttribute('aria-checked')).toBe('true'), { timeout: TIMEOUT });
     expect(meditate.getAttribute('title')).toBe('Yes, goal reached');
   });
 
@@ -223,13 +225,12 @@ describe('TodayPage', () => {
     mouseClick(button('Water'));
     mouseClick(button('Water'));
     rightClick(button('Water'));
-    fireEvent.click(await screen.findByRole('button', { name: 'Save: Water' }));
-    await waitUntil(() => view === MainView.SHORT);
-    expect(valueToday('water')).toBe(1);
+    await waitUntil(() => valueToday('water') === 1);
+    expect(view).toBe(MainView.TODAY);
   });
 
   test('a click on a yes/no cell writes yes and a second click writes no', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     fireEvent.click(cellToday('Meditate'));
     await waitUntil(() => valueToday('meditate') === 1);
     await waitFor(() => expect(/** @type {HTMLButtonElement} */ (cellToday('Meditate', ': yes')).disabled).toBe(false));
@@ -238,7 +239,7 @@ describe('TodayPage', () => {
   });
 
   test('count clicks on a cell show at once and go to the sheet', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     const cell = cellToday('Water');
     mouseClick(cell);
     mouseClick(cell);
@@ -246,18 +247,20 @@ describe('TodayPage', () => {
     await waitFor(() => expect(cellToday('Water', ': 2 glasses')).toBeTruthy());
   });
 
-  test('a click on a number cell opens the editor, and save writes the typed value', async () => {
-    await showPage(MainView.SHORT);
+  test('a click on a number cell opens the editor, and Enter writes the typed value and closes it', async () => {
+    await showPage(MainView.DAYS);
     fireEvent.click(cellToday('Weight'));
     expect(screen.getByRole('slider', { name: 'Weight ruler' })).toBeTruthy();
-    fireEvent.input(screen.getByRole('textbox', { name: 'Weight kg' }), { target: { value: '81,9' } });
-    fireEvent.click(button('Save'));
+    const field = screen.getByRole('textbox', { name: 'Weight kg' });
+    fireEvent.input(field, { target: { value: '81,9' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
     await waitUntil(() => valueToday('weight') === 81.9);
     expect(screen.queryByRole('slider', { name: 'Weight ruler' })).toBeNull();
+    await screen.findByText('Weight: 81.9 kg on Oct 3.', {}, { timeout: TIMEOUT });
   });
 
   test('a group chip shows only its metrics and stays in local storage', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     fireEvent.click(button('Hygiene'));
     await waitFor(() => expect(screen.queryByText('Weight')).toBeNull());
     expect(screen.getByText('Morning teeth')).toBeTruthy();
@@ -268,26 +271,25 @@ describe('TodayPage', () => {
     expect(prefs.has('group')).toBe(false);
   });
 
-  test('a failed save shows the error, keeps the tiles, and the save button works again', async () => {
+  test('a failed write shows the error and no Undo, and the next input writes again', async () => {
     await showPage();
     store.failWrites = true;
-    fireEvent.click(screen.getByText('Meditate'));
-    fireEvent.click(button('Save: Meditate'));
+    const tile = /** @type {HTMLButtonElement} */ (screen.getByRole('checkbox', { name: 'Meditate' }));
+    fireEvent.click(tile);
     await screen.findByText('No network.', {}, { timeout: TIMEOUT });
-    expect(view).toBe(MainView.TODAY);
-    // The failed value is not saved: the tile goes back, and the button is not "Saving…".
-    await screen.findByText('Save');
-    expect(button('No changes')).toBeTruthy();
+    expect(valueToday('meditate')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+    // The tile shows the value of the sheet again.
+    expect(tile.getAttribute('aria-checked')).toBe('false');
 
     store.failWrites = false;
-    fireEvent.click(screen.getByText('Meditate'));
-    fireEvent.click(button('Save: Meditate'));
-    await waitUntil(() => view === MainView.SHORT);
-    expect(valueToday('meditate')).toBe(1);
+    await waitFor(() => expect(tile.disabled).toBe(false));
+    fireEvent.click(tile);
+    await waitUntil(() => valueToday('meditate') === 1);
   });
 
   test('taps during a write wait and go to the sheet in one write for the cell', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     const gate = new Gate();
     store.gate = gate;
     const cell = cellToday('Water');
@@ -311,60 +313,69 @@ describe('TodayPage', () => {
     fireEvent.keyDown(tile, { key: '=' });
     fireEvent.keyDown(tile, { key: '=' });
     fireEvent.keyDown(tile, { key: '-' });
-    fireEvent.click(await screen.findByRole('button', { name: 'Save: Water' }));
-    await waitUntil(() => view === MainView.SHORT);
-    expect(valueToday('water')).toBe(1);
+    await waitUntil(() => valueToday('water') === 1);
   });
 
   test('a touch tap adds after the wait, and a touch double tap subtracts', async () => {
     await showPage();
     const tile = button('Water');
     touchTap(tile);
-    await screen.findByRole('button', { name: 'Save: Water' }, { timeout: TIMEOUT });
+    await waitUntil(() => valueToday('water') === 1);
     touchTap(tile);
     await new Promise((resolve) => setTimeout(resolve, 50));
     touchTap(tile);
-    // 1 − 1 is the saved value again (empty): no change.
-    await screen.findByRole('button', { name: 'No changes' }, { timeout: TIMEOUT });
+    // 1 − 1 is 0: an empty cell.
+    await waitUntil(() => valueToday('water') === null);
   });
 
   test('a screen reader click on a count cell adds a step', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     // A click without a press, as a screen reader or the keyboard gives it.
     fireEvent.click(cellToday('Water'));
     await waitUntil(() => valueToday('water') === 1);
   });
 
-  test('a failed save stays on the today tiles, also when queued taps get written after it', async () => {
-    await showPage();
+  test('an input during a write waits, and the next write has its value', async () => {
+    await showPage(MainView.DAYS);
     const gate = new Gate();
     store.gate = gate;
-    // The Save fails. The write of the queued tap after it works and clears the error.
-    store.failOnce = true;
-    fireEvent.click(screen.getByText('Meditate'));
-    fireEvent.click(button('Save: Meditate'));
-    // During the Save, the user goes to the table and taps a count cell: the tap waits in the queue.
-    await changeView(MainView.SHORT);
-    mouseClick(cellToday('Water'));
-    await changeView(MainView.TODAY);
+    fireEvent.click(cellToday('Meditate'));
+    // During the write of Meditate, a typed weight.
+    fireEvent.click(cellToday('Weight'));
+    const field = screen.getByRole('textbox', { name: 'Weight kg' });
+    fireEvent.input(field, { target: { value: '80' } });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(store.writes).toHaveLength(0);
 
     gate.open();
-    await waitUntil(() => valueToday('water') === 1);
-    await act(() => new Promise((resolve) => setTimeout(resolve, 0)));
-    expect(view).toBe(MainView.TODAY);
-    expect(valueToday('meditate')).toBeNull();
+    await waitUntil(() => valueToday('weight') === 80);
+    expect(valueToday('meditate')).toBe(1);
   });
 
-  test('the table and the calendars start with the score card, and its title opens the score view', async () => {
-    await showPage(MainView.SHORT);
+  test('both layouts of the days start with the score card, and its title opens the score view', async () => {
+    await showPage(MainView.DAYS);
     expect(button('Show the score only')).toBeTruthy();
-    await changeView(MainView.MONTH);
+    expect(screen.getByRole('table')).toBeTruthy();
+
+    fireEvent.click(button('Calendars'));
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(button('Calendars').getAttribute('aria-pressed')).toBe('true');
+    expect(prefs.get('days-layout')).toBe('CALENDARS');
     fireEvent.click(button('Show the score only'));
     expect(view).toBe(MainView.SCORE);
   });
 
+  test('the days open in the layout of local storage', async () => {
+    prefs.set('days-layout', 'CALENDARS');
+    await showPage(MainView.DAYS);
+    expect(screen.queryByRole('table')).toBeNull();
+    fireEvent.click(button('Table'));
+    expect(screen.getByRole('table')).toBeTruthy();
+    expect(prefs.get('days-layout')).toBe('TABLE');
+  });
+
   test('the score card shows the score of the selected group', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     expect(screen.getByText('Score')).toBeTruthy();
     const all = scoreChartLabel();
     fireEvent.click(button('Hygiene'));
@@ -377,7 +388,7 @@ describe('TodayPage', () => {
   });
 
   test('the score view has the group filter', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     await changeView(MainView.SCORE);
     // The first "Hygiene" is the chip. The legend of the weekday averages has the group name too.
     fireEvent.click(screen.getAllByRole('button', { name: 'Hygiene' })[0]);
@@ -385,14 +396,38 @@ describe('TodayPage', () => {
     expect(prefs.get('group')).toBe('Hygiene');
   });
 
-  test('save after a group change saves the tiles of the new group', async () => {
-    // The page opens on another group: the first tiles do not have "Morning teeth".
-    prefs.set('group', 'Health');
+  test('Undo after count taps during a write gives the value before all the taps', async () => {
     await showPage();
-    expect(screen.queryByText('Morning teeth')).toBeNull();
-    fireEvent.click(button('Hygiene'));
-    fireEvent.click(await screen.findByText('Morning teeth'));
-    fireEvent.click(button('Save: Morning teeth'));
-    await waitUntil(() => valueToday('teeth') === 1);
+    const tile = button('Water');
+    mouseClick(tile);
+    mouseClick(tile);
+    mouseClick(tile);
+    await waitUntil(() => valueToday('water') === 3);
+    await screen.findByText('Water: 3 glasses on Oct 3.', {}, { timeout: TIMEOUT });
+
+    fireEvent.click(button('Undo'));
+
+    await waitUntil(() => valueToday('water') === null);
+  });
+
+  test('the problems of the sheet show as one line, and Show opens the metrics screen', async () => {
+    // A row without icon and without goal is invalid.
+    await store.applyMetrics(
+      new SetMetricCells(
+        11,
+        new Map([
+          [0, 'stretch'],
+          [1, 'Stretch'],
+          [2, 'yesno'],
+        ]),
+      ),
+    );
+    await showPage();
+    expect(screen.getByText('1 problem in the sheet.')).toBeTruthy();
+
+    fireEvent.click(button('Show'));
+
+    expect(navigator.route).toBe(Route.METRICS);
+    await screen.findByRole('heading', { name: 'Rows with problems' }, { timeout: TIMEOUT });
   });
 });

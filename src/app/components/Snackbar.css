@@ -1,0 +1,44 @@
+/* Snackbar.jsx: the message of a write, with its Undo button. See docs/design.md. */
+.app-snackbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 48px;
+  padding: var(--space-1) var(--space-1) var(--space-1) var(--space-4);
+  border-radius: var(--radius-s);
+  color: var(--inverse-on-surface);
+  background-color: var(--inverse-surface);
+  box-shadow: var(--elevate2);
+  animation: app-snackbar-in var(--duration-medium) var(--easing-standard);
+}
+
+.app-snackbar-text {
+  flex: 1;
+  min-inline-size: 0;
+  margin: 0;
+}
+
+.app-snackbar-action {
+  --button-shape: var(--radius-full);
+  flex: none;
+  block-size: 40px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-full);
+  color: var(--inverse-primary);
+  background-color: transparent;
+  cursor: pointer;
+}
+
+@keyframes app-snackbar-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-snackbar {
+    animation: none;
+  }
+}

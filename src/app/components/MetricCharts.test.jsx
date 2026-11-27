@@ -2,9 +2,8 @@ import { cleanup, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, test } from 'vitest';
 import { Day } from '../../model/Day.js';
 import { YesNoMetric } from '../../model/Metric.js';
-import { scoreMetric } from '../../model/Score.js';
 import { ZoomStep, ZoomWindow } from '../../model/Zoom.js';
-import { MetricCharts } from './MetricCharts.jsx';
+import { MetricCharts, ScoreCharts } from './MetricCharts.jsx';
 
 afterEach(cleanup);
 
@@ -27,11 +26,11 @@ describe('MetricCharts', () => {
 
   test('the score without values says that the Today page records the days', () => {
     render(
-      <MetricCharts
-        metric={scoreMetric}
+      <ScoreCharts
         window={new ZoomWindow(ZoomStep.entries[0], today, today)}
         values={new Map()}
-        states={new Map()}
+        scoreMetrics={[]}
+        points={new Map()}
       />,
     );
     expect(screen.getByText('No score yet')).toBeTruthy();

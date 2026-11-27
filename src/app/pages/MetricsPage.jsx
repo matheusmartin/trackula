@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'preact/hooks';
+import { useEffect, useId, useMemo, useRef, useState } from 'preact/hooks';
 import { dragShift, dropIndex } from '../../model/Drag.js';
 import {
   MetricDraft,
@@ -19,6 +19,8 @@ import {
   planSaveMetric,
 } from '../../model/MetricsWrite.js';
 import { isValidMetricId } from '../../model/Parse.js';
+import { Route, Screen } from '../../model/Route.js';
+import { useNavigator, useRoute } from '../Navigation.js';
 import { AppCard } from '../components/AppCard.jsx';
 import { AppIconButton } from '../components/AppIconButton.jsx';
 import { MetricIcon } from '../components/MetricIcon.jsx';
@@ -70,6 +72,33 @@ class RestoreTarget {
  */
 
 /**
+ * The form of the address `route`. Null for the list of metrics, and for a row or a deleted metric that the sheet does
+ * not have.
+ * @param {Route} route
+ * @param {Snapshot} data
+ * @returns {FormTarget | null}
+ */
+function targetOf(route, data) {
+  const param = route.param ?? '';
+  switch (route.screen) {
+    case Screen.NEW_METRIC:
+      return new NewTarget();
+    case Screen.EDIT_METRIC:
+      return new EditTarget(param);
+    case Screen.FIX_ROW: {
+      const row = data.metricsTable.invalid.find((r) => String(r.row) === param);
+      return row == null ? null : new FixTarget(row);
+    }
+    case Screen.RESTORE_METRIC: {
+      const deleted = data.deleted.find((d) => d.id === param);
+      return deleted == null ? null : new RestoreTarget(deleted);
+    }
+    default:
+      return null;
+  }
+}
+
+/**
  * A plan of a change to the `Metrics` tab: it gets the latest `Metrics` tab and gives the writes.
  * @typedef {(table: MetricsTable) => MetricsWrite[]} MetricsPlan
  */
@@ -77,32 +106,39 @@ class RestoreTarget {
 /**
  * The metrics screen. It shows the metrics in the order of the sheet, which is also the order in the app, the rows of
  * the `Metrics` tab that are not valid, and the deleted metrics: the `Log` columns without a metric. A click on a
- * metric, Add metric, Fix or Restore opens the form (see {@link MetricForm}). Wide screens: the screen is at most
- * `FORM_WIDTH` wide and centered.
+ * metric, Add metric, Fix or Restore opens the form (see {@link MetricForm}). Each form has its own address (see
+ * `Route`), so the Back button of the browser closes it. Wide screens: the screen is at most `FORM_WIDTH` wide and
+ * centered. The screen needs the `Navigator` of the App in `LocalNavigator`.
  * @param {object} props
  * @param {Snapshot} props.data The latest data of the sheet.
  * @param {boolean} props.busy True while data loads or saves. The buttons that write are disabled.
  * @param {string | null} props.error The error of the last load or write, or null.
  * @param {(plan: MetricsPlan, onDone: () => void) => void} props.onWrite Writes a change to the `Metrics` tab. The
  *   plan runs on the latest data. `onDone` runs after a write without an error, for example to close the form.
- * @param {() => void} props.onClose Closes the screen.
  * @param {boolean} [props.hasMouse] True if the device has a mouse. Then a drag moves a metric to a new place. Else the
  *   arrows of each row move it one place up or down. See {@link MetricList}. Default: false.
  * @returns {JSX.Element}
  */
-export function MetricsPage({ data, busy, error, onWrite, onClose, hasMouse = false }) {
-  const [form, setForm] = useState(/** @type {FormTarget | null} */ (null));
+export function MetricsPage({ data, busy, error, onWrite, hasMouse = false }) {
+  const navigator = useNavigator();
+  const route = useRoute(navigator);
+  // The form of the address. It stays the same object while the address stays: a reload keeps the changes of the form.
+  const form = useMemo(() => targetOf(route, data), [route]);
   const metrics = data.metrics;
   const table = data.metricsTable;
+  // The problems of the Log tab and of the scores. The problems of the Metrics tab are its invalid rows.
+  const otherProblems = data.warnings.filter((w) => !table.warnings.includes(w));
 
-  // A metric that is gone from the sheet, for example after a reload, has no form.
+  // A metric, a row or a deleted metric that is gone from the sheet, for example after a reload, has no form: the
+  // screen before shows.
   const edited = form instanceof EditTarget ? (metrics.find((m) => m.id === form.id) ?? null) : null;
-  const editedIsGone = form instanceof EditTarget && edited == null;
+  const isGone = (route.isForm && form == null) || (form instanceof EditTarget && edited == null);
   useEffect(() => {
-    if (editedIsGone) setForm(null);
-  }, [form, editedIsGone]);
+    // Only while the screen shows: a write can close the form at the same time.
+    if (isGone && navigator.route.equals(route)) navigator.back(true);
+  }, [route, isGone]);
 
-  const shownForm = form != null && !editedIsGone ? form : null;
+  const shownForm = form != null && !isGone ? form : null;
   const formState = useFormSetup(shownForm, edited, data);
 
   if (shownForm != null && formState != null) {
@@ -113,7 +149,8 @@ export function MetricsPage({ data, busy, error, onWrite, onClose, hasMouse = fa
       ...data.deleted.map((d) => d.id),
     ]);
     const groups = [...new Set(metrics.map((m) => m.group).filter((g) => g != null))];
-    const close = () => setForm(null);
+    // After a save, a delete or a discard: the guard of the form does not ask again.
+    const close = () => navigator.back(true);
     return (
       <MetricForm
         key={formState.version}
@@ -135,10 +172,10 @@ export function MetricsPage({ data, busy, error, onWrite, onClose, hasMouse = fa
   return (
     <div class="metrics-page">
       <div class="metrics-title-row">
-        <AppIconButton icon="arrow_back" title="Back" onClick={onClose} />
+        <AppIconButton icon="arrow_back" title="Back" onClick={() => navigator.back()} />
         <h2 class="metrics-title headline-small">Metrics</h2>
         {/* Without metrics, the button is in the empty state. */}
-        {metrics.length > 0 && <AddButton enabled={!busy} onClick={() => setForm(new NewTarget())} />}
+        {metrics.length > 0 && <AddButton enabled={!busy} onClick={() => navigator.go(Route.NEW_METRIC)} />}
       </div>
       <Help
         text={
@@ -147,15 +184,45 @@ export function MetricsPage({ data, busy, error, onWrite, onClose, hasMouse = fa
         }
       />
       {error != null && <Notice text={error} kind={NoticeKind.ERROR} />}
+      {/* The problems first: the line of the sheet problems on the other screens opens this screen. */}
+      {table.invalid.length > 0 && (
+        <OtherRows icon="warning" title="Rows with problems" help={null}>
+          {table.invalid.map((row) => (
+            <OtherRow
+              key={row.row}
+              title={`Row ${row.row} · ${row.id || 'no id'}`}
+              text={capitalized(row.problem)}
+              button="Fix"
+              enabled={!busy}
+              onClick={() => navigator.go(Route.fixRow(row.row))}
+            />
+          ))}
+        </OtherRows>
+      )}
+      {otherProblems.length > 0 && (
+        <OtherRows
+          icon="warning"
+          title="Other problems in the sheet"
+          help="Change these in the sheet. Then load the sheet again with the reload button."
+        >
+          <ul class="metrics-problems">
+            {otherProblems.map((problem, i) => (
+              <li key={i} class="body-medium">
+                {problem}
+              </li>
+            ))}
+          </ul>
+        </OtherRows>
+      )}
 
       {metrics.length === 0 ? (
-        <EmptyState enabled={!busy} onAdd={() => setForm(new NewTarget())} />
+        <EmptyState enabled={!busy} onAdd={() => navigator.go(Route.NEW_METRIC)} />
       ) : (
         <MetricList
           metrics={metrics}
           busy={busy}
           hasMouse={hasMouse}
-          onEdit={(m) => setForm(new EditTarget(m.id))}
+          onEdit={(m) => navigator.go(Route.editMetric(m.id))}
           onMove={(m, up) =>
             onWrite(
               (t) => nonNull(planMoveMetric(t, m.id, up)),
@@ -171,21 +238,6 @@ export function MetricsPage({ data, busy, error, onWrite, onClose, hasMouse = fa
         />
       )}
 
-      {table.invalid.length > 0 && (
-        <OtherRows icon="warning" title="Rows with problems" help={null}>
-          {table.invalid.map((row) => (
-            <OtherRow
-              key={row.row}
-              title={`Row ${row.row} · ${row.id || 'no id'}`}
-              text={capitalized(row.problem)}
-              button="Fix"
-              enabled={!busy}
-              onClick={() => setForm(new FixTarget(row))}
-            />
-          ))}
-        </OtherRows>
-      )}
-
       {data.deleted.length > 0 && (
         <OtherRows
           icon="history"
@@ -199,7 +251,7 @@ export function MetricsPage({ data, busy, error, onWrite, onClose, hasMouse = fa
               text={deletedSummary(deleted)}
               button="Restore"
               enabled={!busy}
-              onClick={() => setForm(new RestoreTarget(deleted))}
+              onClick={() => navigator.go(Route.restoreMetric(deleted.id))}
             />
           ))}
         </OtherRows>

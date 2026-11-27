@@ -1,28 +1,57 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { CountQueue } from '../../model/CountQueue.js';
-import { MainView } from '../../model/MainView.js';
-import { NumberMetric, groupOf, metricsOf } from '../../model/Metric.js';
-import { dayScores, groupScoreMetric, pointsByMetric, pointsOf, scoreMetric } from '../../model/Score.js';
-import { useOnBack } from '../Back.js';
+import { daysBetween } from '../../model/Day.js';
+import { formatNumber, shortDay, withUnit } from '../../model/Format.js';
+import { metricDayKey, planValue } from '../../model/LogEntry.js';
+import { CALENDAR_DAYS, DayLayout, MainView, dayLayoutOf } from '../../model/MainView.js';
+import { NumberMetric, YesNoMetric, groupOf, metricsOf } from '../../model/Metric.js';
+import { formatStep } from '../../model/NumberInput.js';
+import { Route, Screen } from '../../model/Route.js';
+import { dayScores, pointsByMetric, pointsOf } from '../../model/Score.js';
+import { dayValues } from '../../model/Summary.js';
 import { errorText } from '../Errors.js';
+import { useNavigator, useRoute } from '../Navigation.js';
+import { ActionBar } from '../components/ActionBar.jsx';
+import { useElementWidth } from '../components/ElementWidth.js';
 import { GroupChips, groupLabel } from '../components/GroupChips.jsx';
-import { DayLayout, HabitTable } from '../components/HabitTable.jsx';
+import { HabitTable, tableDays } from '../components/HabitTable.jsx';
 import { Notice, NoticeKind } from '../components/Notice.jsx';
 import { ScoreChart } from '../components/ScoreChart.jsx';
+import { SegmentedButtons } from '../components/SegmentedButtons.jsx';
+import { Snackbar } from '../components/Snackbar.jsx';
 import { Symbol } from '../components/Symbol.jsx';
 import { TodayTiles } from '../components/TodayTiles.jsx';
 import { TrendChart } from '../components/TrendChart.jsx';
 import { MetricDetail } from './MetricDetail.jsx';
 import { MetricsPage } from './MetricsPage.jsx';
+import { ScorePage } from './ScorePage.jsx';
 import './TodayPage.css';
 
 /** @import { JSX } from 'preact' */
 /** @import { Day } from '../../model/Day.js' */
-/** @import { CountStep, LogTable, LogWrite } from '../../model/LogEntry.js' */
+/** @import { CountStep, MetricDay } from '../../model/LogEntry.js' */
 /** @import { Metric } from '../../model/Metric.js' */
 /** @import { MetricsTable } from '../../model/MetricsTable.js' */
 /** @import { MetricsWrite } from '../../model/MetricsWrite.js' */
-/** @import { LogPlan, Snapshot, Store } from '../../sheets/Store.js' */
+/** @import { Snapshot, Store } from '../../sheets/Store.js' */
+
+/**
+ * A value of one metric on one day: 1 or 0 for a yes/no metric, null for no value.
+ * @typedef {object} CellValue
+ * @property {Metric} metric
+ * @property {Day} day
+ * @property {number | null} value
+ */
+
+/**
+ * The message of the last write and the values before it, for Undo.
+ * @typedef {object} UndoState
+ * @property {string} text Example: "Water: 3 glasses on Oct 3."
+ * @property {CellValue[]} cells The values before the write.
+ */
+
+/** The time that the message of a write shows, in milliseconds. */
+const UNDO_MILLIS = 6000;
 
 /** The reload button in the app bar calls `run`. The Today page sets it. */
 export class ReloadHandle {
@@ -42,28 +71,25 @@ export class ReloadHandle {
 
 /**
  * The main page: the metrics in Today tiles, a table or calendars, where the user records entries, or the score only.
+ * The screen comes from the address (see `Route`): a view of the navigation, the detail screen of a metric, or the
+ * metrics screen and its forms. The page needs the `Navigator` of the App in `LocalNavigator`.
  *
- * The page writes one change at a time. Count taps queue while a write runs, show at once, and go to the sheet in one
- * write for each cell when the write ends. See `CountQueue`.
+ * Each input goes to the sheet at once: there is no Save button. The page writes one change at a time. An input that
+ * comes while a write runs waits, and goes in the next write: the last value of each cell. Count taps show at once,
+ * and go to the sheet in one write for each cell. See `CountQueue`. After each write, a message shows the new value
+ * with an Undo button for some seconds. Undo writes the values before the write.
  * @param {object} props
  * @param {Store} props.store The store of the sheet, or of demo mode. The page keeps the first one.
  * @param {Day} props.today
  * @param {() => boolean} props.expired True after the Google sign-in expired. Then `onExpired` runs instead of a store
  *   call.
  * @param {() => void} props.onExpired
- * @param {MainView} props.view The view of the navigation. The App owns it, and `onView` changes it.
- * @param {(view: MainView) => void} props.onView
  * @param {ReloadHandle} props.reload The reload button in the app bar calls it. The page sets it.
  * @param {(busy: boolean) => void} props.onBusy Called when a load or a write starts and ends. The app bar shows a
  *   progress circle while it is true.
- * @param {(open: boolean) => void} props.onDetail Called when a metric detail screen opens (true) or closes. The App
- *   hides the navigation on the detail screen.
  * @param {(key: string) => string | null} props.readPref
  * @param {(key: string, value: string | null) => void} props.writePref The group filter stays in local storage. The
  *   filter also selects the score: of all metrics, or of the metrics of the selected group.
- * @param {boolean} [props.managing] True if the page shows the metrics screen. The App owns it, and `onManaging`
- *   changes it. The App hides the navigation on the metrics screen.
- * @param {(managing: boolean) => void} [props.onManaging]
  * @param {boolean} [props.hasMouse] True if the device has a mouse. Then a drag moves a metric on the metrics screen,
  *   not arrow buttons.
  * @returns {JSX.Element}
@@ -73,35 +99,42 @@ export function TodayPage({
   today,
   expired,
   onExpired,
-  view,
-  onView,
   reload,
   onBusy,
-  onDetail,
   readPref,
   writePref,
-  managing = false,
-  onManaging = () => {},
   hasMouse = false,
 }) {
   const [store] = useState(() => firstStore);
+  const navigator = useNavigator();
+  const route = useRoute(navigator);
   // The latest callbacks: the reload handle and the store calls keep one function for the life of the page.
-  const latest = useRef({ expired, onExpired, onBusy, onView, onDetail, onManaging });
-  latest.current = { expired, onExpired, onBusy, onView, onDetail, onManaging };
+  const latest = useRef({ expired, onExpired, onBusy });
+  latest.current = { expired, onExpired, onBusy };
   const page = useRef(/** @type {PageState} */ ({ data: null, busy: false, alive: true })).current;
   const [data, setData] = useState(/** @type {Snapshot | null} */ (null));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(/** @type {string | null} */ (null));
-  // The id of the metric with the open detail screen. Null shows the table.
-  const [detailId, setDetailId] = useState(/** @type {string | null} */ (null));
-  const openDetailId = useRef(detailId);
-  openDetailId.current = detailId;
+  // The view of the navigation. The other screens show on top of it.
+  const view = route.view ?? MainView.TODAY;
+  // The id of the metric with the open detail screen. Null shows the view.
+  const detailId = route.screen === Screen.METRIC ? route.param : null;
+  const managing = route.isMetrics;
   // The selected group, or null for all groups.
   const [group, setGroup] = useState(() => readPref('group'));
+  // The layout of the Days view. It stays in local storage, as the group.
+  const [dayLayout, setDayLayout] = useState(() => dayLayoutOf(readPref('days-layout')));
+  // The width of the Days view: the table shows as many days as it holds.
+  const [measureDays, daysWidth] = useElementWidth();
   // The count taps that are not in the sheet yet. The table shows them at once. The queue is not a state, so `counts`
   // changes after each change of the queue, to show the new taps.
   const queue = useMemo(() => new CountQueue(), []);
   const [counts, setCounts] = useState(0);
+  // The values that wait for the write that runs: the last value of each cell.
+  const records = useRef(/** @type {Map<MetricDay, CellValue>} */ (new Map())).current;
+  // The value of each changed cell before its first change since the last write, for Undo.
+  const before = useRef(/** @type {Map<MetricDay, CellValue>} */ (new Map())).current;
+  const [undo, setUndo] = useState(/** @type {UndoState | null} */ (null));
 
   /**
    * Runs `task` and shows its data. `done` runs in the same update as the new data or the error. After that, the count
@@ -134,51 +167,120 @@ export function TodayPage({
         setCounts((n) => n + 1);
         latest.current.onBusy(false);
         // The page is gone, for example after a sign-out: no new write.
-        if (page.alive) writeCounts();
+        if (page.alive) flush();
       }
     })();
   }
 
   /**
-   * Writes the queued count taps: one write for each cell, with all taps of that cell. See CountQueue. One write at a
-   * time: it waits while another load or write runs. If a write fails, its taps are dropped and the error shows.
+   * Writes the values that wait, in one write, then the queued count taps: one write for each cell, with all taps of
+   * that cell. See CountQueue. One write at a time: it waits while another load or write runs. If a write fails, its
+   * values and taps are dropped and the error shows.
    */
-  function writeCounts() {
-    if (page.busy || !queue.hasQueued) return;
-    const plans = queue.send(new Map((page.data?.metrics ?? []).map((m) => [m.id, m])));
+  function flush() {
+    if (page.busy) return;
+    if (records.size > 0) {
+      const cells = [...records.values()];
+      records.clear();
+      writeWithUndo(
+        () => store.changeAll(cells.map((c) => (log) => planValue(c.metric, c.day, c.value, log))),
+        cells,
+        null,
+      );
+      return;
+    }
+    if (!queue.hasQueued) return;
+    const keys = [...queue.pending.keys()];
+    const metricsById = new Map((page.data?.metrics ?? []).map((m) => [m.id, m]));
+    const plans = queue.send(metricsById);
     setCounts((n) => n + 1);
-    run(
+    // The tapped cells, for the message: the values before the taps have their metric and their day.
+    const cells = keys.flatMap((key) => {
+      const cell = before.get(key);
+      return cell == null ? [] : [cell];
+    });
+    writeWithUndo(
       () => store.changeAll(plans),
+      cells,
       () => queue.sent(),
     );
   }
 
-  /** @param {(log: LogTable) => LogWrite | null} plan */
-  function write(plan) {
-    run(() => store.change(plan));
+  /**
+   * Runs the write `task` of the values of `cells`. After a write without an error, the message of the last cell shows
+   * with Undo. Undo gives the values before the first input since the last message: when inputs wait for the next
+   * write, only that write shows the message, so that Undo gives the values before all the inputs. Example: three
+   * count taps during two writes, then Undo, give the value before the first tap.
+   * @param {() => Promise<Snapshot>} task
+   * @param {CellValue[]} cells The written cells. Only the metric and the day of the last one count here.
+   * @param {(() => void) | null} done
+   */
+  function writeWithUndo(task, cells, done) {
+    /** @type {Snapshot | null} */
+    let written = null;
+    run(
+      async () => {
+        written = await task();
+        return written;
+      },
+      () => {
+        done?.();
+        if (written == null) {
+          // A failed write has no Undo.
+          before.clear();
+          return;
+        }
+        if (records.size > 0 || queue.hasQueued) return;
+        const undoCells = [...before.values()];
+        before.clear();
+        const last = cells.at(-1);
+        if (last == null || undoCells.length === 0) return;
+        const value = dayValues(last.metric, written.log, new Map()).get(last.day) ?? null;
+        setUndo({ text: writeText(last.metric, last.day, value), cells: undoCells });
+      },
+    );
   }
 
   /**
-   * Saves the values of the Today tiles. After a successful save, the page shows the last 5 days. The app still opens
-   * on the Today tiles. After an error, the Today tiles stay.
-   * @param {LogPlan[]} plans
-   * @param {() => void} onDone
+   * The value of `metric` on `day` that the page shows now: in the data, with the count taps that are not written yet.
+   * @param {Metric} metric
+   * @param {Day} day
+   * @returns {number | null}
    */
-  function writeAll(plans, onDone) {
-    // True after the save. Not the error state: a write of queued count taps can start and clear the error.
-    let saved = false;
-    const job = run(async () => {
-      const snapshot = await store.changeAll(plans);
-      saved = true;
-      return snapshot;
-    }, onDone);
-    if (job == null) {
-      onDone();
-      return;
-    }
-    void job.then(() => {
-      if (saved) latest.current.onView(MainView.SHORT);
-    });
+  function shownValue(metric, day) {
+    const log = page.data?.log;
+    return log == null ? null : (dayValues(metric, log, queue.pending).get(day) ?? null);
+  }
+
+  /**
+   * Keeps the value of a cell before its first change since the last write, for Undo.
+   * @param {Metric} metric
+   * @param {Day} day
+   */
+  function rememberBefore(metric, day) {
+    const key = metricDayKey(metric.id, day);
+    if (!before.has(key)) before.set(key, { metric, day, value: shownValue(metric, day) });
+  }
+
+  /**
+   * Sets the value of `metric` on `day`. It goes to the sheet at once, or after the write that runs.
+   * @param {Metric} metric
+   * @param {Day} day
+   * @param {number | null} value 1 or 0 for a yes/no metric. Null clears the day.
+   */
+  function record(metric, day, value) {
+    setUndo(null);
+    rememberBefore(metric, day);
+    records.set(metricDayKey(metric.id, day), { metric, day, value });
+    flush();
+  }
+
+  /** Writes the values before the last write. No message shows after it. */
+  function undoLast() {
+    if (undo == null) return;
+    setUndo(null);
+    for (const c of undo.cells) records.set(metricDayKey(c.metric.id, c.day), c);
+    flush();
   }
 
   /**
@@ -205,10 +307,19 @@ export function TodayPage({
    * @param {CountStep} step
    */
   function count(m, d, step) {
+    setUndo(null);
+    rememberBefore(m, d);
     queue.add(m.id, d, step);
     setCounts((n) => n + 1);
-    writeCounts();
+    flush();
   }
+
+  // The message of a write goes away after some seconds.
+  useEffect(() => {
+    if (undo == null) return;
+    const timer = setTimeout(() => setUndo(null), UNDO_MILLIS);
+    return () => clearTimeout(timer);
+  }, [undo]);
 
   // The functions of the latest render, for the reload handle.
   const actions = useRef({ run });
@@ -222,8 +333,6 @@ export function TodayPage({
     });
     return () => {
       page.alive = false;
-      // A new page (sign-out, another sheet) has no detail screen open: the App shows the navigation again.
-      if (openDetailId.current != null) latest.current.onDetail(false);
     };
   }, []);
 
@@ -250,73 +359,51 @@ export function TodayPage({
     [data, today, pending, selectedGroup],
   );
   const scores = useMemo(() => dayScores(points), [points]);
-  const score = selectedGroup == null ? scoreMetric : groupScoreMetric(selectedGroup, groupLabel(selectedGroup));
+  const scoreTitle = selectedGroup == null ? 'Score' : `Score · ${groupLabel(selectedGroup)}`;
 
   /** @param {Metric} m */
   function openDetail(m) {
-    setDetailId(m.id);
-    latest.current.onDetail(true);
+    navigator.go(Route.metric(m.id));
   }
 
   function closeDetail() {
-    setDetailId(null);
-    latest.current.onDetail(false);
+    navigator.back();
   }
 
-  // The detail screen of one metric. If the metric is gone from the sheet, the table shows again, with the navigation.
+  // The detail screen of one metric. If the metric is gone from the sheet, the screen before shows again.
   const detailMetric = metrics.find((m) => m.id === detailId) ?? null;
-
-  // The metrics screen replaces the detail screen: a change of a metric can also change its detail screen.
   useEffect(() => {
-    if (managing && openDetailId.current != null) closeDetail();
-  }, [managing]);
-  useEffect(() => {
-    if (detailId != null && data != null && detailMetric == null) closeDetail();
+    if (detailId != null && data != null && detailMetric == null && navigator.route.equals(route)) closeDetail();
   }, [detailId, detailMetric == null, data == null]);
-  // The Back button of the browser closes the detail screen, as its back button does.
-  useOnBack(!managing && data != null && detailMetric != null, closeDetail);
-
-  /**
-   * The detail screen of `metric`.
-   * @param {Metric} metric
-   * @param {(() => void) | null} onBack
-   * @returns {JSX.Element}
-   */
-  const detail = (metric, onBack) => (
-    <MetricDetail
-      key={metric.id}
-      metric={metric}
-      log={/** @type {Snapshot} */ (data).log}
-      today={today}
-      busy={busy}
-      onWrite={write}
-      pending={pending}
-      onCount={count}
-      scores={scores}
-      onBack={onBack}
-      scoreMetrics={shown}
-      points={points}
-    />
-  );
 
   if (managing && data != null) {
-    return (
-      <MetricsPage
-        data={data}
-        busy={busy}
-        error={error}
-        hasMouse={hasMouse}
-        onWrite={writeMetrics}
-        onClose={() => latest.current.onManaging(false)}
-      />
-    );
+    return <MetricsPage data={data} busy={busy} error={error} hasMouse={hasMouse} onWrite={writeMetrics} />;
   }
+
+  // The message of the last write, above the bottom navigation bar.
+  const undoBar =
+    undo == null ? null : (
+      <ActionBar>
+        <Snackbar text={undo.text} action="Undo" onAction={undoLast} />
+      </ActionBar>
+    );
 
   if (data != null && detailMetric != null) {
     return (
       <div class="today-page">
         {error != null && <Notice text={error} kind={NoticeKind.ERROR} />}
-        {detail(detailMetric, closeDetail)}
+        <MetricDetail
+          key={detailMetric.id}
+          metric={detailMetric}
+          log={data.log}
+          today={today}
+          busy={busy}
+          onRecord={record}
+          pending={pending}
+          onCount={count}
+          onBack={closeDetail}
+        />
+        {undoBar}
       </div>
     );
   }
@@ -334,24 +421,47 @@ export function TodayPage({
           log={snapshot.log}
           today={today}
           busy={busy}
-          onWriteAll={writeAll}
+          onRecord={record}
+          onCount={count}
           pending={pending}
         />
       );
     }
-    if (view === MainView.SCORE) return detail(score, null);
-    const days = view.daysUntil(today);
+    if (view === MainView.SCORE) {
+      return (
+        <ScorePage
+          key={selectedGroup ?? ''}
+          title={scoreTitle}
+          scores={scores}
+          today={today}
+          metrics={shown}
+          points={points}
+        />
+      );
+    }
+    const dayCount = dayLayout === DayLayout.CALENDARS ? CALENDAR_DAYS : tableDays(daysWidth);
+    const days = daysBetween(today.addDays(1 - dayCount), today);
     return (
       <>
-        <ScoreChart score={score} days={days} scores={scores} onOpen={() => latest.current.onView(MainView.SCORE)} />
+        <SegmentedButtons
+          label="Layout of the days"
+          segments={DAY_LAYOUTS}
+          selected={dayLayout}
+          onSelect={(value) => {
+            const layout = dayLayoutOf(value);
+            setDayLayout(layout);
+            writePref('days-layout', layout);
+          }}
+        />
+        <ScoreChart title={scoreTitle} days={days} scores={scores} onOpen={() => navigator.show(Route.SCORE)} />
         <HabitTable
           metrics={shown}
           log={snapshot.log}
           today={today}
           days={days}
-          layout={view === MainView.MONTH ? DayLayout.CALENDARS : DayLayout.TABLE}
+          layout={dayLayout}
           busy={busy}
-          onWrite={write}
+          onRecord={record}
           pending={pending}
           onCount={count}
           onOpen={openDetail}
@@ -368,6 +478,15 @@ export function TodayPage({
 
   return (
     <div class="today-page">
+      {/* One line for all problems of the sheet. Show opens the metrics screen, which lists them. */}
+      {data != null && data.warnings.length > 0 && (
+        <Notice
+          text={problemsText(data.warnings.length)}
+          kind={NoticeKind.WARNING}
+          action="Show"
+          onAction={() => navigator.go(Route.METRICS)}
+        />
+      )}
       {groups.length > 1 && (
         <GroupChips
           groups={groups}
@@ -383,26 +502,35 @@ export function TodayPage({
         <Notice text={error} kind={NoticeKind.ERROR} action="Try again" onAction={() => run(() => store.load())} />
       )}
       {data == null && error == null && <Loading />}
-      {data != null && metrics.length === 0 && <NoMetrics onAdd={() => latest.current.onManaging(true)} />}
+      {data != null && metrics.length === 0 && <NoMetrics onAdd={() => navigator.go(Route.METRICS)} />}
       {data != null && metrics.length > 0 && (
-        // A short fade between the views of the navigation. The table of 5 days is not wider than 720 px: on a wide
-        // screen, the cells stay near the names.
-        <div key={view.name} class={view === MainView.SHORT ? 'today-page-view today-page-short' : 'today-page-view'}>
+        // A short fade between the views of the navigation. The table of the Days view is not wider than 720 px: on a
+        // wide screen, the cells stay near the names, and it holds 14 days.
+        <div
+          key={view.name}
+          ref={view === MainView.DAYS ? measureDays : undefined}
+          class={
+            view === MainView.DAYS && dayLayout === DayLayout.TABLE
+              ? 'today-page-view today-page-table'
+              : 'today-page-view'
+          }
+        >
           {viewContent(data)}
         </div>
       )}
-      {data != null && data.warnings.length > 0 && (
-        <Warnings
-          warnings={data.warnings}
-          onFix={data.metricsTable.invalid.length === 0 ? null : () => latest.current.onManaging(true)}
-        />
-      )}
+      {undoBar}
     </div>
   );
 }
 
 /** The metrics before the first load. */
 const NO_METRICS = /** @type {Metric[]} */ ([]);
+
+/** The choices of the layout switch of the Days view. */
+const DAY_LAYOUTS = [
+  { value: DayLayout.TABLE, label: 'Table', icon: 'table_rows' },
+  { value: DayLayout.CALENDARS, label: 'Calendars', icon: 'calendar_month' },
+];
 
 /**
  * The first load of the sheet: a progress circle in the page. The app bar also shows a small one.
@@ -439,29 +567,26 @@ function NoMetrics({ onAdd }) {
 }
 
 /**
- * The warnings of the sheet: invalid rows and cells.
- * @param {object} props
- * @param {string[]} props.warnings
- * @param {(() => void) | null} props.onFix Opens the metrics screen. Null: no Fix button.
- * @returns {JSX.Element}
+ * The text of the line of the sheet problems. Examples: "1 problem in the sheet.", "3 problems in the sheet."
+ * @param {number} count
+ * @returns {string}
  */
-function Warnings({ warnings, onFix }) {
-  return (
-    <section class="today-page-warnings" aria-labelledby="sheet-warnings">
-      <h2 id="sheet-warnings" class="today-page-warnings-title title-medium">
-        <Symbol name="warning" color="var(--error)" />
-        Sheet warnings
-      </h2>
-      <ul class="today-page-warning-list">
-        {warnings.map((w, i) => (
-          <li key={i}>{w}</li>
-        ))}
-      </ul>
-      {onFix != null && (
-        <button type="button" class="today-page-text-button label-large" onClick={onFix}>
-          Fix the metric rows
-        </button>
-      )}
-    </section>
-  );
+function problemsText(count) {
+  return `${formatNumber(count)} ${count === 1 ? 'problem' : 'problems'} in the sheet.`;
+}
+
+/**
+ * The message of a write: the metric, the new value and the day. Examples: "Water: 3 glasses on Oct 3.", "Meditate: yes
+ * on Oct 3.", "Weight: no value on Oct 3."
+ * @param {Metric} metric
+ * @param {Day} day
+ * @param {number | null} value
+ * @returns {string}
+ */
+function writeText(metric, day, value) {
+  let text = 'no value';
+  if (value != null && metric instanceof YesNoMetric) text = value === 1 ? 'yes' : 'no';
+  else if (value != null && metric instanceof NumberMetric)
+    text = withUnit(formatStep(value, metric.step), metric.unit);
+  return `${metric.name}: ${text} on ${shortDay(day)}.`;
 }

@@ -150,31 +150,21 @@
   background-color: var(--primary);
 }
 
-/* Save, Cancel and Clear: the Button and the TextButton of Compose Material 3, 40 px high in a touch target of 48 px. */
+/* Close and Clear: the TextButton of Compose Material 3, 40 px high in a touch target of 48 px. */
 .number-editor-actions {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.number-editor-save,
 .number-editor-text-button {
   --button-shape: 20px;
   box-sizing: border-box;
   block-size: 40px;
   min-inline-size: 58px;
   margin-block: 4px;
-  padding: 0 24px;
-  border-radius: 20px;
-}
-
-.number-editor-save {
-  color: var(--on-primary);
-  background-color: var(--primary);
-}
-
-.number-editor-text-button {
   padding: 0 12px;
+  border-radius: 20px;
   color: var(--primary);
   background-color: transparent;
 }
@@ -183,14 +173,9 @@
   color: var(--error);
 }
 
-/* The disabled colors of Compose: the text color at 38%, and at 12% for the fill. */
-.number-editor-save:disabled,
+/* The disabled colors of Compose: the text color at 38%. */
 .number-editor-text-button:disabled {
   opacity: 1;
   cursor: default;
   color: color-mix(in srgb, var(--on-surface) 38%, transparent);
-}
-
-.number-editor-save:disabled {
-  background-color: color-mix(in srgb, var(--on-surface) 12%, transparent);
 }

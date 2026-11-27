@@ -14,7 +14,7 @@ import {
   withUnit,
 } from '../../model/Format.js';
 import { roundHalfAwayFromZero } from '../../model/Numbers.js';
-import { groupParts, groupScores, isScore } from '../../model/Score.js';
+import { groupParts, groupScores } from '../../model/Score.js';
 import {
   COMPARED_MONTHS,
   COMPARED_WEEKS,
@@ -50,10 +50,7 @@ import './MetricCharts.css';
 /** @import { ZoomWindow } from '../../model/Zoom.js' */
 /** @import { ChartItem } from './Charts.jsx' */
 
-/** The metrics of the score of a metric that is not the score. */
-const NO_METRICS = /** @type {Metric[]} */ ([]);
-
-/** The points of a metric that is not the score. */
+/** No points of the groups: the score of fewer than 2 groups. */
 const NO_POINTS = /** @type {Map<string, Map<Day, number>>} */ (new Map());
 
 /**
@@ -62,29 +59,21 @@ const NO_POINTS = /** @type {Map<string, Map<Day, number>>} */ (new Map());
  *
  * - `values`: the value of each day with a value. For yes/no metrics: 1 for yes and 0 for no, as the rate bars expect.
  * - `states`: the yes/no states of a yes/no metric: true for `yes`, false for `no`. Empty for other metrics.
- * - `scoreMetrics`, `points`: for the score, the metrics of the score, and the points of each metric by metric id (see
- *   `pointsByMetric`). Empty for other metrics.
  * @param {object} props
  * @param {Metric} props.metric
  * @param {ZoomWindow} props.window
  * @param {Map<Day, number>} props.values
  * @param {Map<Day, boolean>} props.states
- * @param {Metric[]} [props.scoreMetrics] Default: no metrics.
- * @param {Map<string, Map<Day, number>>} [props.points] Default: no points.
  * @returns {JSX.Element}
  */
-export function MetricCharts({ metric, window, values, states, scoreMetrics = NO_METRICS, points = NO_POINTS }) {
+export function MetricCharts({ metric, window, values, states }) {
   /** @type {JSX.Element} */
   let content;
   if (values.size === 0) {
     // No value on any day: one card that tells what to do, not many empty charts.
-    content = <NoData score={isScore(metric)} />;
+    content = <NoData score={false} />;
   } else if (metric instanceof YesNoMetric) {
     content = <YesNoCharts window={window} values={values} stats={yesNoStats(states, window.days, window.to)} />;
-  } else if (isScore(metric)) {
-    content = (
-      <ScoreCharts metric={metric} window={window} values={values} scoreMetrics={scoreMetrics} points={points} />
-    );
   } else if (metric.isCount) {
     content = <CountCharts metric={metric} window={window} values={values} stats={countStats(values, window.days)} />;
   } else {
@@ -412,6 +401,39 @@ function scoreParts(metrics, groups, points) {
 }
 
 /**
+ * The key numbers and the charts of the score in the time `window` of the Score view. See {@link ScoreContent}.
+ * @param {object} props
+ * @param {ZoomWindow} props.window
+ * @param {Map<Day, number>} props.values The score of each day with a score.
+ * @param {Metric[]} props.scoreMetrics The metrics of the score.
+ * @param {Map<string, Map<Day, number>>} props.points The points of each metric by metric id. See `pointsByMetric`.
+ * @returns {JSX.Element}
+ */
+export function ScoreCharts({ window, values, scoreMetrics, points }) {
+  return (
+    <div class="metric-charts">
+      {values.size === 0 ? (
+        <NoData score />
+      ) : (
+        <ScoreContent window={window} values={values} scoreMetrics={scoreMetrics} points={points} />
+      )}
+    </div>
+  );
+}
+
+/** The unit of the score. */
+const SCORE_UNIT = '%';
+
+/**
+ * A score with its unit. Example: 57 gives "57%".
+ * @param {number} value
+ * @returns {string}
+ */
+function scoreText(value) {
+  return withUnit(formatNumber(value, 1), SCORE_UNIT);
+}
+
+/**
  * The numbers and charts of the score. Each one answers one question: how the score changes over time, how strong the
  * habits are, how the week of the window end compares with the 4 weeks before (for each weekday, and for each group or
  * metric), how its month compares with the 3 months before (for each group or metric), and which weekdays are good.
@@ -423,14 +445,13 @@ function scoreParts(metrics, groups, points) {
  *   groups, the week and month tables are by group, and the weekday bars show the part of each group. Else the tables
  *   are by metric.
  * @param {object} props
- * @param {NumberMetric} props.metric
  * @param {ZoomWindow} props.window
  * @param {Map<Day, number>} props.values
  * @param {Metric[]} props.scoreMetrics
  * @param {Map<string, Map<Day, number>>} props.points
  * @returns {JSX.Element}
  */
-function ScoreCharts({ metric, window, values, scoreMetrics, points }) {
+function ScoreContent({ window, values, scoreMetrics, points }) {
   const stats = countStats(values, window.days);
   const [firstHalf, secondHalf] = halves(window.days);
   const average = countStats(values, secondHalf).average;
@@ -452,14 +473,14 @@ function ScoreCharts({ metric, window, values, scoreMetrics, points }) {
     <>
       <KeyNumbers
         items={[
-          ['per day', perDay == null ? '–' : withMetricUnit(perDay, metric)],
-          ['change', average != null && previous != null ? formatSigned(average - previous, metric.unit) : '–'],
-          ['best day', best == null ? '–' : `${withMetricUnit(best.value, metric)} · ${shortDay(best.day)}`],
+          ['per day', perDay == null ? '–' : scoreText(perDay)],
+          ['change', average != null && previous != null ? formatSigned(average - previous, SCORE_UNIT) : '–'],
+          ['best day', best == null ? '–' : `${scoreText(best.value)} · ${shortDay(best.day)}`],
           [
             'best weekday',
             weekday == null
               ? '–'
-              : `${weekdayNames[weekday - 1]} · ${withMetricUnit(/** @type {number} */ (stats.weekdayAverages[weekday - 1]), metric)}`,
+              : `${weekdayNames[weekday - 1]} · ${scoreText(/** @type {number} */ (stats.weekdayAverages[weekday - 1]))}`,
           ],
         ]}
       />

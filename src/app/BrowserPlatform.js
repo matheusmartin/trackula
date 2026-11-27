@@ -1,6 +1,6 @@
 // The Platform of the browser. Only main.jsx uses it: the UI tests use a fake (testing/FakePlatform.js).
 import { Config } from '../services/Config.js';
-import { historyBack, onHistoryBack, pushHistoryEntry } from '../services/History.js';
+import { currentHash, currentIndex, historyBack, onHistoryChange, pushHash, replaceHash } from '../services/History.js';
 import { pickSpreadsheet } from '../services/Picker.js';
 import { readPref, writePref } from '../services/Prefs.js';
 import { Session as GoogleSession } from '../services/Session.js';
@@ -60,7 +60,14 @@ export const browserPlatform = {
   today,
   readPref,
   writePref,
-  history: { push: pushHistoryEntry, back: historyBack, onBack: onHistoryBack },
+  history: {
+    hash: currentHash,
+    index: currentIndex,
+    push: pushHash,
+    replace: replaceHash,
+    back: historyBack,
+    onChange: onHistoryChange,
+  },
   async signIn(selectAccount) {
     return new BrowserSession(await GoogleSession.signIn(selectAccount, browserPlatform.config));
   },

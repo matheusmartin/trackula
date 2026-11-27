@@ -3,19 +3,11 @@ import { afterEach, describe, expect, test } from 'vitest';
 import { Day } from '../../model/Day.js';
 import { LogTable } from '../../model/LogEntry.js';
 import { NumberGoal, NumberMetric, YesNoMetric } from '../../model/Metric.js';
-import { ActionBarHost, LocalActionBarHost } from './ActionBar.jsx';
 import { TodayTiles } from './TodayTiles.jsx';
 
 /** @import { Metric } from '../../model/Metric.js' */
 
-/** The element of the App that shows the Save button. */
-let hostElement = /** @type {HTMLElement | null} */ (null);
-
-afterEach(() => {
-  cleanup();
-  hostElement?.remove();
-  hostElement = null;
-});
+afterEach(cleanup);
 
 const today = Day.of(2026, 10, 3);
 const meditate = new YesNoMetric({ id: 'meditate', name: 'Meditate', icon: 'self_improvement' });
@@ -35,27 +27,26 @@ const coffee = water.copy({
 });
 
 /**
- * Shows the tiles of `metrics` on an empty log. With `hosted`, the App place of the Save button, below the tiles.
+ * Shows the tiles of `metrics` on an empty log, and returns the values and the taps that they give.
  * @param {Metric[]} metrics
- * @param {boolean} [hosted]
+ * @param {boolean} [busy]
+ * @returns {string[]}
  */
-function showTiles(metrics, hosted = false) {
-  if (hosted) {
-    hostElement = document.createElement('div');
-    document.body.append(hostElement);
-  }
+function showTiles(metrics, busy = false) {
+  /** @type {string[]} */
+  const calls = [];
   render(
-    <LocalActionBarHost.Provider value={hosted ? new ActionBarHost(hostElement) : null}>
-      <TodayTiles
-        metrics={metrics}
-        log={new LogTable([], new Map(), new Map())}
-        today={today}
-        busy={false}
-        onWriteAll={(_, onDone) => onDone()}
-        pending={new Map()}
-      />
-    </LocalActionBarHost.Provider>,
+    <TodayTiles
+      metrics={metrics}
+      log={new LogTable([], new Map(), new Map())}
+      today={today}
+      busy={busy}
+      onRecord={(m, d, value) => calls.push(`${m.id} ${d} ${value}`)}
+      onCount={(m, d, step) => calls.push(`${m.id} ${d} ${step.delta > 0 ? '+' : ''}${step.delta}`)}
+      pending={new Map()}
+    />,
   );
+  return calls;
 }
 
 describe('TodayTiles', () => {
@@ -65,22 +56,22 @@ describe('TodayTiles', () => {
     expect(screen.getByText('max 2.5')).toBeTruthy();
   });
 
-  test('without an action bar host the save button always shows in the page', () => {
-    showTiles([meditate]);
-    expect(/** @type {HTMLButtonElement} */ (screen.getByRole('button', { name: 'No changes' })).disabled).toBe(true);
+  test('a tap on a yes/no tile records yes at once, and there is no Save button', () => {
+    const calls = showTiles([meditate]);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Meditate' }));
+    expect(calls).toEqual(['meditate 2026-10-03 1']);
+    expect(screen.queryByRole('button', { name: /Save/ })).toBeNull();
   });
 
-  test('with an action bar host the save button shows there only with values to save', () => {
-    showTiles([meditate], true);
-    expect(screen.queryByText('Save')).toBeNull();
+  test('a yes/no tile waits while a write runs', () => {
+    const calls = showTiles([meditate], true);
+    expect(/** @type {HTMLButtonElement} */ (screen.getByRole('checkbox', { name: 'Meditate' })).disabled).toBe(true);
+    expect(calls).toEqual([]);
+  });
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Meditate' }));
-    const save = /** @type {HTMLButtonElement} */ (screen.getByRole('button', { name: 'Save: Meditate' }));
-    expect(save.disabled).toBe(false);
-    expect(hostElement?.contains(save)).toBe(true);
-
-    // The saved value again: nothing to save.
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Meditate' }));
-    expect(screen.queryByText('Save')).toBeNull();
+  test('a keyboard click on a count tile adds a step', () => {
+    const calls = showTiles([water]);
+    fireEvent.click(screen.getByRole('button', { name: 'Water' }));
+    expect(calls).toEqual(['water 2026-10-03 +1']);
   });
 });

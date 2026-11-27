@@ -2,7 +2,7 @@ import { useId, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { goalText } from '../../model/MetricCells.js';
 import { DraftField, GoalDirection, MetricKind, canChangeKind, goalExamples } from '../../model/MetricDraft.js';
 import { newMetricId } from '../../model/MetricId.js';
-import { useOnBack } from '../Back.js';
+import { useLeaveGuard } from '../Navigation.js';
 import { AppCard } from '../components/AppCard.jsx';
 import { AppIconButton } from '../components/AppIconButton.jsx';
 import { EmojiPicker } from '../components/EmojiPicker.jsx';
@@ -62,7 +62,8 @@ export class FormSetup {
  * most `FORM_WIDTH` wide and centered.
  *
  * The buttons at the end: Save, Cancel, then Delete, apart from the others. Close and Cancel ask before they discard a
- * changed form. The Back button of the browser does the same as Close. The form starts at the top of the page.
+ * changed form. The Back button of the browser, and a move to another screen, ask too. After a save, a delete or a
+ * discard, `onClose` must close the form without the question. The form starts at the top of the page.
  * @param {object} props
  * @param {FormSetup} props.setup
  * @param {Set<string>} props.takenIds The ids that a new metric must not get. See `newMetricId`.
@@ -91,8 +92,12 @@ export function MetricForm({ setup, takenIds, groups, busy, error, onSave, onDel
     else setConfirmsDiscard(true);
   }
 
-  // The Back button of the browser closes the form, as its close button does.
-  useOnBack(true, close);
+  // The Back button of the browser, and the other screens, ask before they discard a changed form, as Close does.
+  useLeaveGuard(() => {
+    if (draft.equals(setup.initial)) return false;
+    setConfirmsDiscard(true);
+    return true;
+  });
   // The form takes the place of the list: it starts at the top, also when the list was scrolled.
   useLayoutEffect(() => window.scrollTo(0, 0), []);
 

@@ -17,6 +17,17 @@ describe('Notice', () => {
     expect(tries).toBe(1);
   });
 
+  test('a warning has the warning colors and its button', () => {
+    let shows = 0;
+    const { container } = render(
+      <Notice text="2 problems in the sheet." kind={NoticeKind.WARNING} action="Show" onAction={() => shows++} />,
+    );
+    expect(container.querySelector('.notice-warning')).toBeTruthy();
+    expect(container.querySelector('[aria-live]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show' }));
+    expect(shows).toBe(1);
+  });
+
   test('a note has no live region and no button', () => {
     const { container } = render(<Notice text="Demo mode." />);
     expect(screen.getByText('Demo mode.')).toBeTruthy();

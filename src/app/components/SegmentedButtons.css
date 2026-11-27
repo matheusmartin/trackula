@@ -1,0 +1,35 @@
+/* SegmentedButtons.jsx: buttons in one outlined pill. See docs/design.md. */
+.segmented-buttons {
+  display: inline-flex;
+  align-self: flex-start;
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.segmented-button {
+  --button-shape: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  block-size: 40px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: 0;
+  color: var(--on-surface);
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.segmented-button + .segmented-button {
+  border-inline-start: 1px solid var(--outline);
+}
+
+.segmented-button-selected {
+  color: var(--on-primary-container);
+  background-color: var(--primary-container);
+}
+
+.segmented-button:focus-visible {
+  outline-offset: -2px;
+}

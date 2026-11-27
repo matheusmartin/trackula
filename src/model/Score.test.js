@@ -7,14 +7,11 @@ import {
   SCORE_HEADER,
   dayScores,
   groupParts,
-  groupScoreMetric,
   groupScores,
-  isScore,
   metricPoints,
   pointsByMetric,
   pointsOf,
   scoreColumn,
-  scoreMetric,
   staleScoreCells,
 } from './Score.js';
 import { numberStats } from './Stats.js';
@@ -406,21 +403,8 @@ describe('Score', () => {
     expect(scoreColumn(['date', 'water'])).toBeNull();
   });
 
-  test('the score metric is not a valid metric id, so no metric can be the score', () => {
+  test('a metric row with the score header is not a valid metric, so no metric can be the score', () => {
     const p = parseMetrics(rows(metricsHeader, [SCORE_HEADER, 'Score', 'count', '', '', '', 'star']));
     expect(p.items).toEqual([]);
-    expect(isScore(scoreMetric)).toBe(true);
-    expect(isScore(water)).toBe(false);
-  });
-
-  test('a group score metric is a score with the group in its id and its name', () => {
-    const habits = groupScoreMetric('habits', 'Habits');
-    expect([habits.id, habits.name]).toEqual(['Score:habits', 'Score · Habits']);
-    expect(isScore(habits)).toBe(true);
-    expect([habits.unit, habits.isCount]).toEqual(['%', true]);
-  });
-
-  test('the score metric has no icon', () => {
-    expect(scoreMetric.icon).toBe('');
   });
 });

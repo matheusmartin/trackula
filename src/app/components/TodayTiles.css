@@ -33,10 +33,6 @@
   background-color: var(--primary-container);
 }
 
-.tile-unsaved {
-  box-shadow: inset 0 0 0 2px var(--primary);
-}
-
 /* A yes/no or count tile is one button. */
 .tile-button {
   --button-shape: 16px;
@@ -133,9 +129,4 @@
   white-space: nowrap;
   text-overflow: ellipsis;
   color: color-mix(in srgb, currentColor 75%, transparent);
-}
-
-/* The Save button in the page, without the App: space above, after the tiles, and below. */
-.today-tiles-save {
-  margin-block: 24px 16px;
 }

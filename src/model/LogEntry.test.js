@@ -11,6 +11,7 @@ import {
   planClear,
   planCount,
   planNumber,
+  planValue,
   planYesNo,
 } from './LogEntry.js';
 import { NumberGoal, NumberMetric } from './Metric.js';
@@ -52,6 +53,13 @@ describe('LogEntry', () => {
     expect(planClear(weight, d30, log)).toStrictEqual(new SetCell(2, 1, null));
     expect(planClear(water, d30, log)).toBeNull();
     expect(planClear(weight, d29, log)).toBeNull();
+  });
+
+  test('planValue sets the value of each kind, and null clears it', () => {
+    expect(planValue(meditate, d30, 0, log)).toStrictEqual(new SetCell(2, 2, 'no'));
+    expect(planValue(weight, d30, 81.9, log)).toStrictEqual(new SetCell(2, 1, 81.9));
+    expect(planValue(weight, d30, null, log)).toStrictEqual(new SetCell(2, 1, null));
+    expect(planValue(weight, d30, 82.1, log)).toBeNull();
   });
 
   test('count applies the taps to the latest value', () => {

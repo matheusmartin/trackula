@@ -119,8 +119,8 @@ export class Store {
    * Runs `plans` one after the other, each on the latest data. So a plan sees the row that an earlier plan added for
    * the same day.
    *
-   * It writes the scores once, after the last write: not after each plan. Example: the Save button of 9 Today tiles
-   * writes the score of today once, not 9 times.
+   * It writes the scores once, after the last write: not after each plan. Example: 9 inputs that waited for one write
+   * write the score of today once, not 9 times.
    * @param {LogPlan[]} plans
    * @returns {Promise<Snapshot>}
    */

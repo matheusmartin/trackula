@@ -185,6 +185,19 @@ export function planClear(metric, date, log) {
 }
 
 /**
+ * Returns the change that sets the value of `metric` on `date` to `value`, for each kind: 1 is `yes` and 0 is `no` for
+ * a yes/no metric. Null clears the day. The app writes each input and its undo with it.
+ * @param {Metric} metric
+ * @param {Day} date
+ * @param {number | null} value
+ * @param {LogTable} log
+ * @returns {LogWrite | null}
+ */
+export function planValue(metric, date, value, log) {
+  return plan(metric, date, value, log);
+}
+
+/**
  * One input on a count cell: add `delta`. A negative `delta` subtracts.
  * @typedef {object} CountStep
  * @property {number} delta

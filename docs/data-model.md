@@ -19,7 +19,7 @@ One row for each metric. The row order is the display order in the app.
 |-----------|---------|----------|-------------------------|-------------|
 | `id`      | text    | Yes      | lowercase, `a-z0-9_-`   | Stable key. It is the column header in the `Log` tab. Do not change it after first use. |
 | `name`    | text    | Yes      | any                     | Name that the app shows. You can change it at any time. |
-| `kind`    | text    | Yes      | `yesno`, `number`, `count` | `yesno`: done (`yes`) or not done (`no`). `number`: a value, with a line chart from the lowest to the highest value. In the app, a tap on a `number` cell opens an editor with a ruler, a text field and a Save button. Save with an empty field clears the day. `count`: the same as `number`, but with a bar chart from 0. In the app, a click or tap on a `count` cell adds `step`. A right-click (mouse) or a double-tap (touch) subtracts it. A count goes to empty only with subtractions: there is no reset. |
+| `kind`    | text    | Yes      | `yesno`, `number`, `count` | `yesno`: done (`yes`) or not done (`no`). `number`: a value, with a line chart from the lowest to the highest value. In the app, a tap on a `number` cell opens an editor with a ruler and a text field. The value goes to the sheet when you release the ruler, press Enter or leave the editor. An empty field clears the day. `count`: the same as `number`, but with a bar chart from 0. In the app, a click or tap on a `count` cell adds `step`. A right-click (mouse) or a double-tap (touch) subtracts it. A count goes to empty only with subtractions: there is no reset. |
 | `unit`    | text    | No       | any                     | Example: `kg`, `glasses`, `steps`. Empty for `yesno`. |
 | `step`    | number  | No       | > 0                     | Input step for `number` and `count`. Example: `0.1` for weight. Default: `1`. |
 | `group`   | text    | No       | any                     | Groups metrics on the screen. Example: `habits`, `body`. |
@@ -194,8 +194,8 @@ Rules:
   shows a warning and continues. The next load tries again.
 - The app does not read the `Score` column. It shows the scores that it calculates, also for count taps that it did not
   write yet. Demo mode has no `Score` column.
-- In the app, a green bar chart of the score, one bar for each day, is at the top of the "5 days" and "31 days"
-  views. A tap on "Score" opens the "Score" view of the bottom navigation bar: the score only, in green. Each part
+- In the app, a green bar chart of the score, one bar for each day, is at the top of the "Days"
+  view. A tap on "Score" opens the "Score" view of the bottom navigation bar: the score only, in green. Each part
   shows different data, so that no part shows again the days or the weekdays of another part. It does not show a
   total: the score of a day is a percentage. The Today tiles do not show the score.
   - Key numbers: "per day" (the average of the days with a score), "change", "best day" and "best weekday".
@@ -300,6 +300,8 @@ Limits:
 
 ### Layer 3: app reads
 
+- The app shows the number of warnings in one line at the top of the views, and lists them in the metrics screen: the
+  invalid `Metrics` rows under "Rows with problems", the others under "Other problems in the sheet".
 - The app ignores a `Log` row with an invalid `date`, and shows a warning.
 - The app ignores a `Log` cell that is not a number (or not `yes` or `no` for `yesno`), and shows a warning.
 - The app ignores a `Log` column with no metric, for example of a deleted metric. It shows no warning.

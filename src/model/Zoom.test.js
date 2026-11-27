@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import { Day } from './Day.js';
 import { NumberGoal, NumberMetric, YesNoMetric } from './Metric.js';
-import { groupScoreMetric, scoreMetric } from './Score.js';
 import {
   Aggregate,
   BarUnit,
@@ -104,8 +103,7 @@ describe('Zoom', () => {
     expect(defaultStepIndex(count, steps)).toBe(month3Index);
     const yesNo = new YesNoMetric({ id: 'meditate', name: 'Meditate', icon: 'self_improvement' });
     expect(defaultStepIndex(yesNo, steps)).toBe(month3Index);
-    expect(defaultStepIndex(scoreMetric, steps)).toBe(steps.length - 1);
-    expect(defaultStepIndex(groupScoreMetric('habits', 'Habits'), steps)).toBe(steps.length - 1);
+    expect(defaultStepIndex(null, steps)).toBe(steps.length - 1);
   });
 
   test('ZoomWindow shows the newest bars from first to today', () => {

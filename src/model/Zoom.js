@@ -2,7 +2,6 @@
 // span in view and the size of one bar. All charts of the screen show the same window.
 import { Day, daysBetween } from './Day.js';
 import { NumberMetric } from './Metric.js';
-import { isScore } from './Score.js';
 
 /** @import { Metric } from './Metric.js' */
 
@@ -176,12 +175,12 @@ export function threeMonthsStepIndex(steps) {
 /**
  * The index in `steps` of the step that the detail screen of `metric` opens with. Kind `number` and the score: the
  * last step, that shows all data. Other kinds: {@link threeMonthsStepIndex}.
- * @param {Metric} metric
+ * @param {Metric | null} metric Null for the score.
  * @param {ZoomStep[]} steps
  * @returns {number}
  */
 export function defaultStepIndex(metric, steps) {
-  return isScore(metric) || (metric instanceof NumberMetric && !metric.isCount)
+  return metric == null || (metric instanceof NumberMetric && !metric.isCount)
     ? steps.length - 1
     : threeMonthsStepIndex(steps);
 }
