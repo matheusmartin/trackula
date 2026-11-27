@@ -5,7 +5,7 @@ import { useContext } from 'preact/hooks';
 /** @import { ComponentChildren, JSX } from 'preact' */
 
 /**
- * The place of the main action of a page, for example the Save button of the Today tiles. The App shows the action
+ * The place of the main action of a page, for example the Undo message of a write. The App shows the action
  * below the content and above the bottom navigation bar, so that the action stays in view while the page scrolls.
  * See {@link ActionBar}.
  */

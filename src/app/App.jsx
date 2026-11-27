@@ -304,7 +304,7 @@ function useWideWindow(width) {
 /**
  * Keeps the height of the bottom area (the action bar and the navigation bar) in the CSS variable
  * `--app-bottom-height` of the page. `App.css` uses it as the scroll padding, so the browser does not put a focused
- * element below the bottom area. Example: the Tab key moves the focus to a tile below the Save button.
+ * element below the bottom area. Example: the Tab key moves the focus to a tile below the Undo message.
  * @param {{ current: HTMLElement | null }} ref
  */
 function useBottomHeight(ref) {

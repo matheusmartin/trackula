@@ -29,29 +29,32 @@ const MOUSE_SLOP = 0.125;
  * Editor for one day of a `number` metric. `count` metrics use taps instead. See HabitTable.
  *
  * - Ruler: drag it with a finger or the mouse, or scroll on it. It snaps to the metric step. One tick is one step.
- *   With `onChange` (the Today tiles), only a side scroll moves it: a vertical scroll scrolls the page.
+ *   Without `onClose` (the Today tiles), only a side scroll moves it: a vertical scroll scrolls the page.
  * - Text field: exact values, for example a first value. "81.9" and "81,9" both work. It has a frame as the ruler, so
  *   that it shows as a field.
- * - Save: saves the value. With an empty text field, Save clears the day.
- * - Cancel: closes the editor without a change. Clear: shows only when the day has a value, and clears the day.
- * - Keys: Enter saves, Escape closes. Arrow keys: one step. On the ruler, Page Up and Page Down: 10 steps.
+ * - The value goes to the sheet with `onCommit` when the user releases the ruler (a press without a move confirms the
+ *   value), when a side scroll ends, at Enter, and when the focus leaves the editor. Only a value that the user gave
+ *   goes, and only if it is not the value of the day. An empty text field clears the day.
+ * - Keys: Enter sends the value, Escape gives the value of the day again. Arrow keys: one step. On the ruler, Page Up
+ *   and Page Down: 10 steps.
+ * - With `onClose` (a table or a calendar): Enter also closes the editor, and so does Escape. A Close button sends the
+ *   value and closes, and a Clear button clears a day with a value.
  *
- * An empty day starts at `start`, the value of the nearest other day.
+ * An empty day starts at `start`, the value of the nearest other day. When the value of the day changes, for example
+ * after a write, the editor shows it, unless the user moves the ruler at that time. After a failed write, the editor
+ * keeps the value of the user, so that Enter sends it again.
  * @param {object} props
  * @param {NumberMetric} props.metric
  * @param {string} props.label The metric and the day for screen readers, for example "Weight · today".
  * @param {number | null} props.current The value of the day. Null if the day is empty.
  * @param {number | null} props.start The value that an empty day starts at. Null if the metric has no value on
  *   another day.
- * @param {boolean} props.busy
- * @param {(value: number) => void} props.onSave
- * @param {() => void} props.onClear
- * @param {() => void} props.onClose
+ * @param {boolean} props.busy True while data loads or saves: the Clear button is disabled.
+ * @param {(value: number | null) => void} props.onCommit Sends a new value of the day. Null clears the day.
+ * @param {(() => void) | null} [props.onClose] Closes the editor. Null: the editor has no Close and no Clear button.
+ *   Default: null.
  * @param {boolean} [props.autofocus] True if the ruler gets the focus at the start. False when many editors show at the
  *   same time, as on the Today tiles. Default: true.
- * @param {((value: number | null) => void) | null} [props.onChange] Called with the value at each change, and when the
- *   user presses the ruler without a move: that confirms the value. Null after the text field is emptied. With
- *   `onChange`, the editor shows no Save, Cancel and Clear buttons, and Enter does nothing: the parent saves.
  * @param {boolean} [props.compact] A smaller value and ruler, for the Today tiles. Default: false.
  * @returns {JSX.Element}
  */
@@ -61,28 +64,27 @@ export function NumberEditor({
   current,
   start,
   busy,
-  onSave,
-  onClear,
-  onClose,
+  onCommit,
+  onClose = null,
   autofocus = true,
-  onChange = null,
   compact = false,
 }) {
   // The latest props for the event handlers: a handler can run before the next render.
-  const latest = useRef({ step: metric.step, current, start, onSave, onClear, onClose, onChange });
-  latest.current = { step: metric.step, current, start, onSave, onClear, onClose, onChange };
-  const state = useRef(/** @type {{ value: number, text: string, error: string | null } | null} */ (null));
-  if (state.current == null) {
-    const value = current ?? start ?? 0;
-    // The text field is empty if the metric has no value on any day.
-    state.current = {
-      value,
-      text: current == null && start == null ? '' : formatStep(value, metric.step),
-      error: null,
-    };
-  }
+  const latest = useRef({ step: metric.step, current, start, onCommit, onClose });
+  latest.current = { step: metric.step, current, start, onCommit, onClose };
+  const state = useRef(
+    /** @type {{ value: number, text: string, error: string | null, touched: boolean } | null} */ (null),
+  );
+  if (state.current == null) state.current = { ...initialState(current, start, metric.step), touched: false };
   const s = state.current;
   const rerender = useRerender();
+
+  // A new value of the day shows, for example after a write or a reload. The value of the user stays while it is new.
+  useEffect(() => {
+    if (s.touched) return;
+    Object.assign(s, initialState(current, start, metric.step));
+    rerender();
+  }, [current]);
 
   /**
    * Sets the value, rounded to the step. With `snap`, also to the nearest tick.
@@ -90,14 +92,14 @@ export function NumberEditor({
    * @param {boolean} [snap]
    */
   function set(v, snap = false) {
-    const { step, onChange: change } = latest.current;
+    const step = latest.current.step;
     const rounded = roundToStep(v, step, snap);
+    s.touched = true;
     if (rounded === s.value && s.error == null && s.text === formatStep(rounded, step)) return;
     s.value = rounded;
     s.text = formatStep(rounded, step);
     s.error = null;
     rerender();
-    change?.(rounded);
   }
 
   /**
@@ -107,26 +109,42 @@ export function NumberEditor({
   function type(newText) {
     s.text = newText;
     s.error = null;
+    s.touched = true;
     const typed = parseDecimal(newText);
     if (typed != null) s.value = typed;
     rerender();
-    if (typed != null) latest.current.onChange?.(typed);
-    else if (newText.trim() === '') latest.current.onChange?.(null);
   }
 
-  /** Saves the value. An empty text field clears the day. */
-  function saveValue() {
-    const { step, current: dayValue, start: startValue, onChange: change } = latest.current;
-    if (change != null) return;
-    const typed = parseDecimal(s.text);
-    if (typed != null) {
-      latest.current.onSave(typed);
-    } else if (s.text.trim() === '' && dayValue != null) {
-      latest.current.onClear();
-    } else {
+  /**
+   * Sends the value that the user gave, if it is not the value of the day. An empty text field clears the day.
+   * @returns {boolean} False if the text is not a number: then the editor shows an error.
+   */
+  function commit() {
+    const { step, current: dayValue, start: startValue, onCommit: send } = latest.current;
+    if (!s.touched) return true;
+    const empty = s.text.trim() === '';
+    const typed = empty ? null : parseDecimal(s.text);
+    if (!empty && typed == null) {
       s.error = `Enter a number, for example ${formatStep(startValue ?? step * 10, step)}.`;
       rerender();
+      return false;
     }
+    s.touched = false;
+    if (typed !== dayValue) send(typed);
+    return true;
+  }
+
+  /** Enter: sends the value. With `onClose`, also closes the editor. */
+  function enter() {
+    if (commit()) latest.current.onClose?.();
+  }
+
+  /** Escape: the value of the day again. With `onClose`, also closes the editor. */
+  function escape() {
+    const { step, current: dayValue, start: startValue, onClose: close } = latest.current;
+    Object.assign(s, initialState(dayValue, startValue, step), { touched: false });
+    rerender();
+    close?.();
   }
 
   /** @param {JSX.TargetedKeyboardEvent<HTMLInputElement>} event */
@@ -134,10 +152,10 @@ export function NumberEditor({
     const step = latest.current.step;
     switch (event.key) {
       case 'Enter':
-        saveValue();
+        enter();
         break;
       case 'Escape':
-        latest.current.onClose();
+        escape();
         break;
       case 'ArrowUp':
         set(s.value + step);
@@ -154,15 +172,24 @@ export function NumberEditor({
   /** @param {JSX.TargetedKeyboardEvent<HTMLElement>} event */
   function rulerKey(event) {
     const steps = RULER_KEYS.get(event.key);
-    if (event.key === 'Enter') saveValue();
-    else if (event.key === 'Escape') latest.current.onClose();
+    if (event.key === 'Enter') enter();
+    else if (event.key === 'Escape') escape();
     else if (steps != null) set(s.value + steps * latest.current.step);
     else return;
     event.preventDefault();
   }
 
   return (
-    <div class={compact ? 'number-editor number-editor-compact' : 'number-editor'} role="group" aria-label={label}>
+    <div
+      class={compact ? 'number-editor number-editor-compact' : 'number-editor'}
+      role="group"
+      aria-label={label}
+      onFocusOut={(event) => {
+        // The focus leaves the editor, not only goes from the field to the ruler.
+        const next = event.relatedTarget;
+        if (!(next instanceof Node && event.currentTarget.contains(next))) commit();
+      }}
+    >
       <div class="number-editor-value">
         <input
           class="number-editor-field"
@@ -182,9 +209,13 @@ export function NumberEditor({
         value={s.value}
         start={start}
         compact={compact}
-        pageScrolls={onChange != null}
+        pageScrolls={onClose == null}
         autofocus={autofocus}
-        onPress={() => latest.current.onChange?.(s.value)}
+        onEnd={() => {
+          // A press without a move confirms the value.
+          s.touched = true;
+          commit();
+        }}
         onSet={set}
         onKey={rulerKey}
       />
@@ -193,20 +224,20 @@ export function NumberEditor({
           {s.error}
         </p>
       )}
-      {onChange == null && (
+      {onClose != null && (
         <div class="number-editor-actions">
-          <button type="button" class="number-editor-save label-large" disabled={busy} onClick={saveValue}>
-            Save
-          </button>
-          <button type="button" class="number-editor-text-button label-large" onClick={() => onClose()}>
-            Cancel
+          <button type="button" class="number-editor-text-button label-large" onClick={enter}>
+            Close
           </button>
           {current != null && (
             <button
               type="button"
               class="number-editor-text-button number-editor-clear label-large"
               disabled={busy}
-              onClick={() => onClear()}
+              onClick={() => {
+                s.touched = false;
+                onCommit(null);
+              }}
             >
               Clear
             </button>
@@ -215,6 +246,19 @@ export function NumberEditor({
       )}
     </div>
   );
+}
+
+/**
+ * The value and the text of the editor for the value of the day `current`. An empty day starts at `start`. The text
+ * field is empty if the metric has no value on any day.
+ * @param {number | null} current
+ * @param {number | null} start
+ * @param {number} step
+ * @returns {{ value: number, text: string, error: null }}
+ */
+function initialState(current, start, step) {
+  const value = current ?? start ?? 0;
+  return { value, text: current == null && start == null ? '' : formatStep(value, step), error: null };
 }
 
 /** The steps of the keys of the ruler. */
@@ -257,15 +301,15 @@ const RULER_KEYS = new Map([
  * @param {boolean} props.compact
  * @param {boolean} props.pageScrolls
  * @param {boolean} props.autofocus
- * @param {() => void} props.onPress
+ * @param {() => void} props.onEnd Called when a press or a drag ends, and when a side scroll ends.
  * @param {(value: number, snap: boolean) => void} props.onSet
  * @param {(event: JSX.TargetedKeyboardEvent<HTMLElement>) => void} props.onKey
  * @returns {JSX.Element}
  */
-function Ruler({ metric, value, start, compact, pageScrolls, autofocus, onPress, onSet, onKey }) {
+function Ruler({ metric, value, start, compact, pageScrolls, autofocus, onEnd, onSet, onKey }) {
   const step = metric.step;
-  const latest = useRef({ value, step, pageScrolls, onPress, onSet });
-  latest.current = { value, step, pageScrolls, onPress, onSet };
+  const latest = useRef({ value, step, pageScrolls, onEnd, onSet });
+  latest.current = { value, step, pageScrolls, onEnd, onSet };
   const element = useRef(/** @type {HTMLDivElement | null} */ (null));
   const motion = useRef({
     // The strip position minus the position of the value, in ticks: the part of a tick that the strip moved past the
@@ -279,6 +323,11 @@ function Ruler({ metric, value, start, compact, pageScrolls, autofocus, onPress,
     timer: null,
     /** @type {number | null} */
     frame: null,
+    /**
+     * The timer of the end of a side scroll.
+     * @type {ReturnType<typeof setTimeout> | null}
+     */
+    scrollEnd: null,
   }).current;
   const rerender = useRerender();
 
@@ -332,7 +381,10 @@ function Ruler({ metric, value, start, compact, pageScrolls, autofocus, onPress,
 
   useEffect(() => {
     if (autofocus) element.current?.focus();
-    return stopSettling;
+    return () => {
+      stopSettling();
+      if (motion.scrollEnd != null) clearTimeout(motion.scrollEnd);
+    };
   }, []);
 
   /** @param {JSX.TargetedPointerEvent<HTMLDivElement>} event */
@@ -358,8 +410,6 @@ function Ruler({ metric, value, start, compact, pageScrolls, autofocus, onPress,
       originX: event.clientX,
       startPosition: 0,
     };
-    // A press confirms the value, also without a move.
-    latest.current.onPress();
   }
 
   /** @param {JSX.TargetedPointerEvent<HTMLDivElement>} event */
@@ -383,6 +433,8 @@ function Ruler({ metric, value, start, compact, pageScrolls, autofocus, onPress,
     if (drag == null || event.pointerId !== drag.pointerId) return;
     motion.drag = null;
     if (drag.started) settle();
+    // The end of a drag, or a press without a move, which confirms the value.
+    if (event.type === 'pointerup') latest.current.onEnd();
   }
 
   /** @param {JSX.TargetedWheelEvent<HTMLDivElement>} event */
@@ -400,6 +452,11 @@ function Ruler({ metric, value, start, compact, pageScrolls, autofocus, onPress,
     // The rest of a tick moves the strip. The value does not change until a whole tick.
     setOffset(clampOffset(motion.wheel));
     settle(SCROLL_END_MILLIS);
+    if (motion.scrollEnd != null) clearTimeout(motion.scrollEnd);
+    motion.scrollEnd = setTimeout(() => {
+      motion.scrollEnd = null;
+      latest.current.onEnd();
+    }, SCROLL_END_MILLIS);
   }
 
   const valueTick = roundHalfAwayFromZero(value / step);

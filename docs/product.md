@@ -78,33 +78,41 @@ and "Yes days", "Habit strength (%)" and "Strength (%)", "Values and 7-day trend
 
 **Decision:** instant writes, with Undo, on all screens.
 
-- Yes/no: a tap sets yes, or no if the value is yes. The value goes to the sheet at once.
+- Yes/no: a tap sets yes, or no if the value is yes. The value goes to the sheet at once. A yes/no cell or tile waits
+  while a write runs, so that a second tap reads the new value.
 - Count: a tap adds the step. A right-click or a double tap subtracts it. The taps go to the sheet at once, in one
   write for each cell (as now: see `CountQueue`).
 - Number: the ruler and the text field change the value on the screen. The value goes to the sheet when you release
-  the ruler, press Enter, or move the focus out of the field. An empty field clears the day.
+  the ruler, press Enter, or move the focus out of the editor. A press on the ruler without a move confirms the value.
+  An empty field clears the day. In a table or a calendar, Enter also closes the editor, and the editor has Close and
+  Clear buttons.
+- An input that comes while a write runs waits, and goes in the next write.
 - After each write, a message shows at the bottom for 6 seconds. Example: "Weight: 82.4 kg on Nov 26." with an Undo
-  button. Undo writes the value before the change. A new write replaces the message.
-- If a write fails, the screen shows the value of the sheet again, and a message gives the error with "Try again".
-- The Today screen stays on Today after a write. Now, the Save button moves the app to "5 days".
+  button. Undo writes the value before the change. A new input removes the message. Inputs that wait for the next
+  write share one message: Undo writes the values before all of them. Example: 3 quick taps on Water, then Undo, give
+  the value before the first tap.
+- If a write fails, the cells and the tiles show the value of the sheet again, and a message gives the error with
+  "Try again". A number editor keeps the value of the user, so that Enter sends it again.
+- The Today screen stays on Today after a write.
 
-## Screens now
+## Screens
 
-| Screen | How you open it | What it does |
-|---|---|---|
-| Sign-in | First open | Google sign-in. |
-| Setup | After the sign-in, without a sheet | Pick a sheet with the Google Picker. The app adds the tabs. |
-| Today | Navigation | One tile for each metric. A number tile has a ruler. A yes/no tile has a check mark. A count tile adds its step at each tap. A Save button writes the changes. |
-| 5 days | Navigation | Score bars, and a table: one row for each metric, one column for each of the last 5 days. A tap writes at once. |
-| 31 days | Navigation | Score bars, and a month grid for each metric. A number or count metric also has a chart. A tap writes at once. |
-| Score | Navigation | The score of a period: zoom buttons, key numbers, 6 charts and tables, a month calendar. |
-| Metric detail | A tap on a metric name | The values of a period: zoom buttons, key numbers, 3 to 5 charts, a heatmap of the days, and a month calendar to edit the days. |
-| Metrics | `tune` button in the app bar | The list of metrics, in order. Add, move and delete metrics. Restore deleted metrics. Fix the rows with problems. |
-| Metric form | A tap on a metric in Metrics | Name, icon, kind, unit, step, group and goal. |
-| More menu | App bar | Change sheet, Sign out. |
+The screens after phase 2 of the consolidation. Phase 4 redraws them.
 
-Shared parts: the group chips filter Today, 5 days, 31 days and Score. The sheet warnings show at the bottom of the
-navigation screens.
+| Screen | Address | How you open it | What it does |
+|---|---|---|---|
+| Sign-in | — | First open | Google sign-in. |
+| Setup | — | After the sign-in, without a sheet | Pick a sheet with the Google Picker. The app adds the tabs. |
+| Today | `#/today` | Navigation | One tile for each metric. A number tile has a ruler. A yes/no tile has a check mark. A count tile adds its step at each tap. |
+| Days | `#/days` | Navigation | Score bars, then the recent days in one of two layouts. Table: one row for each metric, one column for each day, 5 to 14 days. Calendars: a month grid for each metric for 31 days, and a chart of each number or count metric. |
+| Score | `#/score` | Navigation | The score of a period: zoom buttons, key numbers, 6 charts and tables, a month calendar. |
+| Metric detail | `#/metric/<id>` | A tap on a metric name | The values of a period: zoom buttons, key numbers, 3 to 5 charts, a heatmap of the days, and a month calendar to edit the days. |
+| Metrics | `#/metrics` | `tune` button in the app bar, or Show in the line of the sheet problems | The problems of the sheet first, then the list of metrics, in order. Add, move and delete metrics. Restore deleted metrics. Fix the rows with problems. |
+| Metric form | `#/metrics/new`, `#/metrics/edit/<id>`, `#/metrics/fix/<row>`, `#/metrics/restore/<column>` | A tap on a metric, Add metric, Fix or Restore | Name, icon, kind, unit, step, group and goal. |
+| More menu | — | App bar | Change sheet, Sign out. |
+
+Shared parts: the group chips filter Today, Days and Score. Each input writes at once, with an Undo message. When the
+sheet has problems, the navigation screens show one line with their number and a Show button.
 
 The charts of the metric detail and of the Score screen:
 

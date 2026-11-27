@@ -10,7 +10,7 @@ import './MonthCalendar.css';
 
 /** @import { JSX } from 'preact' */
 /** @import { Day, MonthKey } from '../../model/Day.js' */
-/** @import { CountStep, LogTable, LogWrite, MetricDay } from '../../model/LogEntry.js' */
+/** @import { CountStep, LogTable, MetricDay } from '../../model/LogEntry.js' */
 /** @import { Metric, NumberMetric } from '../../model/Metric.js' */
 
 /** The smallest side move of a swipe, in CSS pixels. A swipe also moves more to the side than up or down. */
@@ -24,14 +24,15 @@ const SWIPE_DISTANCE = 50;
  * @param {LogTable} props.log
  * @param {Day} props.today
  * @param {boolean} props.busy
- * @param {(plan: (log: LogTable) => LogWrite | null) => void} props.onWrite
+ * @param {(metric: Metric, day: Day, value: number | null) => void} props.onRecord Sets the value of a day. See
+ *   `HabitTable`.
  * @param {Map<MetricDay, CountStep[]>} props.pending
  * @param {(metric: NumberMetric, day: Day, step: CountStep) => void} props.onCount
  * @param {MonthKey} props.month The month in view.
  * @param {(month: MonthKey) => void} props.onMonth Called when the arrows or a swipe change the month.
  * @returns {JSX.Element}
  */
-export function MonthCalendar({ metric, log, today, busy, onWrite, pending, onCount, month, onMonth }) {
+export function MonthCalendar({ metric, log, today, busy, onRecord, pending, onCount, month, onMonth }) {
   const [measure, width] = useElementWidth();
   const before = addMonths(month, -1);
   const isThisMonth = sameMonth(month, monthOf(today));
@@ -75,7 +76,7 @@ export function MonthCalendar({ metric, log, today, busy, onWrite, pending, onCo
       days={days}
       layout={DayLayout.CALENDARS}
       busy={busy}
-      onWrite={onWrite}
+      onRecord={onRecord}
       pending={pending}
       onCount={onCount}
       showsTitle={false}

@@ -26,7 +26,7 @@ function showCalendar(month) {
       log={new LogTable([], new Map(), new Map())}
       today={today}
       busy={false}
-      onWrite={() => {}}
+      onRecord={() => {}}
       pending={new Map()}
       onCount={() => {}}
       month={month}

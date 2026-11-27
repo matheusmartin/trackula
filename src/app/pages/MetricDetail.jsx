@@ -17,7 +17,7 @@ import './MetricDetail.css';
 
 /** @import { JSX } from 'preact' */
 /** @import { Day } from '../../model/Day.js' */
-/** @import { CountStep, LogTable, LogWrite, MetricDay } from '../../model/LogEntry.js' */
+/** @import { CountStep, LogTable, MetricDay } from '../../model/LogEntry.js' */
 /** @import { Metric } from '../../model/Metric.js' */
 
 /** The yes/no states of a metric that is not a yes/no metric. */
@@ -40,13 +40,14 @@ const NO_STATES = /** @type {Map<Day, boolean>} */ (new Map());
  * @param {LogTable} props.log
  * @param {Day} props.today
  * @param {boolean} props.busy
- * @param {(plan: (log: LogTable) => LogWrite | null) => void} props.onWrite
+ * @param {(metric: Metric, day: Day, value: number | null) => void} props.onRecord Sets the value of a day. See
+ *   `HabitTable`.
  * @param {Map<MetricDay, CountStep[]>} props.pending
  * @param {(metric: NumberMetric, day: Day, step: CountStep) => void} props.onCount
  * @param {() => void} props.onBack Closes the screen.
  * @returns {JSX.Element}
  */
-export function MetricDetail({ metric, log, today, busy, onWrite, pending, onCount, onBack }) {
+export function MetricDetail({ metric, log, today, busy, onRecord, pending, onCount, onBack }) {
   const [measure, width] = useElementWidth();
   const states = useMemo(() => (metric instanceof YesNoMetric ? yesNoStates(metric, log) : NO_STATES), [metric, log]);
   // For yes/no metrics: 1 for yes and 0 for no, as the rate bars expect.
@@ -105,7 +106,7 @@ export function MetricDetail({ metric, log, today, busy, onWrite, pending, onCou
         log={log}
         today={today}
         busy={busy}
-        onWrite={onWrite}
+        onRecord={onRecord}
         pending={pending}
         onCount={onCount}
         month={month}

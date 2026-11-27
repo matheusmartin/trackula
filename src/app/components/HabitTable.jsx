@@ -2,7 +2,7 @@ import { Fragment } from 'preact';
 import { useMemo, useRef, useState } from 'preact/hooks';
 import { formatCompact, formatNumber, weekdayNames, weekLabels, withUnit } from '../../model/Format.js';
 import { weekRows } from '../../model/Day.js';
-import { metricDayKey, parseMetricDay, planClear, planNumber, planYesNo } from '../../model/LogEntry.js';
+import { metricDayKey, parseMetricDay } from '../../model/LogEntry.js';
 import { DayLayout, tableDayCount } from '../../model/MainView.js';
 import { NumberMetric, YesNoMetric } from '../../model/Metric.js';
 import { dayValues, nearestDay } from '../../model/Summary.js';
@@ -16,7 +16,7 @@ import './HabitTable.css';
 
 /** @import { ComponentChildren, JSX } from 'preact' */
 /** @import { Day } from '../../model/Day.js' */
-/** @import { CountStep, LogTable, LogWrite, MetricDay } from '../../model/LogEntry.js' */
+/** @import { CountStep, LogTable, MetricDay } from '../../model/LogEntry.js' */
 /** @import { DayLayout as Layout } from '../../model/MainView.js' */
 /** @import { Metric } from '../../model/Metric.js' */
 /** @import { CountInput } from '../../services/CountInput.js' */
@@ -62,7 +62,8 @@ export function tableDays(width) {
  * @param {Day[]} props.days The days of the table or of the calendars, oldest first.
  * @param {Layout} props.layout
  * @param {boolean} props.busy
- * @param {(plan: (log: LogTable) => LogWrite | null) => void} props.onWrite
+ * @param {(metric: Metric, day: Day, value: number | null) => void} props.onRecord Sets the value of a day: 1 or 0 for
+ *   a yes/no metric. Null clears the day. See `planValue`.
  * @param {Map<MetricDay, CountStep[]>} props.pending Count taps that are not written yet. The table shows them at once.
  * @param {(metric: NumberMetric, day: Day, step: CountStep) => void} props.onCount
  * @param {((metric: Metric) => void) | null} [props.onOpen] Opens the detail screen of a metric. Null: the metric names
@@ -83,7 +84,7 @@ export function HabitTable({
   days,
   layout,
   busy,
-  onWrite,
+  onRecord,
   pending,
   onCount,
   onOpen = null,
@@ -112,7 +113,7 @@ export function HabitTable({
    */
   function click(m, d, values) {
     if (m instanceof YesNoMetric) {
-      onWrite((l) => planYesNo(m, d, l, !values.has(d)));
+      onRecord(m, d, values.has(d) ? 0 : 1);
     } else if (!m.isCount) {
       const cell = metricDayKey(m.id, d);
       setEditing(editing === cell ? null : cell);
@@ -161,14 +162,7 @@ export function HabitTable({
         current={values.get(d) ?? null}
         start={near == null ? null : (values.get(near) ?? null)}
         busy={busy}
-        onSave={(value) => {
-          onWrite((l) => planNumber(m, d, value, l));
-          setEditing(null);
-        }}
-        onClear={() => {
-          onWrite((l) => planClear(m, d, l));
-          setEditing(null);
-        }}
+        onCommit={(value) => onRecord(m, d, value)}
         onClose={() => setEditing(null)}
       />
     );
