@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { Day } from '../../model/Day.js';
 import { MainView } from '../../model/MainView.js';
 import { NumberGoal } from '../../model/Metric.js';
-import { planEditMetric } from '../../model/MetricsWrite.js';
+import { SetMetricCells, planEditMetric } from '../../model/MetricsWrite.js';
 import { Route } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
 import { LocalNavigator, Navigator } from '../Navigation.js';
@@ -402,5 +402,25 @@ describe('TodayPage', () => {
     fireEvent.click(await screen.findByText('Morning teeth'));
     fireEvent.click(button('Save: Morning teeth'));
     await waitUntil(() => valueToday('teeth') === 1);
+  });
+  test('the problems of the sheet show as one line, and Show opens the metrics screen', async () => {
+    // A row without icon and without goal is invalid.
+    await store.applyMetrics(
+      new SetMetricCells(
+        11,
+        new Map([
+          [0, 'stretch'],
+          [1, 'Stretch'],
+          [2, 'yesno'],
+        ]),
+      ),
+    );
+    await showPage();
+    expect(screen.getByText('1 problem in the sheet.')).toBeTruthy();
+
+    fireEvent.click(button('Show'));
+
+    expect(navigator.route).toBe(Route.METRICS);
+    await screen.findByRole('heading', { name: 'Rows with problems' }, { timeout: TIMEOUT });
   });
 });

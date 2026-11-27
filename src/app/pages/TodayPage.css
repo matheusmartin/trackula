@@ -1,4 +1,4 @@
-/* TodayPage.jsx: the group chips, the notices, the view and the warnings, in a column with a space of 12 px. */
+/* TodayPage.jsx: the notices, the group chips and the view, in a column with a space of 12 px. */
 .today-page {
   display: flex;
   flex-direction: column;
@@ -78,48 +78,4 @@
   border-radius: 20px;
   color: var(--on-primary);
   background-color: var(--primary);
-}
-
-/* The TextButton of Compose Material 3. */
-.today-page-text-button {
-  --button-shape: 20px;
-  align-self: flex-start;
-  box-sizing: border-box;
-  block-size: 40px;
-  margin-block: 4px;
-  padding: 0 12px;
-  border-radius: 20px;
-  color: var(--primary);
-  background-color: transparent;
-}
-
-/* The warnings of the sheet: the OutlinedCard of Compose Material 3. */
-.today-page-warnings {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  border: 1px solid var(--outline-variant);
-  border-radius: 12px;
-  background-color: var(--surface);
-}
-
-.today-page-warnings-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-}
-
-.today-page-warning-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.today-page-warning-list > li::before {
-  content: '• ';
 }

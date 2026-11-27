@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { Day } from '../../model/Day.js';
 import { NumberGoal, NumberMetric } from '../../model/Metric.js';
+import { SetCell } from '../../model/LogEntry.js';
 import { SetMetricCells } from '../../model/MetricsWrite.js';
 import { Route } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
@@ -316,6 +317,18 @@ describe('MetricsPage', () => {
     expect(water?.id).toBe('water');
     expect(water?.name).toBe('Water');
     expect(store.last?.log.entries.some((e) => e.metricId === 'water')).toBe(true);
+  });
+
+  test('the problems of the Log tab show above the metrics', async () => {
+    const column = (await store.load()).log.columns.get('weight');
+    await store.apply(new SetCell(2, /** @type {number} */ (column), 'heavy'));
+    await showPage();
+    const heading = screen.getByRole('heading', { name: 'Other problems in the sheet' });
+    expect(heading).toBeTruthy();
+    expect(screen.getByText(/Log row 2, column [A-Z]+: /)).toBeTruthy();
+    // Before the list of the metrics.
+    const weight = screen.getByText('Weight');
+    expect(heading.compareDocumentPosition(weight) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   test('fix a row without icon', async () => {

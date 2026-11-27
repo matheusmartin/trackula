@@ -7,11 +7,14 @@ import './Notice.css';
  * The kind of a {@link Notice}. It selects the icon and the colors.
  * @enum {string}
  */
-export const NoticeKind = Object.freeze({ INFO: 'INFO', ERROR: 'ERROR' });
+export const NoticeKind = Object.freeze({ INFO: 'INFO', WARNING: 'WARNING', ERROR: 'ERROR' });
+
+/** The icon of each {@link NoticeKind}. */
+const ICONS = Object.freeze({ INFO: 'info', WARNING: 'warning', ERROR: 'error' });
 
 /**
- * A message for the user in a soft box with an icon: an error of a load or a save, or a note such as demo mode. A
- * screen reader says an error when it shows.
+ * A message for the user in a soft box with an icon: an error of a load or a save, a warning such as the problems of
+ * the sheet, or a note such as demo mode. A screen reader says an error when it shows.
  * @param {object} props
  * @param {string} props.text
  * @param {NoticeKind} [props.kind] Default: {@link NoticeKind.INFO}.
@@ -22,10 +25,11 @@ export const NoticeKind = Object.freeze({ INFO: 'INFO', ERROR: 'ERROR' });
  */
 export function Notice({ text, kind = NoticeKind.INFO, action = null, onAction = null, class: className }) {
   const isError = kind === NoticeKind.ERROR;
-  const classes = ['notice', isError ? 'notice-error' : null, className].filter(Boolean).join(' ');
+  const kindClass = kind === NoticeKind.INFO ? null : `notice-${kind.toLowerCase()}`;
+  const classes = ['notice', kindClass, className].filter(Boolean).join(' ');
   return (
     <div class={classes} aria-live={isError ? 'polite' : undefined}>
-      <Symbol name={isError ? 'error' : 'info'} size={20} />
+      <Symbol name={ICONS[/** @type {'INFO' | 'WARNING' | 'ERROR'} */ (kind)]} size={20} />
       <p class="notice-text body-medium">{text}</p>
       {action != null && onAction != null ? (
         <button type="button" class="notice-action label-large" onClick={() => onAction()}>

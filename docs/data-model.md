@@ -300,6 +300,8 @@ Limits:
 
 ### Layer 3: app reads
 
+- The app shows the number of warnings in one line at the top of the views, and lists them in the metrics screen: the
+  invalid `Metrics` rows under "Rows with problems", the others under "Other problems in the sheet".
 - The app ignores a `Log` row with an invalid `date`, and shows a warning.
 - The app ignores a `Log` cell that is not a number (or not `yes` or `no` for `yesno`), and shows a warning.
 - The app ignores a `Log` column with no metric, for example of a deleted metric. It shows no warning.

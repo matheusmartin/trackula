@@ -126,6 +126,8 @@ export function MetricsPage({ data, busy, error, onWrite, hasMouse = false }) {
   const form = useMemo(() => targetOf(route, data), [route]);
   const metrics = data.metrics;
   const table = data.metricsTable;
+  // The problems of the Log tab and of the scores. The problems of the Metrics tab are its invalid rows.
+  const otherProblems = data.warnings.filter((w) => !table.warnings.includes(w));
 
   // A metric, a row or a deleted metric that is gone from the sheet, for example after a reload, has no form: the
   // screen before shows.
@@ -182,6 +184,36 @@ export function MetricsPage({ data, busy, error, onWrite, hasMouse = false }) {
         }
       />
       {error != null && <Notice text={error} kind={NoticeKind.ERROR} />}
+      {/* The problems first: the line of the sheet problems on the other screens opens this screen. */}
+      {table.invalid.length > 0 && (
+        <OtherRows icon="warning" title="Rows with problems" help={null}>
+          {table.invalid.map((row) => (
+            <OtherRow
+              key={row.row}
+              title={`Row ${row.row} · ${row.id || 'no id'}`}
+              text={capitalized(row.problem)}
+              button="Fix"
+              enabled={!busy}
+              onClick={() => navigator.go(Route.fixRow(row.row))}
+            />
+          ))}
+        </OtherRows>
+      )}
+      {otherProblems.length > 0 && (
+        <OtherRows
+          icon="warning"
+          title="Other problems in the sheet"
+          help="Change these in the sheet. Then load the sheet again with the reload button."
+        >
+          <ul class="metrics-problems">
+            {otherProblems.map((problem, i) => (
+              <li key={i} class="body-medium">
+                {problem}
+              </li>
+            ))}
+          </ul>
+        </OtherRows>
+      )}
 
       {metrics.length === 0 ? (
         <EmptyState enabled={!busy} onAdd={() => navigator.go(Route.NEW_METRIC)} />
@@ -204,21 +236,6 @@ export function MetricsPage({ data, busy, error, onWrite, hasMouse = false }) {
             )
           }
         />
-      )}
-
-      {table.invalid.length > 0 && (
-        <OtherRows icon="warning" title="Rows with problems" help={null}>
-          {table.invalid.map((row) => (
-            <OtherRow
-              key={row.row}
-              title={`Row ${row.row} · ${row.id || 'no id'}`}
-              text={capitalized(row.problem)}
-              button="Fix"
-              enabled={!busy}
-              onClick={() => navigator.go(Route.fixRow(row.row))}
-            />
-          ))}
-        </OtherRows>
       )}
 
       {data.deleted.length > 0 && (

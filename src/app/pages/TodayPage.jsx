@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { CountQueue } from '../../model/CountQueue.js';
 import { daysBetween } from '../../model/Day.js';
+import { formatNumber } from '../../model/Format.js';
 import { CALENDAR_DAYS, DayLayout, MainView, dayLayoutOf } from '../../model/MainView.js';
 import { NumberMetric, groupOf, metricsOf } from '../../model/Metric.js';
 import { Route, Screen } from '../../model/Route.js';
@@ -359,6 +360,15 @@ export function TodayPage({
 
   return (
     <div class="today-page">
+      {/* One line for all problems of the sheet. Show opens the metrics screen, which lists them. */}
+      {data != null && data.warnings.length > 0 && (
+        <Notice
+          text={problemsText(data.warnings.length)}
+          kind={NoticeKind.WARNING}
+          action="Show"
+          onAction={() => navigator.go(Route.METRICS)}
+        />
+      )}
       {groups.length > 1 && (
         <GroupChips
           groups={groups}
@@ -389,12 +399,6 @@ export function TodayPage({
         >
           {viewContent(data)}
         </div>
-      )}
-      {data != null && data.warnings.length > 0 && (
-        <Warnings
-          warnings={data.warnings}
-          onFix={data.metricsTable.invalid.length === 0 ? null : () => navigator.go(Route.METRICS)}
-        />
       )}
     </div>
   );
@@ -444,29 +448,10 @@ function NoMetrics({ onAdd }) {
 }
 
 /**
- * The warnings of the sheet: invalid rows and cells.
- * @param {object} props
- * @param {string[]} props.warnings
- * @param {(() => void) | null} props.onFix Opens the metrics screen. Null: no Fix button.
- * @returns {JSX.Element}
+ * The text of the line of the sheet problems. Examples: "1 problem in the sheet.", "3 problems in the sheet."
+ * @param {number} count
+ * @returns {string}
  */
-function Warnings({ warnings, onFix }) {
-  return (
-    <section class="today-page-warnings" aria-labelledby="sheet-warnings">
-      <h2 id="sheet-warnings" class="today-page-warnings-title title-medium">
-        <Symbol name="warning" color="var(--error)" />
-        Sheet warnings
-      </h2>
-      <ul class="today-page-warning-list">
-        {warnings.map((w, i) => (
-          <li key={i}>{w}</li>
-        ))}
-      </ul>
-      {onFix != null && (
-        <button type="button" class="today-page-text-button label-large" onClick={onFix}>
-          Fix the metric rows
-        </button>
-      )}
-    </section>
-  );
+function problemsText(count) {
+  return `${formatNumber(count)} ${count === 1 ? 'problem' : 'problems'} in the sheet.`;
 }
