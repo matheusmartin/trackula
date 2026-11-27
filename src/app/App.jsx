@@ -220,7 +220,7 @@ function SheetPage({ session, spreadsheetId, children }) {
 }
 
 /**
- * The app bar, the main content and the navigation: Today, 5 days, 31 days, Score. A narrow window has a bottom
+ * The app bar, the main content and the navigation: Today, Days, Score. A narrow window has a bottom
  * navigation bar. A window of {@link RAIL_WIDTH} or more has a navigation rail on the left.
  *
  * - The page scrolls as a normal web page. The app bar stays at the top, and the navigation bar at the bottom.

@@ -1,9 +1,10 @@
 import { useRef } from 'preact/hooks';
 import { addMonths, daysOfMonth, monthOf, sameMonth } from '../../model/Day.js';
 import { monthPairTitle, monthTitle } from '../../model/Format.js';
+import { DayLayout } from '../../model/MainView.js';
 import { AppIconButton } from './AppIconButton.jsx';
 import { useElementWidth } from './ElementWidth.js';
-import { DayLayout, HabitTable } from './HabitTable.jsx';
+import { HabitTable } from './HabitTable.jsx';
 import { WIDE_CONTENT } from './Sizes.js';
 import './MonthCalendar.css';
 

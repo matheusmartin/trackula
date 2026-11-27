@@ -55,7 +55,7 @@ describe('App', () => {
     await waitFor(() => expect(platform.readPref('spreadsheetId')).toBe('sheet-1'), { timeout: TIMEOUT });
     expect(platform.session.prepared).toEqual(['sheet-1']);
     await waitForTodayPage();
-    expect(screen.getByText('5 days')).toBeTruthy();
+    expect(screen.getByText('Days')).toBeTruthy();
     click('More');
     expect(screen.getByRole('menuitem', { name: 'Change sheet' })).toBeTruthy();
     expect(screen.getByRole('menuitem', { name: 'Sign out' })).toBeTruthy();
@@ -67,12 +67,12 @@ describe('App', () => {
 
     click('Metrics');
     await screen.findByRole('button', { name: 'Add metric' });
-    expect(screen.queryByText('5 days')).toBeNull();
+    expect(screen.queryByText('Days')).toBeNull();
     expect(platform.history.entries).toBe(1);
 
     click('Back');
 
-    await screen.findByText('5 days');
+    await screen.findByText('Days');
     expect(screen.queryByRole('heading', { name: 'Metrics' })).toBeNull();
   });
 
@@ -85,7 +85,7 @@ describe('App', () => {
 
     platform.history.userBack();
 
-    await screen.findByText('5 days');
+    await screen.findByText('Days');
     expect(screen.queryByRole('heading', { name: 'Metrics' })).toBeNull();
     await waitFor(() => expect(platform.history.entries).toBe(0));
   });
@@ -144,7 +144,7 @@ describe('App', () => {
     render(<App platform={new FakePlatform({ isDemo: true })} />);
     expect(screen.queryByText('Sign in with Google')).toBeNull();
     await waitForTodayPage();
-    for (const label of ['Today', '5 days', '31 days', 'Score']) expect(screen.getAllByText(label)).toHaveLength(1);
+    for (const label of ['Today', 'Days', 'Score']) expect(screen.getAllByText(label)).toHaveLength(1);
   });
 
   test('a view of the navigation is the current page after a click', async () => {
@@ -152,9 +152,9 @@ describe('App', () => {
     const views = screen.getByRole('navigation', { name: 'Views' });
     expect(views.querySelector('[aria-current="page"]')?.textContent).toContain('Today');
 
-    click('5 days');
+    click('Days');
 
-    await waitFor(() => expect(views.querySelector('[aria-current="page"]')?.textContent).toContain('5 days'));
+    await waitFor(() => expect(views.querySelector('[aria-current="page"]')?.textContent).toContain('Days'));
   });
 
   test('the app bar shows a progress circle in place of the reload button while the data loads', async () => {

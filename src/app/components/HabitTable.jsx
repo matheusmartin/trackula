@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from 'preact/hooks';
 import { formatCompact, formatNumber, weekdayNames, weekLabels, withUnit } from '../../model/Format.js';
 import { weekRows } from '../../model/Day.js';
 import { metricDayKey, parseMetricDay, planClear, planNumber, planYesNo } from '../../model/LogEntry.js';
+import { DayLayout, tableDayCount } from '../../model/MainView.js';
 import { NumberMetric, YesNoMetric } from '../../model/Metric.js';
 import { dayValues, nearestDay } from '../../model/Summary.js';
 import { AppCard } from './AppCard.jsx';
@@ -16,17 +17,9 @@ import './HabitTable.css';
 /** @import { ComponentChildren, JSX } from 'preact' */
 /** @import { Day } from '../../model/Day.js' */
 /** @import { CountStep, LogTable, LogWrite, MetricDay } from '../../model/LogEntry.js' */
+/** @import { DayLayout as Layout } from '../../model/MainView.js' */
 /** @import { Metric } from '../../model/Metric.js' */
 /** @import { CountInput } from '../../services/CountInput.js' */
-
-/**
- * How {@link HabitTable} shows its days. `TABLE`: one row per metric, one column per day. `CALENDARS`: one small
- * calendar per metric, Monday to Sunday.
- * @typedef {'TABLE' | 'CALENDARS'} DayLayout
- */
-
-/** The values of {@link DayLayout}. */
-export const DayLayout = Object.freeze({ TABLE: 'TABLE', CALENDARS: 'CALENDARS' });
 
 /** The smallest and the largest size of a table cell, and the space between two cells, in CSS pixels. */
 const MIN_CELL = 28;
@@ -38,6 +31,19 @@ const NAME_WIDTH = 136;
 
 /** The largest width of a window that the table gives smaller paddings: a phone. */
 const NARROW = 480;
+
+/** The space around the table, in CSS pixels. */
+const TABLE_PADDING = 8;
+
+/**
+ * The number of days that a table of `width` CSS pixels holds with cells of the largest size: 5 on a phone, up to 14
+ * on a wide screen. See `tableDayCount`.
+ * @param {number} width
+ * @returns {number}
+ */
+export function tableDays(width) {
+  return tableDayCount(width - TABLE_PADDING, NAME_WIDTH, MAX_CELL + CELL_GAP);
+}
 
 /**
  * HabitKit-style input table: one row per metric, one column per day, today on the right.
@@ -54,7 +60,7 @@ const NARROW = 480;
  * @param {LogTable} props.log
  * @param {Day} props.today
  * @param {Day[]} props.days The days of the table or of the calendars, oldest first.
- * @param {DayLayout} props.layout
+ * @param {Layout} props.layout
  * @param {boolean} props.busy
  * @param {(plan: (log: LogTable) => LogWrite | null) => void} props.onWrite
  * @param {Map<MetricDay, CountStep[]>} props.pending Count taps that are not written yet. The table shows them at once.
@@ -200,12 +206,12 @@ export function HabitTable({
   // Phones: smaller cells, so that the days and the metric names fit without scrolling. Whole pixels, so that the
   // cells keep sharp edges.
   const narrow = width <= NARROW;
-  const fitting = Math.trunc((width - 8 - NAME_WIDTH) / days.length - CELL_GAP);
+  const fitting = Math.trunc((width - TABLE_PADDING - NAME_WIDTH) / days.length - CELL_GAP);
   const cellSize = Math.min(MAX_CELL, Math.max(MIN_CELL, fitting));
   const columnWidth = cellSize + CELL_GAP;
   // The name column takes the space that the day columns leave, but at least 120 px: the table scrolls sideways on
   // very narrow screens.
-  const nameWidth = Math.max(120, width - columnWidth * days.length - 8);
+  const nameWidth = Math.max(120, width - columnWidth * days.length - TABLE_PADDING);
   const rowWidth = nameWidth + columnWidth * days.length;
   return (
     <div ref={measure} class="habit-table-box">

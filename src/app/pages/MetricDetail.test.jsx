@@ -30,7 +30,7 @@ afterEach(() => {
  * Shows the Today page on the view `start` and waits for the data.
  * @param {MainView} [start]
  */
-async function showPage(start = MainView.SHORT) {
+async function showPage(start = MainView.DAYS) {
   render(
     <TodayPage
       store={store}

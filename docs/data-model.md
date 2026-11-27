@@ -194,8 +194,8 @@ Rules:
   shows a warning and continues. The next load tries again.
 - The app does not read the `Score` column. It shows the scores that it calculates, also for count taps that it did not
   write yet. Demo mode has no `Score` column.
-- In the app, a green bar chart of the score, one bar for each day, is at the top of the "5 days" and "31 days"
-  views. A tap on "Score" opens the "Score" view of the bottom navigation bar: the score only, in green. Each part
+- In the app, a green bar chart of the score, one bar for each day, is at the top of the "Days"
+  view. A tap on "Score" opens the "Score" view of the bottom navigation bar: the score only, in green. Each part
   shows different data, so that no part shows again the days or the weekdays of another part. It does not show a
   total: the score of a day is a percentage. The Today tiles do not show the score.
   - Key numbers: "per day" (the average of the days with a score), "change", "best day" and "best weekday".

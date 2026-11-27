@@ -1,22 +1,31 @@
 import { describe, expect, test } from 'vitest';
-import { Day } from './Day.js';
-import { MainView } from './MainView.js';
+import { DayLayout, MainView, dayLayoutOf, tableDayCount } from './MainView.js';
 
 describe('MainView', () => {
-  test('daysUntil gives the days of the view, oldest first, ending on today', () => {
-    const today = Day.of(2026, 10, 2);
-    expect(MainView.TODAY.daysUntil(today)).toEqual([today]);
-    expect(MainView.SHORT.daysUntil(today).map(String)).toEqual([
-      '2026-09-28',
-      '2026-09-29',
-      '2026-09-30',
-      '2026-10-01',
-      '2026-10-02',
-    ]);
-    expect(MainView.MONTH.daysUntil(today).length).toBe(31);
+  test('labels', () => {
+    expect(MainView.entries.map((v) => v.label)).toEqual(['Today', 'Days', 'Score']);
+  });
+});
+
+describe('dayLayoutOf', () => {
+  test('gives the calendars only for their own text', () => {
+    expect(dayLayoutOf('CALENDARS')).toBe(DayLayout.CALENDARS);
+    expect(dayLayoutOf('TABLE')).toBe(DayLayout.TABLE);
+    expect(dayLayoutOf('calendars')).toBe(DayLayout.TABLE);
+    expect(dayLayoutOf(null)).toBe(DayLayout.TABLE);
+  });
+});
+
+describe('tableDayCount', () => {
+  test('gives as many days as fit next to the names', () => {
+    expect(tableDayCount(358, 136, 40)).toBe(5);
+    expect(tableDayCount(456, 136, 40)).toBe(8);
+    expect(tableDayCount(696, 136, 40)).toBe(14);
   });
 
-  test('labels', () => {
-    expect(MainView.entries.map((v) => v.label)).toEqual(['Today', '5 days', '31 days', 'Score']);
+  test('gives 5 days or more, and 14 days or less', () => {
+    expect(tableDayCount(0, 136, 40)).toBe(5);
+    expect(tableDayCount(300, 136, 40)).toBe(5);
+    expect(tableDayCount(1200, 136, 40)).toBe(14);
   });
 });

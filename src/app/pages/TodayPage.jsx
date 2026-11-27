@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { CountQueue } from '../../model/CountQueue.js';
-import { MainView } from '../../model/MainView.js';
+import { daysBetween } from '../../model/Day.js';
+import { CALENDAR_DAYS, DayLayout, MainView, dayLayoutOf } from '../../model/MainView.js';
 import { NumberMetric, groupOf, metricsOf } from '../../model/Metric.js';
 import { dayScores, groupScoreMetric, pointsByMetric, pointsOf, scoreMetric } from '../../model/Score.js';
 import { useOnBack } from '../Back.js';
 import { errorText } from '../Errors.js';
+import { useElementWidth } from '../components/ElementWidth.js';
 import { GroupChips, groupLabel } from '../components/GroupChips.jsx';
-import { DayLayout, HabitTable } from '../components/HabitTable.jsx';
+import { HabitTable, tableDays } from '../components/HabitTable.jsx';
 import { Notice, NoticeKind } from '../components/Notice.jsx';
 import { ScoreChart } from '../components/ScoreChart.jsx';
+import { SegmentedButtons } from '../components/SegmentedButtons.jsx';
 import { Symbol } from '../components/Symbol.jsx';
 import { TodayTiles } from '../components/TodayTiles.jsx';
 import { TrendChart } from '../components/TrendChart.jsx';
@@ -98,6 +101,10 @@ export function TodayPage({
   openDetailId.current = detailId;
   // The selected group, or null for all groups.
   const [group, setGroup] = useState(() => readPref('group'));
+  // The layout of the Days view. It stays in local storage, as the group.
+  const [dayLayout, setDayLayout] = useState(() => dayLayoutOf(readPref('days-layout')));
+  // The width of the Days view: the table shows as many days as it holds.
+  const [measureDays, daysWidth] = useElementWidth();
   // The count taps that are not in the sheet yet. The table shows them at once. The queue is not a state, so `counts`
   // changes after each change of the queue, to show the new taps.
   const queue = useMemo(() => new CountQueue(), []);
@@ -159,8 +166,8 @@ export function TodayPage({
   }
 
   /**
-   * Saves the values of the Today tiles. After a successful save, the page shows the last 5 days. The app still opens
-   * on the Today tiles. After an error, the Today tiles stay.
+   * Saves the values of the Today tiles. After a successful save, the page shows the Days view. The app still opens on
+   * the Today tiles. After an error, the Today tiles stay.
    * @param {LogPlan[]} plans
    * @param {() => void} onDone
    */
@@ -177,7 +184,7 @@ export function TodayPage({
       return;
     }
     void job.then(() => {
-      if (saved) latest.current.onView(MainView.SHORT);
+      if (saved) latest.current.onView(MainView.DAYS);
     });
   }
 
@@ -340,16 +347,27 @@ export function TodayPage({
       );
     }
     if (view === MainView.SCORE) return detail(score, null);
-    const days = view.daysUntil(today);
+    const dayCount = dayLayout === DayLayout.CALENDARS ? CALENDAR_DAYS : tableDays(daysWidth);
+    const days = daysBetween(today.addDays(1 - dayCount), today);
     return (
       <>
+        <SegmentedButtons
+          label="Layout of the days"
+          segments={DAY_LAYOUTS}
+          selected={dayLayout}
+          onSelect={(value) => {
+            const layout = dayLayoutOf(value);
+            setDayLayout(layout);
+            writePref('days-layout', layout);
+          }}
+        />
         <ScoreChart score={score} days={days} scores={scores} onOpen={() => latest.current.onView(MainView.SCORE)} />
         <HabitTable
           metrics={shown}
           log={snapshot.log}
           today={today}
           days={days}
-          layout={view === MainView.MONTH ? DayLayout.CALENDARS : DayLayout.TABLE}
+          layout={dayLayout}
           busy={busy}
           onWrite={write}
           pending={pending}
@@ -385,9 +403,17 @@ export function TodayPage({
       {data == null && error == null && <Loading />}
       {data != null && metrics.length === 0 && <NoMetrics onAdd={() => latest.current.onManaging(true)} />}
       {data != null && metrics.length > 0 && (
-        // A short fade between the views of the navigation. The table of 5 days is not wider than 720 px: on a wide
-        // screen, the cells stay near the names.
-        <div key={view.name} class={view === MainView.SHORT ? 'today-page-view today-page-short' : 'today-page-view'}>
+        // A short fade between the views of the navigation. The table of the Days view is not wider than 720 px: on a
+        // wide screen, the cells stay near the names, and it holds 14 days.
+        <div
+          key={view.name}
+          ref={view === MainView.DAYS ? measureDays : undefined}
+          class={
+            view === MainView.DAYS && dayLayout === DayLayout.TABLE
+              ? 'today-page-view today-page-table'
+              : 'today-page-view'
+          }
+        >
           {viewContent(data)}
         </div>
       )}
@@ -403,6 +429,12 @@ export function TodayPage({
 
 /** The metrics before the first load. */
 const NO_METRICS = /** @type {Metric[]} */ ([]);
+
+/** The choices of the layout switch of the Days view. */
+const DAY_LAYOUTS = [
+  { value: DayLayout.TABLE, label: 'Table', icon: 'table_rows' },
+  { value: DayLayout.CALENDARS, label: 'Calendars', icon: 'calendar_month' },
+];
 
 /**
  * The first load of the sheet: a progress circle in the page. The app bar also shows a small one.

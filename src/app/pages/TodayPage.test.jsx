@@ -168,7 +168,7 @@ describe('TodayPage', () => {
     expect(valueToday('meditate')).toBeNull();
 
     fireEvent.click(button('Save: Meditate'));
-    await waitUntil(() => view === MainView.SHORT);
+    await waitUntil(() => view === MainView.DAYS);
     expect(valueToday('meditate')).toBe(1);
   });
 
@@ -224,12 +224,12 @@ describe('TodayPage', () => {
     mouseClick(button('Water'));
     rightClick(button('Water'));
     fireEvent.click(await screen.findByRole('button', { name: 'Save: Water' }));
-    await waitUntil(() => view === MainView.SHORT);
+    await waitUntil(() => view === MainView.DAYS);
     expect(valueToday('water')).toBe(1);
   });
 
   test('a click on a yes/no cell writes yes and a second click writes no', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     fireEvent.click(cellToday('Meditate'));
     await waitUntil(() => valueToday('meditate') === 1);
     await waitFor(() => expect(/** @type {HTMLButtonElement} */ (cellToday('Meditate', ': yes')).disabled).toBe(false));
@@ -238,7 +238,7 @@ describe('TodayPage', () => {
   });
 
   test('count clicks on a cell show at once and go to the sheet', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     const cell = cellToday('Water');
     mouseClick(cell);
     mouseClick(cell);
@@ -247,7 +247,7 @@ describe('TodayPage', () => {
   });
 
   test('a click on a number cell opens the editor, and save writes the typed value', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     fireEvent.click(cellToday('Weight'));
     expect(screen.getByRole('slider', { name: 'Weight ruler' })).toBeTruthy();
     fireEvent.input(screen.getByRole('textbox', { name: 'Weight kg' }), { target: { value: '81,9' } });
@@ -257,7 +257,7 @@ describe('TodayPage', () => {
   });
 
   test('a group chip shows only its metrics and stays in local storage', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     fireEvent.click(button('Hygiene'));
     await waitFor(() => expect(screen.queryByText('Weight')).toBeNull());
     expect(screen.getByText('Morning teeth')).toBeTruthy();
@@ -282,12 +282,12 @@ describe('TodayPage', () => {
     store.failWrites = false;
     fireEvent.click(screen.getByText('Meditate'));
     fireEvent.click(button('Save: Meditate'));
-    await waitUntil(() => view === MainView.SHORT);
+    await waitUntil(() => view === MainView.DAYS);
     expect(valueToday('meditate')).toBe(1);
   });
 
   test('taps during a write wait and go to the sheet in one write for the cell', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     const gate = new Gate();
     store.gate = gate;
     const cell = cellToday('Water');
@@ -312,7 +312,7 @@ describe('TodayPage', () => {
     fireEvent.keyDown(tile, { key: '=' });
     fireEvent.keyDown(tile, { key: '-' });
     fireEvent.click(await screen.findByRole('button', { name: 'Save: Water' }));
-    await waitUntil(() => view === MainView.SHORT);
+    await waitUntil(() => view === MainView.DAYS);
     expect(valueToday('water')).toBe(1);
   });
 
@@ -329,7 +329,7 @@ describe('TodayPage', () => {
   });
 
   test('a screen reader click on a count cell adds a step', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     // A click without a press, as a screen reader or the keyboard gives it.
     fireEvent.click(cellToday('Water'));
     await waitUntil(() => valueToday('water') === 1);
@@ -344,7 +344,7 @@ describe('TodayPage', () => {
     fireEvent.click(screen.getByText('Meditate'));
     fireEvent.click(button('Save: Meditate'));
     // During the Save, the user goes to the table and taps a count cell: the tap waits in the queue.
-    await changeView(MainView.SHORT);
+    await changeView(MainView.DAYS);
     mouseClick(cellToday('Water'));
     await changeView(MainView.TODAY);
 
@@ -355,16 +355,30 @@ describe('TodayPage', () => {
     expect(valueToday('meditate')).toBeNull();
   });
 
-  test('the table and the calendars start with the score card, and its title opens the score view', async () => {
-    await showPage(MainView.SHORT);
+  test('both layouts of the days start with the score card, and its title opens the score view', async () => {
+    await showPage(MainView.DAYS);
     expect(button('Show the score only')).toBeTruthy();
-    await changeView(MainView.MONTH);
+    expect(screen.getByRole('table')).toBeTruthy();
+
+    fireEvent.click(button('Calendars'));
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(button('Calendars').getAttribute('aria-pressed')).toBe('true');
+    expect(prefs.get('days-layout')).toBe('CALENDARS');
     fireEvent.click(button('Show the score only'));
     expect(view).toBe(MainView.SCORE);
   });
 
+  test('the days open in the layout of local storage', async () => {
+    prefs.set('days-layout', 'CALENDARS');
+    await showPage(MainView.DAYS);
+    expect(screen.queryByRole('table')).toBeNull();
+    fireEvent.click(button('Table'));
+    expect(screen.getByRole('table')).toBeTruthy();
+    expect(prefs.get('days-layout')).toBe('TABLE');
+  });
+
   test('the score card shows the score of the selected group', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     expect(screen.getByText('Score')).toBeTruthy();
     const all = scoreChartLabel();
     fireEvent.click(button('Hygiene'));
@@ -377,7 +391,7 @@ describe('TodayPage', () => {
   });
 
   test('the score view has the group filter', async () => {
-    await showPage(MainView.SHORT);
+    await showPage(MainView.DAYS);
     await changeView(MainView.SCORE);
     // The first "Hygiene" is the chip. The legend of the weekday averages has the group name too.
     fireEvent.click(screen.getAllByRole('button', { name: 'Hygiene' })[0]);

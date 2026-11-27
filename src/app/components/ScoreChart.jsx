@@ -12,8 +12,8 @@ import './ScoreChart.css';
 const MAX_DAYS_WITH_VALUES = 7;
 
 /**
- * The score of `days` as green bars from 0, one for each day, at the top of the 5-day table and of the 31-day
- * calendars. Short periods show the value above each bar. A tap on the title opens the Score view with `onOpen`.
+ * The score of `days` as green bars from 0, one for each day, at the top of the table and of the calendars of the
+ * Days view. Short periods show the value above each bar. A tap on the title opens the Score view with `onOpen`.
  *
  * The score is green, not the theme red.
  * @param {object} props
