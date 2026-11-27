@@ -23,11 +23,6 @@
   text-overflow: ellipsis;
 }
 
-.metrics-help {
-  display: block;
-  color: var(--on-surface-variant);
-}
-
 .metrics-empty {
   align-items: center;
   gap: var(--space-3);
@@ -42,112 +37,6 @@
 
 .metrics-empty-text {
   color: var(--on-surface-variant);
-}
-
-/* The list of the metrics. The card cuts the rows at its corners. */
-.metric-list {
-  overflow: hidden;
-}
-
-/* A row and the line above it. While a drag moves a row, the other rows move to make space for it. After the drop,
-   the rows are at their new places at once. */
-.metric-list-item {
-  position: relative;
-  border-radius: 0;
-  background-color: var(--surface-container-low);
-}
-
-.metric-list-item + .metric-list-item {
-  border-block-start: 1px solid var(--outline-variant);
-}
-
-.metric-list-dragging {
-  cursor: grabbing;
-  user-select: none;
-}
-
-.metric-list-dragging .metric-list-item {
-  transition: transform 200ms ease-out;
-}
-
-/* The dragged row is above the others, with a shadow. */
-.metric-list-dragging .metric-list-item-dragged {
-  z-index: 1;
-  transition: none;
-  box-shadow:
-    0 4px 8px 3px rgb(0 0 0 / 0.15),
-    0 1px 3px rgb(0 0 0 / 0.3);
-}
-
-/* A metric: the button of the full row opens the form. The arrows or the handle are on top of it, at the end. */
-.metric-row {
-  --actions: 96px;
-  position: relative;
-  display: flex;
-}
-
-.metric-row-mouse {
-  --actions: 48px;
-}
-
-.metric-row-edit {
-  flex: 1;
-  min-inline-size: 0;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: var(--space-3);
-  block-size: auto;
-  padding: 10px calc(var(--space-1) + var(--actions)) 10px var(--space-4);
-  border-radius: 0;
-  color: var(--on-surface);
-  background-color: transparent;
-  text-align: start;
-}
-
-.metric-row-edit:focus-visible {
-  outline-offset: -2px;
-}
-
-/* The highlight of the row also shows when the mouse is on the arrows or on the handle, and while a drag moves the
-   row. */
-.metric-row:hover > .metric-row-edit::after,
-.metric-list-item-dragged .metric-row-edit::after {
-  opacity: 0.1;
-}
-
-.metric-row-texts {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-inline-size: 0;
-}
-
-/* 19 px high: a text of 16 px with the line height of the font. */
-.metric-row-goal {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-  min-block-size: 19px;
-}
-
-.metric-row-actions {
-  position: absolute;
-  inset-block: 0;
-  inset-inline-end: 4px;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-}
-
-/* The drag handle. The row shows the highlight of the mouse. The handle shows the focus of the keyboard. */
-.metric-handle {
-  cursor: grab;
-}
-
-.metric-handle:not(:focus-visible)::after {
-  opacity: 0;
 }
 
 /* The rows with problems and the deleted metrics. */

@@ -1,7 +1,7 @@
 import { monthOf } from '../../model/Day.js';
 import { Aggregate, defaultStepIndex } from '../../model/Zoom.js';
 import { useElementWidth } from '../components/ElementWidth.js';
-import { ScoreCharts } from '../components/MetricCharts.jsx';
+import { ScoreCharts } from '../components/ScoreCharts.jsx';
 import { ChartsArea, PeriodBar, usePeriod } from '../components/Period.jsx';
 import { ScoreCalendar } from '../components/ScoreCalendar.jsx';
 import { WIDE_CONTENT } from '../components/Sizes.js';

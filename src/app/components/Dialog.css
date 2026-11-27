@@ -1,0 +1,67 @@
+/* Dialog.jsx. */
+/* A Material 3 alert dialog: in the middle of the window, with 28 px corners. It is on a scrim of 60% black, and it
+   is 280 to 560 px wide, with a space of 35 px or more at each side. */
+.alert-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  min-inline-size: 280px;
+  max-inline-size: min(560px, calc(100% - 70px));
+  block-size: fit-content;
+  max-block-size: 80%;
+  margin: auto;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: none;
+  border-radius: 28px;
+  outline: none;
+  color: var(--on-surface);
+  background-color: var(--surface-container-high);
+  animation: alert-dialog-in var(--duration-medium) var(--easing-standard);
+}
+
+.alert-dialog::backdrop {
+  background-color: rgb(0 0 0 / 0.6);
+  animation: alert-dialog-in var(--duration-medium) var(--easing-standard);
+}
+
+@keyframes alert-dialog-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert-dialog,
+  .alert-dialog::backdrop {
+    animation: none;
+  }
+}
+
+.alert-dialog-content {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-5);
+}
+
+.alert-dialog-title {
+  margin: 0 0 var(--space-4);
+}
+
+.alert-dialog .alert-dialog-text {
+  margin: 0 0 var(--space-5);
+  color: var(--on-surface-variant);
+}
+
+/* The buttons are 40 px high, in a touch target of 48 px. */
+.alert-dialog-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 var(--space-2);
+}
+
+.alert-dialog-buttons > button {
+  margin-block: var(--space-1);
+}

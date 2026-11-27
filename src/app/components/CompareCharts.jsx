@@ -1,7 +1,8 @@
 // The charts that compare a period with the periods before it.
 import { formatNumber, formatSigned } from '../../model/Format.js';
 import { stepChanges } from '../../model/ScoreStats.js';
-import { ChartCard, Labels, Legend, NoValues, RangeBars, Scroller, ValueRow, spokenValues } from './Charts.jsx';
+import { ChartCard, Labels, NoValues, Scroller, ValueRow, spokenValues } from './ChartParts.jsx';
+import { Legend, RangeBars } from './Charts.jsx';
 import { useElementWidth } from './ElementWidth.js';
 import './CompareCharts.css';
 

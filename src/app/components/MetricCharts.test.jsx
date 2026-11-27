@@ -3,7 +3,7 @@ import { afterEach, describe, expect, test } from 'vitest';
 import { Day } from '../../model/Day.js';
 import { YesNoMetric } from '../../model/Metric.js';
 import { ZoomStep, ZoomWindow } from '../../model/Zoom.js';
-import { MetricCharts, ScoreCharts } from './MetricCharts.jsx';
+import { MetricCharts } from './MetricCharts.jsx';
 
 afterEach(cleanup);
 
@@ -21,19 +21,6 @@ describe('MetricCharts', () => {
     );
     expect(screen.getByText('No values yet')).toBeTruthy();
     expect(screen.queryByText('Yes rate')).toBeNull();
-  });
-
-  test('the score without values says that the Today page records the days', () => {
-    render(
-      <ScoreCharts
-        window={new ZoomWindow(ZoomStep.entries[0], today, today)}
-        values={new Map()}
-        scoreMetrics={[]}
-        points={new Map()}
-      />,
-    );
-    expect(screen.getByText('No score yet')).toBeTruthy();
-    expect(screen.getByText('Record a day on the Today page. Then the score and its charts show here.')).toBeTruthy();
   });
 
   test('the charts of a yes/no metric show its key numbers and its charts', () => {

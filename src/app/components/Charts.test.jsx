@@ -1,8 +1,8 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
+import { cleanup, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { Day, daysBetween } from '../../model/Day.js';
 import { BarUnit } from '../../model/Zoom.js';
-import { BarChart, DayHeatmap, KeyNumbers, LineChart, Overview, StackedBarChart, TimeBars } from './Charts.jsx';
+import { BarChart, LineChart, StackedBarChart, TimeBars } from './Charts.jsx';
 
 afterEach(() => {
   cleanup();
@@ -154,85 +154,6 @@ describe('Charts', () => {
     const days = daysBetween(Day.of(2026, 9, 29), Day.of(2026, 10, 1));
     render(<LineChart title="Values" description="Dots." days={days} values={[null, null, null]} />);
     expect(screen.getByText('No values in this period.')).toBeTruthy();
-  });
-
-  test('the key numbers show each value with its label and a tooltip', () => {
-    render(
-      <KeyNumbers
-        items={[
-          ['total', '12 l'],
-          ['days logged', '3'],
-        ]}
-      />,
-    );
-    expect(screen.getByText('12 l')).toBeTruthy();
-    expect(screen.getByTitle('days logged: 3')).toBeTruthy();
-  });
-
-  test('a press on the overview gives the day under the pointer', () => {
-    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 200, 40));
-    const weeks = [Day.of(2026, 9, 7), Day.of(2026, 9, 14), Day.of(2026, 9, 21), Day.of(2026, 9, 28)].map((start) => ({
-      start,
-      value: 1,
-      low: 1,
-      high: 1,
-    }));
-    /** @type {Day[]} */
-    const points = [];
-    render(
-      <Overview
-        weeks={weeks}
-        fromZero
-        from={Day.of(2026, 9, 28)}
-        to={Day.of(2026, 10, 4)}
-        onPoint={(d) => points.push(d)}
-      />,
-    );
-    const overview = screen.getByRole('img', { name: 'All data' });
-    fireEvent.pointerDown(overview, { clientX: 0, button: 0, pointerId: 1 });
-    fireEvent.pointerMove(overview, { clientX: 200, pointerId: 1 });
-    fireEvent.pointerUp(overview, { pointerId: 1 });
-    fireEvent.pointerMove(overview, { clientX: 100, pointerId: 1 });
-    // From the first day of the first week to the last day of the last week.
-    expect(points).toEqual([Day.of(2026, 9, 7), Day.of(2026, 10, 4)]);
-  });
-
-  test('a tap on a heatmap day gives the day, and each day has a tooltip', () => {
-    /** @type {Day[]} */
-    const tapped = [];
-    const from = Day.of(2026, 9, 29);
-    render(
-      <DayHeatmap
-        title="Yes days"
-        from={from}
-        to={Day.of(2026, 10, 3)}
-        filled={(d) => d === from}
-        today={Day.of(2026, 10, 3)}
-        onDay={(d) => tapped.push(d)}
-        dayTitle={(d) => `Day ${d}`}
-      />,
-    );
-    const heatmap = screen.getByRole('img', { name: 'Days from 2026-09-29 to 2026-10-03' });
-    const cells = heatmap.querySelectorAll('rect');
-    expect(cells).toHaveLength(5);
-    expect(cells[0].textContent).toBe('Day 2026-09-29');
-    fireEvent.click(cells[0]);
-    expect(tapped).toEqual([from]);
-    expect(screen.getByText('Tap a day to show its month in the calendar.')).toBeTruthy();
-  });
-
-  test('a heatmap of more than a year asks for a zoom', () => {
-    render(
-      <DayHeatmap
-        title="Yes days"
-        from={Day.of(2025, 1, 1)}
-        to={Day.of(2026, 10, 3)}
-        filled={() => true}
-        today={Day.of(2026, 10, 3)}
-      />,
-    );
-    expect(screen.getByText('Zoom in to 1 year or less to see single days.')).toBeTruthy();
-    expect(screen.getByText('One cell for each day of the window.')).toBeTruthy();
   });
 
   test('a bar chart with more than 12 bars scrolls to the side, and a chart with fewer bars is centered', () => {

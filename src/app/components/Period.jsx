@@ -6,7 +6,7 @@ import { roundHalfAwayFromZero } from '../../model/Numbers.js';
 import { BarUnit, ZoomWindow, barStarts, threeMonthsStepIndex, zoomBars, zoomSteps } from '../../model/Zoom.js';
 import { AppIconButton } from './AppIconButton.jsx';
 import { Button } from './Button.jsx';
-import { Overview } from './Charts.jsx';
+import { Overview } from './Overview.jsx';
 import { useStickyHeight } from './StickyHeight.js';
 
 /** @import { ComponentChildren, JSX } from 'preact' */

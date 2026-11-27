@@ -1,0 +1,115 @@
+/* TextField.jsx. */
+/* An outlined text field of Material 3: 56 px high, with the label on the border when the field has the focus or a
+   value. The field keeps 8 px above the border for the label. The border of the input has a gap for the label
+   (clip-path), and the line after the label (label::after) is the top border from the label to the end. */
+.text-field {
+  --text-field-height: 56px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: var(--text-field-height);
+  margin: var(--space-2) 0 0;
+  border-radius: 4px;
+}
+
+.text-field > input {
+  all: unset;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-inline-size: 0;
+  min-block-size: var(--text-field-height);
+  padding: 0 15px;
+  border: 1px solid var(--outline);
+  border-radius: inherit;
+  font-family: inherit;
+  font-size: 16px;
+  text-align: start;
+  caret-color: var(--primary);
+  cursor: text;
+}
+
+.text-field > input:focus {
+  padding-inline: 14px;
+  border: 2px solid var(--primary);
+}
+
+/* The input always has the placeholder " ": it does not show when the field has a value. */
+.text-field > input:is(:focus, :not(:placeholder-shown)) {
+  clip-path: polygon(
+    -2% -2%,
+    12px -2%,
+    12px 8px,
+    calc(100% - 16px) 8px,
+    calc(100% - 16px) -2%,
+    102% -2%,
+    102% 102%,
+    -2% 102%
+  );
+}
+
+.text-field > label {
+  position: absolute;
+  inset: -8px 15px 0 16px;
+  display: flex;
+  gap: var(--space-1);
+  block-size: calc(var(--text-field-height) + 16px);
+  font-size: 16px;
+  line-height: calc(var(--text-field-height) + 16px);
+  white-space: nowrap;
+  color: var(--on-surface-variant);
+  pointer-events: none;
+  transition: all 0.2s;
+}
+
+.text-field > input:is(:focus, :not(:placeholder-shown)) + label {
+  block-size: 16px;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.text-field > label::after {
+  content: '';
+  display: block;
+  flex: auto;
+  block-size: 16px;
+  margin: var(--space-2) 0 0;
+  border-block-start: 1px solid var(--outline);
+}
+
+.text-field > input:focus + label {
+  color: var(--primary);
+}
+
+.text-field > input:focus + label::after {
+  border-block-start: 2px solid var(--primary);
+}
+
+.text-field-invalid > input,
+.text-field-invalid > input:focus {
+  border-color: var(--error);
+}
+
+.text-field-invalid > input + label,
+.text-field-invalid > input:focus + label {
+  color: var(--error);
+}
+
+.text-field-invalid > input + label::after,
+.text-field-invalid > input:focus + label::after {
+  border-color: var(--error);
+}
+
+/* The error below the field: the supporting text of Material 3, in the bodySmall style. */
+.text-field > output {
+  display: inline-block;
+  align-self: start;
+  padding: var(--space-1) var(--space-4) 0;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.4px;
+  color: var(--error);
+}

@@ -1,17 +1,19 @@
-import { useId, useLayoutEffect, useRef, useState } from 'preact/hooks';
+import { useId, useLayoutEffect, useState } from 'preact/hooks';
 import { goalText } from '../../model/MetricCells.js';
 import { DraftField, GoalDirection, MetricKind, canChangeKind, goalExamples } from '../../model/MetricDraft.js';
 import { newMetricId } from '../../model/MetricId.js';
 import { useLeaveGuard } from '../Navigation.js';
 import { AppCard } from '../components/AppCard.jsx';
 import { AppIconButton } from '../components/AppIconButton.jsx';
+import { Button } from '../components/Button.jsx';
+import { ConfirmDialog } from '../components/Dialog.jsx';
 import { EmojiPicker } from '../components/EmojiPicker.jsx';
 import { FilterChip, groupLabel } from '../components/GroupChips.jsx';
 import { MetricIcon } from '../components/MetricIcon.jsx';
 import { Notice, NoticeKind } from '../components/Notice.jsx';
 import { outset } from '../components/Outset.js';
-import { Button } from '../components/Button.jsx';
 import { Symbol } from '../components/Symbol.jsx';
+import { TextField } from '../components/TextField.jsx';
 import './MetricForm.css';
 
 /** @import { ComponentChildren, JSX } from 'preact' */
@@ -108,7 +110,7 @@ export function MetricForm({ setup, takenIds, groups, busy, error, onSave, onDel
   }
 
   return (
-    <div class="metric-form">
+    <div class="metric-form" data-text-fields>
       <div class="metric-form-title-row">
         <AppIconButton icon="close" title="Close without saving" onClick={close} />
         <h2 class="metric-form-title headline-small">{setup.title}</h2>
@@ -140,7 +142,7 @@ export function MetricForm({ setup, takenIds, groups, busy, error, onSave, onDel
       )}
 
       {confirmsDelete && setup.deleteQuestion != null && (
-        <AlertDialog
+        <ConfirmDialog
           title={`${setup.deleteLabel}?`}
           text={setup.deleteQuestion}
           confirm={setup.deleteLabel}
@@ -153,7 +155,7 @@ export function MetricForm({ setup, takenIds, groups, busy, error, onSave, onDel
         />
       )}
       {confirmsDiscard && (
-        <AlertDialog
+        <ConfirmDialog
           title="Discard changes?"
           text="The changes in this form are not saved."
           confirm="Discard"
@@ -202,7 +204,7 @@ function NameAndIcon({ draft, errors, onChange }) {
   const iconError = errors.get(DraftField.ICON) ?? null;
   return (
     <Section title="Name and icon">
-      <Field
+      <TextField
         label="Name"
         value={draft.name}
         error={errors.get(DraftField.NAME) ?? null}
@@ -263,8 +265,8 @@ function KindUnitAndGroup({ draft, errors, valueKind, groups, onChange }) {
       )}
       {!isYesNo && (
         <div class="metric-form-pair metric-form-pair-unit">
-          <Field label="Unit" value={draft.unit} onChange={(unit) => onChange(draft.copy({ unit }))} />
-          <Field
+          <TextField label="Unit" value={draft.unit} onChange={(unit) => onChange(draft.copy({ unit }))} />
+          <TextField
             label="Step"
             value={draft.step}
             error={errors.get(DraftField.STEP) ?? null}
@@ -274,7 +276,12 @@ function KindUnitAndGroup({ draft, errors, valueKind, groups, onChange }) {
         </div>
       )}
       {/* The last field of a yes/no metric: its goal has no fields. */}
-      <Field label="Group" value={draft.group} isLast={isYesNo} onChange={(group) => onChange(draft.copy({ group }))} />
+      <TextField
+        label="Group"
+        value={draft.group}
+        isLast={isYesNo}
+        onChange={(group) => onChange(draft.copy({ group }))}
+      />
       {groups.length > 0 && (
         <Choices label="Groups">
           {groups.map((group) => (
@@ -333,14 +340,14 @@ function Goal({ draft, errors, onChange }) {
             ))}
           </Choices>
           <div class="metric-form-pair">
-            <Field
+            <TextField
               label="Target"
               value={draft.target}
               error={errors.get(DraftField.TARGET) ?? null}
               isNumber
               onChange={(target) => onChange(draft.copy({ target }))}
             />
-            <Field
+            <TextField
               label="Start (optional)"
               value={draft.start}
               error={errors.get(DraftField.START) ?? null}
@@ -504,58 +511,6 @@ function Section({ title, children }) {
 }
 
 /**
- * An outlined text field with a `label`, and its `error` below it. `isNumber` shows the number keyboard on a phone.
- * The Enter key goes to the next field. On the last field (`isLast`), it closes the keyboard.
- * @param {object} props
- * @param {string} props.label
- * @param {string} props.value
- * @param {string | null} [props.error] Null: no error.
- * @param {boolean} [props.isNumber] Default: false.
- * @param {boolean} [props.isLast] Default: false.
- * @param {(value: string) => void} props.onChange
- * @returns {JSX.Element}
- */
-function Field({ label, value, error = null, isNumber = false, isLast = false, onChange }) {
-  const id = useId();
-  const input = useRef(/** @type {HTMLInputElement | null} */ (null));
-
-  /** @param {JSX.TargetedKeyboardEvent<HTMLInputElement>} event */
-  function onKeyDown(event) {
-    if (event.key !== 'Enter' || input.current == null) return;
-    event.preventDefault();
-    if (isLast) {
-      input.current.blur();
-      return;
-    }
-    const fields = [...(input.current.closest('.metric-form')?.querySelectorAll('input[type="text"]') ?? [])];
-    const next = fields[fields.indexOf(input.current) + 1];
-    if (next instanceof HTMLElement) next.focus();
-  }
-
-  return (
-    <div class={error != null ? 'metric-form-field metric-form-field-invalid' : 'metric-form-field'}>
-      <input
-        ref={input}
-        id={id}
-        type="text"
-        inputMode={isNumber ? 'decimal' : 'text'}
-        enterKeyHint={isLast ? 'done' : 'next'}
-        autoComplete="off"
-        // The label goes to the border when the placeholder does not show: when the field has a value.
-        placeholder=" "
-        value={value}
-        aria-invalid={error != null}
-        aria-describedby={error != null ? `${id}-error` : undefined}
-        onInput={(event) => onChange(event.currentTarget.value)}
-        onKeyDown={onKeyDown}
-      />
-      <label for={id}>{label}</label>
-      {error != null && <output id={`${id}-error`}>{error}</output>}
-    </div>
-  );
-}
-
-/**
  * A row of choice chips that wraps to more lines. `label` is the name of the group for screen readers.
  * @param {object} props
  * @param {string} props.label
@@ -578,56 +533,4 @@ function Choices({ label, children }) {
  */
 function Help({ text }) {
   return <p class="metric-form-help body-small">{text}</p>;
-}
-
-/**
- * A Material 3 alert dialog: a modal dialog with a `title`, a `text`, and two buttons at the end. The
- * confirm button is the last one, in the error color. Escape and a click out of the dialog call `onDismiss`.
- * @param {object} props
- * @param {string} props.title
- * @param {string} props.text
- * @param {string} props.confirm The text of the confirm button.
- * @param {string} props.dismiss The text of the dismiss button.
- * @param {() => void} props.onConfirm
- * @param {() => void} props.onDismiss
- * @returns {JSX.Element}
- */
-function AlertDialog({ title, text, confirm, dismiss, onConfirm, onDismiss }) {
-  const dialog = useRef(/** @type {HTMLDialogElement | null} */ (null));
-  const id = useId();
-  useLayoutEffect(() => {
-    const element = dialog.current;
-    if (element != null && !element.open) element.showModal();
-    // The browser puts the focus back on the button that opened the dialog.
-    return () => element?.close();
-  }, []);
-  return (
-    <dialog
-      ref={dialog}
-      class="alert-dialog"
-      aria-labelledby={`${id}-title`}
-      aria-describedby={`${id}-text`}
-      onCancel={(event) => {
-        event.preventDefault();
-        onDismiss();
-      }}
-      onClick={(event) => {
-        // A click on the backdrop: the target is the dialog, not its content.
-        if (event.target === event.currentTarget) onDismiss();
-      }}
-    >
-      <div class="alert-dialog-content">
-        <h2 id={`${id}-title`} class="alert-dialog-title headline-small">
-          {title}
-        </h2>
-        <p id={`${id}-text`} class="alert-dialog-text body-medium">
-          {text}
-        </p>
-        <div class="alert-dialog-buttons">
-          <Button text={dismiss} onClick={onDismiss} />
-          <Button text={confirm} tone="error" onClick={onConfirm} />
-        </div>
-      </div>
-    </dialog>
-  );
 }

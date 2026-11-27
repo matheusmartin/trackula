@@ -6,7 +6,7 @@ import { yesNoStates } from '../../model/Stats.js';
 import { dayValues } from '../../model/Summary.js';
 import { Aggregate, defaultStepIndex } from '../../model/Zoom.js';
 import { AppIconButton } from '../components/AppIconButton.jsx';
-import { DayHeatmap } from '../components/Charts.jsx';
+import { DayHeatmap } from '../components/DayHeatmap.jsx';
 import { useElementWidth } from '../components/ElementWidth.js';
 import { MetricCharts } from '../components/MetricCharts.jsx';
 import { MetricIcon } from '../components/MetricIcon.jsx';
