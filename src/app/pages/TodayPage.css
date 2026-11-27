@@ -70,7 +70,6 @@
 
 /* A filled button of Material 3: 40 px high in a touch target of 48 px. */
 .today-page-button {
-  --button-shape: 20px;
   box-sizing: border-box;
   block-size: 40px;
   margin-block: 4px;

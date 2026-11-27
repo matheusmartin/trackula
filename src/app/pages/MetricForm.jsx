@@ -536,9 +536,7 @@ function Field({ label, value, error = null, isNumber = false, isLast = false, o
   }
 
   return (
-    <div
-      class={error != null ? 'field label border metric-form-field invalid' : 'field label border metric-form-field'}
-    >
+    <div class={error != null ? 'metric-form-field metric-form-field-invalid' : 'metric-form-field'}>
       <input
         ref={input}
         id={id}
@@ -555,11 +553,7 @@ function Field({ label, value, error = null, isNumber = false, isLast = false, o
         onKeyDown={onKeyDown}
       />
       <label for={id}>{label}</label>
-      {error != null && (
-        <output id={`${id}-error`} class="invalid">
-          {error}
-        </output>
-      )}
+      {error != null && <output id={`${id}-error`}>{error}</output>}
     </div>
   );
 }

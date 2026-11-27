@@ -30,7 +30,6 @@
 
 /* A filled button of Material 3, 48 px high: the theme color, with an icon before the text. */
 .metrics-add-button {
-  --button-shape: 24px;
   flex: none;
   box-sizing: border-box;
   display: inline-flex;
@@ -115,7 +114,6 @@
 }
 
 .metric-row-edit {
-  --button-shape: 0;
   flex: 1;
   min-inline-size: 0;
   box-sizing: border-box;
@@ -139,7 +137,6 @@
    row. */
 .metric-row:hover > .metric-row-edit::after,
 .metric-list-item-dragged .metric-row-edit::after {
-  background-size: 22500%;
   opacity: 0.1;
 }
 

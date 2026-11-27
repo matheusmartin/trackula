@@ -14,7 +14,6 @@
 /* A filter chip of Material 3: 32 px high, 8 px corners. Not selected: a thin outline. Selected: the
    secondary container color and a check mark. */
 .group-chip {
-  --button-shape: 8px;
   flex: none;
   box-sizing: border-box;
   display: inline-flex;

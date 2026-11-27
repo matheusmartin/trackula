@@ -19,7 +19,6 @@
 }
 
 .app-snackbar-action {
-  --button-shape: var(--radius-full);
   flex: none;
   block-size: 40px;
   padding: 0 var(--space-3);

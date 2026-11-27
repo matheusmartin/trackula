@@ -61,7 +61,6 @@
 
 /* The zoom label: a text button of Material 3. */
 .window-zoom-label {
-  --button-shape: 20px;
   box-sizing: border-box;
   block-size: 40px;
   min-inline-size: 58px;

@@ -1,6 +1,5 @@
 /* AppIconButton.jsx: an icon button of Material 3. */
 .app-icon-button {
-  --button-shape: 50%;
   flex: none;
   box-sizing: border-box;
   inline-size: 48px;
@@ -15,8 +14,6 @@
 /* The highlight of the mouse and of the keyboard focus: a circle of 40 px in the button of 48 px. */
 .app-icon-button::after {
   inset: 4px;
-  inline-size: auto;
-  block-size: auto;
 }
 
 .app-icon-button:focus-visible {

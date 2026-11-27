@@ -158,7 +158,6 @@
 }
 
 .number-editor-text-button {
-  --button-shape: 20px;
   box-sizing: border-box;
   block-size: 40px;
   min-inline-size: 58px;

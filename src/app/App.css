@@ -96,7 +96,6 @@ html {
 }
 
 .navigation-item {
-  --button-shape: 0;
   flex: 1 1 0;
   box-sizing: border-box;
   display: flex;

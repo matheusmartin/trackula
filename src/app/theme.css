@@ -305,16 +305,31 @@ body {
 /* A box as wide as its parent, for example a PrimaryButton. */
 .fill-width {
   inline-size: 100%;
+  max-inline-size: 100%;
 }
 
 /*
- * The progress circle of Material 3: an arc that turns and changes its length, without a
- * track. 40 px with a line of 4 px. A component can set other values: --_stroke is the width of the line.
+ * The progress circle of Material 3: an arc that turns and changes its length, without a track. 40 px with a line of
+ * 4 px. A component can set other values: --_stroke is the width of the line.
  */
 @property --progress-arc {
   syntax: '<percentage>';
   inherits: false;
   initial-value: 30%;
+}
+
+:where(progress.circle) {
+  position: relative;
+  flex: none;
+  border: none;
+  border-radius: 50%;
+  overflow: hidden;
+  appearance: none;
+}
+
+:where(progress.circle)::-webkit-progress-bar,
+:where(progress.circle)::-webkit-progress-value {
+  background: none;
 }
 
 :where(progress.circle:not([value])) {

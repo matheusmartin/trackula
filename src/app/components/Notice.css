@@ -35,7 +35,6 @@
 
 /* A text button: 40 px high, in a touch target of 48 px. */
 .notice-action {
-  --button-shape: 20px;
   flex: none;
   box-sizing: border-box;
   block-size: 40px;

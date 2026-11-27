@@ -201,10 +201,17 @@ The charts (`TimeBars`, `LineChart`, `RangeBars`, `Distribution`, `StackedBars`,
 
 ## Base styles
 
-Phase 3 removed BeerCSS. `src/app/base.css` gives the base look of the HTML elements (the reset, `button`, `input`,
-`table`, `dialog`, `progress`), in the cascade layer `base`: a rule of the app replaces a base rule without a more
-specific selector. Each component sets the rest of its look in its own CSS file. `theme.css` keeps the tokens and the
-type classes.
+Phase 3 removed BeerCSS. `src/app/base.css` gives the base look of the HTML elements, in the cascade layer `base`: a
+rule of the app replaces a base rule without a more specific selector.
+
+- No browser margins and paddings, and `box-sizing: border-box`.
+- A heading has the font of the text around it. A type class gives its size.
+- A `button` has no look of its own, only a state layer: the text color at 10% while the mouse is on it or it has the
+  keyboard focus.
+- Thin scroll bars with a mouse.
+
+Each component sets the rest of its look in its own CSS file. `theme.css` keeps the tokens, the type classes and the
+progress circle.
 
 ## Findings that this file closes
 

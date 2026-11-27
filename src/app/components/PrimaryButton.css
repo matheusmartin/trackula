@@ -1,6 +1,5 @@
 /* PrimaryButton.jsx */
 .primary-button {
-  --button-shape: 16px;
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;

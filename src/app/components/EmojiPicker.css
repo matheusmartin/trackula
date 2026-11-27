@@ -20,7 +20,6 @@
 /* A square button with an emoji. The emoji fills a little more than half of the button. The emoji fonts come first:
    some text fonts have black and white glyphs for some emojis, for example ©️. */
 .emoji-button {
-  --button-shape: 10px;
   box-sizing: border-box;
   inline-size: auto;
   min-inline-size: 0;

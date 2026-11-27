@@ -35,7 +35,6 @@
 
 /* A yes/no or count tile is one button. */
 .tile-button {
-  --button-shape: 16px;
   display: flex;
   flex-direction: column;
   align-items: stretch;

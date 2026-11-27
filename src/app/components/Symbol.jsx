@@ -1,3 +1,5 @@
+import './Symbol.css';
+
 /** @import { JSX } from 'preact' */
 
 /**
@@ -15,7 +17,7 @@ export function Symbol({ name, size = 24, color = null, class: className }) {
     <i
       class={className ? `symbol ${className}` : 'symbol'}
       aria-hidden="true"
-      style={{ '--_size': `${size}px`, color }}
+      style={{ '--symbol-size': `${size}px`, color }}
     >
       {name}
     </i>
