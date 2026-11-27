@@ -6,13 +6,17 @@
 /** @import { Store } from '../sheets/Store.js' */
 
 /**
- * The history of the browser tab, for the Back button of the browser and the back gesture of a phone. See
- * `BackDispatcher` in `Back.js`.
+ * The history of the browser tab: the address of each screen after `#`, the Back button of the browser and the back
+ * gesture of a phone. See `Navigator` in `Navigation.js`.
  * @typedef {object} BrowserHistory
- * @property {() => void} push Adds an entry for the current page. A later back removes it and calls the function of
- *   `onBack`.
- * @property {() => void} back Goes one entry back, as the Back button does. The function of `onBack` also runs.
- * @property {(handler: () => void) => void} onBack Sets the function that runs after each back of the browser.
+ * @property {() => string} hash The address of the current entry, from `#`. Example: `#/days`. Empty without `#`.
+ * @property {() => number} index The position of the current entry among the entries of the app. 0 for the first.
+ * @property {(hash: string, index: number) => void} push Adds an entry with the address `hash` and the position
+ *   `index`.
+ * @property {(hash: string, index: number) => void} replace Changes the address and the position of the current entry.
+ * @property {() => void} back Goes one entry back, as the Back button does. The function of `onChange` runs after it.
+ * @property {(handler: () => void) => void} onChange Sets the function that runs each time the browser goes to another
+ *   entry: Back, Forward, or a new address typed after `#`.
  */
 
 /**

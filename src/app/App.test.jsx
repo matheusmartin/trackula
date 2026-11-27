@@ -68,7 +68,8 @@ describe('App', () => {
     click('Metrics');
     await screen.findByRole('button', { name: 'Add metric' });
     expect(screen.queryByText('Days')).toBeNull();
-    expect(platform.history.entries).toBe(1);
+    expect(platform.history.depth).toBe(1);
+    expect(platform.history.hash()).toBe('#/metrics');
 
     click('Back');
 
@@ -81,13 +82,37 @@ describe('App', () => {
     await signInToTodayPage(platform);
     click('Metrics');
     await screen.findByRole('heading', { name: 'Metrics' });
-    expect(platform.history.entries).toBe(1);
+    expect(platform.history.depth).toBe(1);
+    expect(platform.history.hash()).toBe('#/metrics');
 
     platform.history.userBack();
 
     await screen.findByText('Days');
     expect(screen.queryByRole('heading', { name: 'Metrics' })).toBeNull();
-    await waitFor(() => expect(platform.history.entries).toBe(0));
+    await waitFor(() => expect(platform.history.depth).toBe(0));
+  });
+
+  test('the address opens its screen after the sign-in, and Back without a screen before shows its parent', async () => {
+    const platform = new FakePlatform({ savedSpreadsheetId: 'sheet-1', hash: '#/metric/weight' });
+    render(<App platform={platform} />);
+    click('Sign in with Google');
+    await screen.findByText('Edit days', {}, { timeout: TIMEOUT });
+    expect(screen.queryByRole('navigation', { name: 'Views' })).toBeNull();
+
+    click('Back');
+
+    await screen.findByText('Days');
+    expect(platform.history.hash()).toBe('#/days');
+    expect(platform.history.depth).toBe(0);
+  });
+
+  test('a view of the navigation changes the address without a new history entry', async () => {
+    const platform = new FakePlatform({ isDemo: true });
+    render(<App platform={platform} />);
+    await waitForTodayPage();
+    click('Score');
+    await waitFor(() => expect(platform.history.hash()).toBe('#/score'));
+    expect(platform.history.depth).toBe(0);
   });
 
   test('a saved sheet opens after the sign-in, and Change sheet forgets it', async () => {

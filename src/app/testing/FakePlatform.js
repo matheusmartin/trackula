@@ -7,29 +7,60 @@ import { CountingStore } from './CountingStore.js';
 /** @import { BrowserHistory, Platform, Session } from '../Platform.js' */
 
 /**
- * A {@link BrowserHistory} in memory. `entries` is the number of entries that the app added and that are still there.
- * `userBack()` is the Back button of the browser.
+ * A {@link BrowserHistory} in memory, as the history of a browser tab: a list of entries and the current one. `depth`
+ * is the position of the current entry. `userBack()` is the Back button of the browser. As in a browser, the function
+ * of `onChange` runs after a back, not during it.
  * @implements {BrowserHistory}
  */
 export class FakeHistory {
-  constructor() {
-    this.entries = 0;
+  /** @param {string} [hash] The address of the first page, for example `#/days`. */
+  constructor(hash = '') {
+    /**
+     * @private
+     * @type {{ hash: string, index: number }[]}
+     */
+    this.entries = [{ hash, index: 0 }];
+    this.depth = 0;
     /** @private */
     this.handler = () => {};
   }
 
-  push() {
-    this.entries++;
+  /** @returns {string} */
+  hash() {
+    return this.entries[this.depth].hash;
+  }
+
+  /** @returns {number} */
+  index() {
+    return this.entries[this.depth].index;
+  }
+
+  /**
+   * @param {string} hash
+   * @param {number} index
+   */
+  push(hash, index) {
+    this.entries.splice(this.depth + 1);
+    this.entries.push({ hash, index });
+    this.depth++;
+  }
+
+  /**
+   * @param {string} hash
+   * @param {number} index
+   */
+  replace(hash, index) {
+    this.entries[this.depth] = { hash, index };
   }
 
   back() {
-    if (this.entries === 0) return;
-    this.entries--;
-    this.handler();
+    if (this.depth === 0) return;
+    this.depth--;
+    queueMicrotask(() => this.handler());
   }
 
   /** @param {() => void} handler */
-  onBack(handler) {
+  onChange(handler) {
     this.handler = handler;
   }
 
@@ -85,12 +116,14 @@ export class FakePlatform {
    * @param {boolean} [options.isDemo]
    * @param {boolean} [options.hasMouse]
    * @param {string | null} [options.savedSpreadsheetId]
+   * @param {string} [options.hash] The address of the first page, for example `#/metric/weight`.
    */
   constructor({
     config = new Config('123-abc.apps.googleusercontent.com', 'key'),
     isDemo = false,
     hasMouse = false,
     savedSpreadsheetId = null,
+    hash = '',
   } = {}) {
     this.config = config;
     this.isDemo = isDemo;
@@ -101,7 +134,7 @@ export class FakePlatform {
      */
     this.prefs = new Map();
     if (savedSpreadsheetId != null) this.prefs.set('spreadsheetId', savedSpreadsheetId);
-    this.history = new FakeHistory();
+    this.history = new FakeHistory(hash);
     this.todayValue = Day.of(2026, 10, 3);
     /**
      * The `selectAccount` argument of each sign-in.

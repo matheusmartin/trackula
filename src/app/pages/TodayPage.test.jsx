@@ -1,12 +1,14 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
-import { useState } from 'preact/hooks';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { Day } from '../../model/Day.js';
 import { MainView } from '../../model/MainView.js';
 import { NumberGoal } from '../../model/Metric.js';
 import { planEditMetric } from '../../model/MetricsWrite.js';
+import { Route } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
+import { LocalNavigator, Navigator } from '../Navigation.js';
 import { CountingStore, Gate } from '../testing/CountingStore.js';
+import { FakeHistory } from '../testing/FakePlatform.js';
 import { ReloadHandle, TodayPage } from './TodayPage.jsx';
 
 /** @import { Metric } from '../../model/Metric.js' */
@@ -19,10 +21,10 @@ const today = Day.of(2026, 10, 3);
 let store;
 /** @type {Map<string, string>} */
 let prefs;
-/** The view of the navigation: the page changes it with `onView`, and a test with `setView`. */
-let view = MainView.TODAY;
-/** @type {(view: MainView) => void} */
-let setView = () => {};
+/** @type {Navigator} */
+let navigator;
+/** The view of the navigation: the page changes it with the navigator, and a test with `changeView`. */
+let view = /** @type {MainView | null} */ (MainView.TODAY);
 
 beforeEach(() => {
   store = new CountingStore(new DemoStore(today, 0));
@@ -32,40 +34,32 @@ beforeEach(() => {
 afterEach(cleanup);
 
 /**
- * The page with the view state of the App.
- * @param {{ start: MainView }} props
- * @returns {import('preact').JSX.Element}
- */
-function Page({ start }) {
-  const [shown, setShown] = useState(start);
-  view = shown;
-  setView = setShown;
-  return (
-    <TodayPage
-      store={store}
-      today={today}
-      expired={() => false}
-      onExpired={() => {}}
-      view={shown}
-      onView={setShown}
-      reload={new ReloadHandle()}
-      onBusy={() => {}}
-      onDetail={() => {}}
-      readPref={(key) => prefs.get(key) ?? null}
-      writePref={(key, value) => {
-        if (value == null) prefs.delete(key);
-        else prefs.set(key, value);
-      }}
-    />
-  );
-}
-
-/**
- * Shows the page on the view `start` and waits for the data.
+ * Shows the page on the view `start`, with the navigator of the App, and waits for the data.
  * @param {MainView} [start]
  */
 async function showPage(start = MainView.TODAY) {
-  render(<Page start={start} />);
+  navigator = new Navigator(new FakeHistory(Route.ofView(start).hash));
+  view = start;
+  navigator.subscribe((route) => {
+    view = route.view;
+  });
+  render(
+    <LocalNavigator.Provider value={navigator}>
+      <TodayPage
+        store={store}
+        today={today}
+        expired={() => false}
+        onExpired={() => {}}
+        reload={new ReloadHandle()}
+        onBusy={() => {}}
+        readPref={(key) => prefs.get(key) ?? null}
+        writePref={(key, value) => {
+          if (value == null) prefs.delete(key);
+          else prefs.set(key, value);
+        }}
+      />
+    </LocalNavigator.Provider>,
+  );
   await screen.findAllByText('Weight', {}, { timeout: TIMEOUT });
 }
 
@@ -74,7 +68,7 @@ async function showPage(start = MainView.TODAY) {
  * @param {MainView} next
  */
 async function changeView(next) {
-  await act(() => setView(next));
+  await act(() => navigator.show(Route.ofView(next)));
 }
 
 /**

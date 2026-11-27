@@ -128,7 +128,7 @@ P2, P3 and P4 with the redraw of their screens.
 | P4 | Remove "This week and the 4 weeks before" from the Score screen. | The group table and the weekday averages show the same data in a simpler form. |
 | P5 | Show the sheet warnings as one line at the top of the navigation screens, with a "Show" button that opens the problems in the Metrics screen. | Now a long list of warnings shows at the bottom of each navigation screen. |
 | P6 | The score is a screen of its own, not a metric. | The detail screen now has a branch for the score in each part. No visible change. |
-| P7 | Give each screen an address: `#/today`, `#/days`, `#/score`, `#/metric/<id>`, `#/metrics`, `#/metrics/new`, `#/metrics/<id>`. The Back button of the browser goes to the screen before. | A reload now goes back to Today, and you cannot keep a link to a metric. |
+| P7 | Give each screen an address: `#/today`, `#/days`, `#/score`, `#/metric/<id>`, `#/metrics`, `#/metrics/new`, `#/metrics/edit/<id>`, `#/metrics/fix/<row>`, `#/metrics/restore/<column>`. An edit has `edit/`, so that a metric with the id `new` has its own address. The Back button of the browser goes to the screen before. | A reload now goes back to Today, and you cannot keep a link to a metric. |
 | P8 | Apply the list of "Words" to all texts. Example: "no entry" becomes "no value", "Habit strength" becomes "Strength". | The same thing has two names now. |
 
 The sheet format: P1 to P8 need no change of the sheet. A later phase proposes a change only if a screen needs it, and

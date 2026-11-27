@@ -4,9 +4,12 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { Day } from '../../model/Day.js';
 import { NumberGoal, NumberMetric } from '../../model/Metric.js';
 import { SetMetricCells } from '../../model/MetricsWrite.js';
+import { Route } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
 import { errorText } from '../Errors.js';
+import { LocalNavigator, Navigator, useNavigator, useRoute } from '../Navigation.js';
 import { CountingStore } from '../testing/CountingStore.js';
+import { FakeHistory } from '../testing/FakePlatform.js';
 import { pickEmoji } from '../testing/PickEmoji.js';
 import { MetricsPage } from './MetricsPage.jsx';
 
@@ -19,6 +22,14 @@ const TIMEOUT = 5000;
 
 /** The text of the screen after its Back button. */
 const CLOSED = 'The metrics screen is closed.';
+
+/**
+ * The navigator of the test. The screen opens on `#/metrics`.
+ * @type {Navigator}
+ */
+let navigator;
+/** @type {FakeHistory} */
+let history;
 
 const today = Day.of(2026, 10, 3);
 
@@ -46,7 +57,7 @@ function Host({ store, hasMouse }) {
   const [data, setData] = useState(/** @type {Snapshot | null} */ (null));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(/** @type {string | null} */ (null));
-  const [open, setOpen] = useState(true);
+  const route = useRoute(useNavigator());
   useEffect(() => {
     void store.load().then(setData);
   }, [store]);
@@ -68,7 +79,7 @@ function Host({ store, hasMouse }) {
     }
   }
 
-  if (!open) return <p>{CLOSED}</p>;
+  if (!route.isMetrics) return <p>{CLOSED}</p>;
   if (data == null) return <p>Loading</p>;
   return (
     <MetricsPage
@@ -76,7 +87,6 @@ function Host({ store, hasMouse }) {
       busy={busy}
       error={error}
       onWrite={(plan, onDone) => void onWrite(plan, onDone)}
-      onClose={() => setOpen(false)}
       hasMouse={hasMouse}
     />
   );
@@ -91,7 +101,13 @@ function Host({ store, hasMouse }) {
  */
 async function showPage({ before = null, hasMouse = false } = {}) {
   if (before != null) await store.applyMetrics(before);
-  render(<Host store={store} hasMouse={hasMouse} />);
+  history = new FakeHistory(Route.METRICS.hash);
+  navigator = new Navigator(history);
+  render(
+    <LocalNavigator.Provider value={navigator}>
+      <Host store={store} hasMouse={hasMouse} />
+    </LocalNavigator.Provider>,
+  );
   await screen.findByText('Weight', {}, { timeout: TIMEOUT });
 }
 
@@ -234,6 +250,48 @@ describe('MetricsPage', () => {
     fireEvent.keyDown(button('Move Waist'), { key: 'ArrowUp' });
     await waitUntil(() => expect(store.last?.metrics[0].id).toBe('waist'));
     expect(store.last?.metrics.slice(0, 2).map((m) => m.id)).toEqual(['waist', 'weight']);
+  });
+
+  test('a form has its own address, and the Back button of the browser asks before it discards changes', async () => {
+    await showPage();
+    fireEvent.click(screen.getByText('Water'));
+    expect(history.hash()).toBe('#/metrics/edit/water');
+    type('Name', 'Drinks');
+
+    history.userBack();
+    await screen.findByRole('dialog', {}, { timeout: TIMEOUT });
+    expect(history.hash()).toBe('#/metrics/edit/water');
+    click('Keep editing');
+    expect(field('Name').value).toBe('Drinks');
+
+    history.userBack();
+    await screen.findByRole('dialog', {}, { timeout: TIMEOUT });
+    click('Discard');
+    await waitForList();
+    expect(history.hash()).toBe('#/metrics');
+  });
+
+  test('the address of a form opens it, and an address of a missing metric shows the list', async () => {
+    history = new FakeHistory('#/metrics/edit/water');
+    navigator = new Navigator(history);
+    render(
+      <LocalNavigator.Provider value={navigator}>
+        <Host store={store} hasMouse={false} />
+      </LocalNavigator.Provider>,
+    );
+    await screen.findByRole('heading', { name: 'Edit metric' }, { timeout: TIMEOUT });
+    expect(field('Name').value).toBe('Water');
+    cleanup();
+
+    history = new FakeHistory('#/metrics/edit/nothing');
+    navigator = new Navigator(history);
+    render(
+      <LocalNavigator.Provider value={navigator}>
+        <Host store={store} hasMouse={false} />
+      </LocalNavigator.Provider>,
+    );
+    await waitUntil(() => expect(history.hash()).toBe('#/metrics'));
+    await waitForList();
   });
 
   test('delete a metric, then restore it with its values', async () => {

@@ -3,9 +3,10 @@ import { CountQueue } from '../../model/CountQueue.js';
 import { daysBetween } from '../../model/Day.js';
 import { CALENDAR_DAYS, DayLayout, MainView, dayLayoutOf } from '../../model/MainView.js';
 import { NumberMetric, groupOf, metricsOf } from '../../model/Metric.js';
+import { Route, Screen } from '../../model/Route.js';
 import { dayScores, groupScoreMetric, pointsByMetric, pointsOf, scoreMetric } from '../../model/Score.js';
-import { useOnBack } from '../Back.js';
 import { errorText } from '../Errors.js';
+import { useNavigator, useRoute } from '../Navigation.js';
 import { useElementWidth } from '../components/ElementWidth.js';
 import { GroupChips, groupLabel } from '../components/GroupChips.jsx';
 import { HabitTable, tableDays } from '../components/HabitTable.jsx';
@@ -45,6 +46,8 @@ export class ReloadHandle {
 
 /**
  * The main page: the metrics in Today tiles, a table or calendars, where the user records entries, or the score only.
+ * The screen comes from the address (see `Route`): a view of the navigation, the detail screen of a metric, or the
+ * metrics screen and its forms. The page needs the `Navigator` of the App in `LocalNavigator`.
  *
  * The page writes one change at a time. Count taps queue while a write runs, show at once, and go to the sheet in one
  * write for each cell when the write ends. See `CountQueue`.
@@ -54,19 +57,12 @@ export class ReloadHandle {
  * @param {() => boolean} props.expired True after the Google sign-in expired. Then `onExpired` runs instead of a store
  *   call.
  * @param {() => void} props.onExpired
- * @param {MainView} props.view The view of the navigation. The App owns it, and `onView` changes it.
- * @param {(view: MainView) => void} props.onView
  * @param {ReloadHandle} props.reload The reload button in the app bar calls it. The page sets it.
  * @param {(busy: boolean) => void} props.onBusy Called when a load or a write starts and ends. The app bar shows a
  *   progress circle while it is true.
- * @param {(open: boolean) => void} props.onDetail Called when a metric detail screen opens (true) or closes. The App
- *   hides the navigation on the detail screen.
  * @param {(key: string) => string | null} props.readPref
  * @param {(key: string, value: string | null) => void} props.writePref The group filter stays in local storage. The
  *   filter also selects the score: of all metrics, or of the metrics of the selected group.
- * @param {boolean} [props.managing] True if the page shows the metrics screen. The App owns it, and `onManaging`
- *   changes it. The App hides the navigation on the metrics screen.
- * @param {(managing: boolean) => void} [props.onManaging]
  * @param {boolean} [props.hasMouse] True if the device has a mouse. Then a drag moves a metric on the metrics screen,
  *   not arrow buttons.
  * @returns {JSX.Element}
@@ -76,29 +72,27 @@ export function TodayPage({
   today,
   expired,
   onExpired,
-  view,
-  onView,
   reload,
   onBusy,
-  onDetail,
   readPref,
   writePref,
-  managing = false,
-  onManaging = () => {},
   hasMouse = false,
 }) {
   const [store] = useState(() => firstStore);
+  const navigator = useNavigator();
+  const route = useRoute(navigator);
   // The latest callbacks: the reload handle and the store calls keep one function for the life of the page.
-  const latest = useRef({ expired, onExpired, onBusy, onView, onDetail, onManaging });
-  latest.current = { expired, onExpired, onBusy, onView, onDetail, onManaging };
+  const latest = useRef({ expired, onExpired, onBusy });
+  latest.current = { expired, onExpired, onBusy };
   const page = useRef(/** @type {PageState} */ ({ data: null, busy: false, alive: true })).current;
   const [data, setData] = useState(/** @type {Snapshot | null} */ (null));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(/** @type {string | null} */ (null));
-  // The id of the metric with the open detail screen. Null shows the table.
-  const [detailId, setDetailId] = useState(/** @type {string | null} */ (null));
-  const openDetailId = useRef(detailId);
-  openDetailId.current = detailId;
+  // The view of the navigation. The other screens show on top of it.
+  const view = route.view ?? MainView.TODAY;
+  // The id of the metric with the open detail screen. Null shows the view.
+  const detailId = route.screen === Screen.METRIC ? route.param : null;
+  const managing = route.isMetrics;
   // The selected group, or null for all groups.
   const [group, setGroup] = useState(() => readPref('group'));
   // The layout of the Days view. It stays in local storage, as the group.
@@ -184,7 +178,7 @@ export function TodayPage({
       return;
     }
     void job.then(() => {
-      if (saved) latest.current.onView(MainView.DAYS);
+      if (saved) navigator.show(Route.DAYS);
     });
   }
 
@@ -229,8 +223,6 @@ export function TodayPage({
     });
     return () => {
       page.alive = false;
-      // A new page (sign-out, another sheet) has no detail screen open: the App shows the navigation again.
-      if (openDetailId.current != null) latest.current.onDetail(false);
     };
   }, []);
 
@@ -261,27 +253,18 @@ export function TodayPage({
 
   /** @param {Metric} m */
   function openDetail(m) {
-    setDetailId(m.id);
-    latest.current.onDetail(true);
+    navigator.go(Route.metric(m.id));
   }
 
   function closeDetail() {
-    setDetailId(null);
-    latest.current.onDetail(false);
+    navigator.back();
   }
 
-  // The detail screen of one metric. If the metric is gone from the sheet, the table shows again, with the navigation.
+  // The detail screen of one metric. If the metric is gone from the sheet, the screen before shows again.
   const detailMetric = metrics.find((m) => m.id === detailId) ?? null;
-
-  // The metrics screen replaces the detail screen: a change of a metric can also change its detail screen.
   useEffect(() => {
-    if (managing && openDetailId.current != null) closeDetail();
-  }, [managing]);
-  useEffect(() => {
-    if (detailId != null && data != null && detailMetric == null) closeDetail();
+    if (detailId != null && data != null && detailMetric == null && navigator.route.equals(route)) closeDetail();
   }, [detailId, detailMetric == null, data == null]);
-  // The Back button of the browser closes the detail screen, as its back button does.
-  useOnBack(!managing && data != null && detailMetric != null, closeDetail);
 
   /**
    * The detail screen of `metric`.
@@ -307,16 +290,7 @@ export function TodayPage({
   );
 
   if (managing && data != null) {
-    return (
-      <MetricsPage
-        data={data}
-        busy={busy}
-        error={error}
-        hasMouse={hasMouse}
-        onWrite={writeMetrics}
-        onClose={() => latest.current.onManaging(false)}
-      />
-    );
+    return <MetricsPage data={data} busy={busy} error={error} hasMouse={hasMouse} onWrite={writeMetrics} />;
   }
 
   if (data != null && detailMetric != null) {
@@ -361,7 +335,7 @@ export function TodayPage({
             writePref('days-layout', layout);
           }}
         />
-        <ScoreChart score={score} days={days} scores={scores} onOpen={() => latest.current.onView(MainView.SCORE)} />
+        <ScoreChart score={score} days={days} scores={scores} onOpen={() => navigator.show(Route.SCORE)} />
         <HabitTable
           metrics={shown}
           log={snapshot.log}
@@ -401,7 +375,7 @@ export function TodayPage({
         <Notice text={error} kind={NoticeKind.ERROR} action="Try again" onAction={() => run(() => store.load())} />
       )}
       {data == null && error == null && <Loading />}
-      {data != null && metrics.length === 0 && <NoMetrics onAdd={() => latest.current.onManaging(true)} />}
+      {data != null && metrics.length === 0 && <NoMetrics onAdd={() => navigator.go(Route.METRICS)} />}
       {data != null && metrics.length > 0 && (
         // A short fade between the views of the navigation. The table of the Days view is not wider than 720 px: on a
         // wide screen, the cells stay near the names, and it holds 14 days.
@@ -420,7 +394,7 @@ export function TodayPage({
       {data != null && data.warnings.length > 0 && (
         <Warnings
           warnings={data.warnings}
-          onFix={data.metricsTable.invalid.length === 0 ? null : () => latest.current.onManaging(true)}
+          onFix={data.metricsTable.invalid.length === 0 ? null : () => navigator.go(Route.METRICS)}
         />
       )}
     </div>

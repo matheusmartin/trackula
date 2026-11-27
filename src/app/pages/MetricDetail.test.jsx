@@ -3,8 +3,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { Day, monthOf } from '../../model/Day.js';
 import { formatDateRange, monthTitle } from '../../model/Format.js';
 import { MainView } from '../../model/MainView.js';
+import { Route, Screen } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
+import { LocalNavigator, Navigator } from '../Navigation.js';
 import { CountingStore } from '../testing/CountingStore.js';
+import { FakeHistory } from '../testing/FakePlatform.js';
 import { ReloadHandle, TodayPage } from './TodayPage.jsx';
 
 /** The longest wait for the UI in a test. */
@@ -13,7 +16,7 @@ const TIMEOUT = 5000;
 const today = Day.of(2026, 10, 3);
 /** @type {CountingStore} */
 let store;
-/** True while the page shows a detail screen: the page tells it with `onDetail`. */
+/** True while the page shows a detail screen: the address of the navigator tells it. */
 let detail = false;
 
 beforeEach(() => {
@@ -31,22 +34,23 @@ afterEach(() => {
  * @param {MainView} [start]
  */
 async function showPage(start = MainView.DAYS) {
+  const navigator = new Navigator(new FakeHistory(Route.ofView(start).hash));
+  navigator.subscribe((route) => {
+    detail = route.screen === Screen.METRIC;
+  });
   render(
-    <TodayPage
-      store={store}
-      today={today}
-      expired={() => false}
-      onExpired={() => {}}
-      view={start}
-      onView={() => {}}
-      reload={new ReloadHandle()}
-      onBusy={() => {}}
-      onDetail={(shown) => {
-        detail = shown;
-      }}
-      readPref={() => null}
-      writePref={() => {}}
-    />,
+    <LocalNavigator.Provider value={navigator}>
+      <TodayPage
+        store={store}
+        today={today}
+        expired={() => false}
+        onExpired={() => {}}
+        reload={new ReloadHandle()}
+        onBusy={() => {}}
+        readPref={() => null}
+        writePref={() => {}}
+      />
+    </LocalNavigator.Provider>,
   );
   await waitFor(() => expect(store.last).not.toBeNull(), { timeout: TIMEOUT });
 }
