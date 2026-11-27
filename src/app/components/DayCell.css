@@ -1,0 +1,77 @@
+/*
+ * DayCell.jsx: the day cell of a metric or of the score. See "Day cell" in docs/design.md. The cell is --cell-size
+ * wide and high (40 px if not set). The brand gradient is a layer on the grey cell color, at the opacity --cell-fill.
+ */
+.day-cell {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--cell-size, 40px);
+  block-size: var(--cell-size, 40px);
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-s);
+  color: var(--on-surface);
+  background-color: transparent;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  vertical-align: middle;
+  /* Count cells use double taps: no double-tap zoom, no text selection and no iOS menu. */
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* No value: no fill, a thin border. */
+.day-cell-none {
+  border: 1px solid var(--outline);
+}
+
+.day-cell-value {
+  isolation: isolate;
+  background-color: var(--cell-value);
+}
+
+/* The gradient of the points: above the grey color and below the text. */
+.day-cell-value::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--cell-image);
+  opacity: var(--cell-fill, 0);
+  pointer-events: none;
+}
+
+.day-cell-full {
+  color: var(--on-cell);
+}
+
+.day-cell:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.day-cell-selected,
+.day-cell-selected:focus-visible {
+  outline: 2px solid var(--on-surface);
+  outline-offset: 1px;
+}
+
+/* During a write, a yes/no cell does nothing, and it looks the same. */
+.day-cell:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+/* A day after today: the place of a cell, with nothing in it. */
+.day-cell-after {
+  visibility: hidden;
+}

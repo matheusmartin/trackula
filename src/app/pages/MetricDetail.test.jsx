@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { Day, monthOf } from '../../model/Day.js';
-import { formatDateRange, monthTitle } from '../../model/Format.js';
+import { formatDateRange, monthTitle, shortDay } from '../../model/Format.js';
 import { MainView } from '../../model/MainView.js';
 import { Route, Screen } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
@@ -175,7 +175,7 @@ describe('MetricDetail', () => {
   test('a cell in the calendar of the detail screen writes', async () => {
     await showPage();
     await openDetail('Meditate');
-    const cell = screen.getAllByRole('button', { name: new RegExp(`^Meditate, ${today}`) })[0];
+    const cell = screen.getAllByRole('button', { name: new RegExp(`^Meditate, ${shortDay(today)}:`) })[0];
     fireEvent.click(cell, { detail: 1 });
     await waitFor(() => expect(store.last?.log.valueAt('meditate', today)).toBe(1), { timeout: TIMEOUT });
   });
@@ -222,7 +222,7 @@ describe('MetricDetail', () => {
   test('a swipe on the calendar shows the month before but not a month after this month', async () => {
     await showPage();
     await openDetail('Meditate');
-    const calendar = screen.getAllByRole('button', { name: new RegExp(`^Meditate, ${today}`) })[0];
+    const calendar = screen.getAllByRole('button', { name: new RegExp(`^Meditate, ${shortDay(today)}:`) })[0];
     // To the left: the next month. This month is the newest: nothing changes.
     fireEvent.pointerDown(calendar, { clientX: 300, clientY: 100, pointerId: 1 });
     fireEvent.pointerUp(calendar, { clientX: 100, clientY: 100, pointerId: 1 });

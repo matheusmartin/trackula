@@ -9,6 +9,7 @@ import {
   formatFixed,
   formatNumber,
   formatPercent,
+  formatPoints,
   formatScore,
   formatScoreChange,
   formatSigned,
@@ -55,6 +56,10 @@ describe('Format', () => {
     expect(formatScoreChange(4)).toBe('+4.0%');
     expect(formatScoreChange(-1.25)).toBe('−1.3%');
     expect(formatScoreChange(0.02)).toBe('0.0%');
+  });
+
+  test('formatPoints gives 1 decimal and the word point or points', () => {
+    expect([0, 0.625, 0.96, 1].map(formatPoints)).toEqual(['0 points', '0.6 points', '1.0 points', '1 point']);
   });
 
   test('formatDays gives the word day or days', () => {

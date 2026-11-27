@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { Day } from '../../model/Day.js';
+import { shortDay } from '../../model/Format.js';
 import { MainView } from '../../model/MainView.js';
 import { NumberGoal } from '../../model/Metric.js';
 import { SetMetricCells, planEditMetric } from '../../model/MetricsWrite.js';
@@ -108,13 +109,13 @@ function button(name) {
 }
 
 /**
- * The first day cell of `metric` today. Its name starts with the metric and the day.
+ * The first day cell of `metric` today. Its name starts with the metric, the day and the value.
  * @param {string} metric
- * @param {string} [value] The value part of the name, for example ": yes".
+ * @param {string} [value] The start of the value part of the name, for example "yes" or "2 glasses".
  * @returns {HTMLElement}
  */
 function cellToday(metric, value = '') {
-  return screen.getAllByRole('button', { name: new RegExp(`^${metric}, ${today}${value}`) })[0];
+  return screen.getAllByRole('button', { name: new RegExp(`^${metric}, ${shortDay(today)}: ${value}`) })[0];
 }
 
 /**
@@ -149,7 +150,10 @@ function touchTap(element) {
 
 /** @returns {string} The screen reader text of the score chart: its range and its days. */
 function scoreChartLabel() {
-  return /** @type {string} */ (screen.getAllByRole('img', { name: /^Values from/ })[0].getAttribute('aria-label'));
+  return screen
+    .getAllByRole('img', { name: /: score / })
+    .map((bar) => bar.getAttribute('aria-label'))
+    .join(' | ');
 }
 
 describe('TodayPage', () => {
@@ -233,8 +237,8 @@ describe('TodayPage', () => {
     await showPage(MainView.DAYS);
     fireEvent.click(cellToday('Meditate'));
     await waitUntil(() => valueToday('meditate') === 1);
-    await waitFor(() => expect(/** @type {HTMLButtonElement} */ (cellToday('Meditate', ': yes')).disabled).toBe(false));
-    fireEvent.click(cellToday('Meditate', ': yes'));
+    await waitFor(() => expect(/** @type {HTMLButtonElement} */ (cellToday('Meditate', 'yes')).disabled).toBe(false));
+    fireEvent.click(cellToday('Meditate', 'yes'));
     await waitUntil(() => valueToday('meditate') === 0);
   });
 
@@ -244,7 +248,7 @@ describe('TodayPage', () => {
     mouseClick(cell);
     mouseClick(cell);
     await waitUntil(() => valueToday('water') === 2);
-    await waitFor(() => expect(cellToday('Water', ': 2 glasses')).toBeTruthy());
+    await waitFor(() => expect(cellToday('Water', '2 glasses')).toBeTruthy());
   });
 
   test('a click on a number cell opens the editor, and Enter writes the typed value and closes it', async () => {
@@ -297,7 +301,7 @@ describe('TodayPage', () => {
     mouseClick(cell);
     mouseClick(cell);
     // All taps show at once, before the writes end.
-    await waitFor(() => expect(cellToday('Water', ': 3 glasses')).toBeTruthy());
+    await waitFor(() => expect(cellToday('Water', '3 glasses')).toBeTruthy());
     expect(store.writes).toHaveLength(0);
 
     gate.open();
@@ -352,16 +356,16 @@ describe('TodayPage', () => {
     expect(valueToday('meditate')).toBe(1);
   });
 
-  test('both layouts of the days start with the score card, and its title opens the score view', async () => {
+  test('both layouts of the days start with the score, and its name opens the score view', async () => {
     await showPage(MainView.DAYS);
-    expect(button('Show the score only')).toBeTruthy();
+    expect(button('Score: show the Score screen')).toBeTruthy();
     expect(screen.getByRole('table')).toBeTruthy();
 
     fireEvent.click(button('Calendars'));
     expect(screen.queryByRole('table')).toBeNull();
     expect(button('Calendars').getAttribute('aria-pressed')).toBe('true');
     expect(prefs.get('days-layout')).toBe('CALENDARS');
-    fireEvent.click(button('Show the score only'));
+    fireEvent.click(button('Score: show the Score screen'));
     expect(view).toBe(MainView.SCORE);
   });
 
@@ -374,7 +378,7 @@ describe('TodayPage', () => {
     expect(prefs.get('days-layout')).toBe('TABLE');
   });
 
-  test('the score card shows the score of the selected group', async () => {
+  test('the score bars show the score of the selected group', async () => {
     await showPage(MainView.DAYS);
     expect(screen.getByText('Score')).toBeTruthy();
     const all = scoreChartLabel();

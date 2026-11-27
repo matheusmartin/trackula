@@ -142,6 +142,17 @@ export function formatScoreChange(value) {
 }
 
 /**
+ * The points of a day, with 1 decimal and the word. Examples: 0.625 → "0.6 points", 1 → "1 point", 0 → "0 points".
+ * @param {number} points From 0 to 1.
+ * @returns {string}
+ */
+export function formatPoints(points) {
+  if (points >= 1) return '1 point';
+  if (points <= 0) return '0 points';
+  return `${formatFixed(points, 1)} points`;
+}
+
+/**
  * A number of days with the word. Examples: 1 → "1 day", 105 → "105 days".
  * @param {number} count
  * @returns {string}

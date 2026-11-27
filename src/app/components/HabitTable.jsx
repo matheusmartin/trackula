@@ -1,13 +1,16 @@
 import { Fragment } from 'preact';
 import { useMemo, useRef, useState } from 'preact/hooks';
-import { formatCompact, formatNumber, formatValue, weekdayNames, weekLabels } from '../../model/Format.js';
 import { weekRows } from '../../model/Day.js';
+import { formatNumber, shortDay, weekdayNames, weekLabels } from '../../model/Format.js';
 import { metricDayKey, parseMetricDay } from '../../model/LogEntry.js';
 import { DayLayout, tableDayCount } from '../../model/MainView.js';
 import { NumberMetric, YesNoMetric } from '../../model/Metric.js';
-import { dayValues, nearestDay } from '../../model/Summary.js';
+import { goalSummary } from '../../model/MetricDraft.js';
+import { pointsByMetric } from '../../model/Score.js';
+import { metricValues, nearestDay } from '../../model/Summary.js';
 import { AppCard } from './AppCard.jsx';
-import { countInputProps, useCountInput } from './CountInputModifier.js';
+import { useCountInput } from './CountInputModifier.js';
+import { DayCell, ScoreCell } from './DayCell.jsx';
 import { useElementWidth } from './ElementWidth.js';
 import { MetricIcon } from './MetricIcon.jsx';
 import { NumberEditor } from './NumberEditor.jsx';
@@ -19,42 +22,44 @@ import './HabitTable.css';
 /** @import { CountStep, LogTable, MetricDay } from '../../model/LogEntry.js' */
 /** @import { DayLayout as Layout } from '../../model/MainView.js' */
 /** @import { Metric } from '../../model/Metric.js' */
-/** @import { CountInput } from '../../services/CountInput.js' */
 
-/** The smallest and the largest size of a table cell, and the space between two cells, in CSS pixels. */
-const MIN_CELL = 28;
-const MAX_CELL = 36;
+/** The size of a day cell and the space between two cells, in CSS pixels. See "Day cell" in docs/design.md. */
+const CELL = 40;
 const CELL_GAP = 4;
 
-/** The width of the name column that the cell size leaves when the window allows it. */
-const NAME_WIDTH = 136;
+/** The smallest width of the name column, and the width from which it also shows the goal of each metric. */
+const NAME_WIDTH = 104;
+const NAME_WITH_GOAL = 180;
 
-/** The largest width of a window that the table gives smaller paddings: a phone. */
-const NARROW = 480;
+/** The padding of the table card at each side, in CSS pixels. */
+const CARD_PADDING = 12;
 
-/** The space around the table, in CSS pixels. */
-const TABLE_PADDING = 8;
+/** The height of the bar of a score of 100%, in CSS pixels. */
+const BAR_HEIGHT = 72;
 
 /**
- * The number of days that a table of `width` CSS pixels holds with cells of the largest size: 5 on a phone, up to 14
- * on a wide screen. See `tableDayCount`.
+ * The number of days that a table of `width` CSS pixels holds: 5 on a phone, up to 14 on a wide screen. See
+ * `tableDayCount`.
  * @param {number} width
  * @returns {number}
  */
 export function tableDays(width) {
-  return tableDayCount(width - TABLE_PADDING, NAME_WIDTH, MAX_CELL + CELL_GAP);
+  return tableDayCount(width - 2 * CARD_PADDING - CELL_GAP, NAME_WIDTH, CELL + CELL_GAP);
 }
 
 /**
- * HabitKit-style input table: one row per metric, one column per day, today on the right.
+ * The days of all metrics, in a table or in calendars. See "Days" in docs/design.md.
  *
- * - Yes/no: a cell click writes `yes`, or `no` if the day is `yes`. A `no` day shows like an empty day.
+ * - Table: one card. Its first row has the score bars, each bar above the cells of its day. Then the day headers, and
+ *   one row for each metric, today on the right. A legend tells the cell colors.
+ * - Calendars: the score calendar first, then one calendar card for each metric, in the card grid.
+ *
+ * The cells (see {@link DayCell}):
+ * - Yes/no: a click writes `yes`, or `no` if the day is `yes`.
  * - Count: see `CountInput`. A count has no reset: it goes to empty with subtractions.
- * - Number: a cell click opens the {@link NumberEditor} for that metric and day, below the metric. A second click
- *   closes it.
+ * - Number: a click opens the {@link NumberEditor} for that metric and day, below the metric. A second click closes it.
  *
- * The table cells are as large as the width allows, from 28 px to 36 px, and each row is 48 px high or more. So the
- * days and a name column of 136 px fit a phone without a side scroll.
+ * Today is not over: without a value on today, today has no score bar.
  * @param {object} props
  * @param {Metric[]} props.metrics
  * @param {LogTable} props.log
@@ -68,13 +73,14 @@ export function tableDays(width) {
  * @param {(metric: NumberMetric, day: Day, step: CountStep) => void} props.onCount
  * @param {((metric: Metric) => void) | null} [props.onOpen] Opens the detail screen of a metric. Null: the metric names
  *   are not links.
+ * @param {Map<Day, number> | null} [props.scores] The score of each day (see `dayScores`), for the score bars of the
+ *   table and the score calendar. Null: no score.
+ * @param {string} [props.scoreTitle] The name of the score. Example: "Score · Habits". Default: "Score".
+ * @param {(() => void) | null} [props.onScore] Opens the Score screen. Null: the score name is not a link.
  * @param {boolean} [props.showsTitle] True if each calendar shows the metric name. Default: true.
  * @param {((metric: Metric, values: Map<Day, number>) => ComponentChildren) | null} [props.calendarExtra] More content
  *   below each calendar, for example a chart of the metric. The table has none.
- * @param {number | null} [props.calendarColumns] A fixed number of calendar columns. Null: as many as fit, each at
- *   least 280 px wide.
- * @param {number} [props.calendarCellSize] The size of a calendar cell. The detail screen has larger cells than the
- *   Today page. Default: 26.
+ * @param {number | null} [props.calendarColumns] A fixed number of calendar columns. Null: the card grid.
  * @returns {JSX.Element}
  */
 export function HabitTable({
@@ -88,10 +94,12 @@ export function HabitTable({
   pending,
   onCount,
   onOpen = null,
+  scores = null,
+  scoreTitle = 'Score',
+  onScore = null,
   showsTitle = true,
   calendarExtra = null,
   calendarColumns = null,
-  calendarCellSize = 26,
 }) {
   // The metric and day open in the editor.
   const [editing, setEditing] = useState(/** @type {MetricDay | null} */ (null));
@@ -100,10 +108,13 @@ export function HabitTable({
   // The latest count function: a touch tap runs after a wait.
   const latestOnCount = useRef(onCount);
   latestOnCount.current = onCount;
+  // The values of yes/no metrics hold 0 for `no`: a `no` day is a value with 0 points, not an empty day.
   const valuesById = useMemo(
-    () => new Map(metrics.map((m) => [m.id, dayValues(m, log, pending)])),
+    () => new Map(metrics.map((m) => [m.id, metricValues(m, log, pending)])),
     [metrics, log, pending],
   );
+  // The points of each day with a value, as the score has them. A goal with a trend gets its points from the trend.
+  const points = useMemo(() => pointsByMetric(metrics, log, today, pending), [metrics, log, today, pending]);
   const open = editing == null ? null : parseMetricDay(editing);
 
   /**
@@ -113,7 +124,7 @@ export function HabitTable({
    */
   function click(m, d, values) {
     if (m instanceof YesNoMetric) {
-      onRecord(m, d, values.has(d) ? 0 : 1);
+      onRecord(m, d, values.get(d) === 1 ? 0 : 1);
     } else if (!m.isCount) {
       const cell = metricDayKey(m.id, d);
       setEditing(editing === cell ? null : cell);
@@ -124,19 +135,18 @@ export function HabitTable({
    * @param {Metric} m
    * @param {Day} d
    * @param {Map<Day, number>} values
-   * @param {number} size
    * @returns {JSX.Element}
    */
-  const cell = (m, d, values, size) => (
+  const cell = (m, d, values) => (
     <DayCell
       key={d.toString()}
       metric={m}
       day={d}
       today={today}
       value={values.get(d) ?? null}
+      points={points.get(m.id)?.get(d) ?? null}
       selected={editing === metricDayKey(m.id, d)}
       enabled={!(busy && m instanceof YesNoMetric)}
-      size={size}
       countInput={m instanceof NumberMetric && m.isCount ? countInput : null}
       onAdd={(sign) => {
         if (m instanceof NumberMetric) latestOnCount.current(m, d, { delta: sign * m.step });
@@ -158,7 +168,7 @@ export function HabitTable({
       <NumberEditor
         key={`${m.id} ${d}`}
         metric={m}
-        label={`${m.name} · ${d === today ? 'today' : d}`}
+        label={`${m.name} · ${d === today ? 'today' : shortDay(d)}`}
         current={values.get(d) ?? null}
         start={near == null ? null : (values.get(near) ?? null)}
         busy={busy}
@@ -177,17 +187,36 @@ export function HabitTable({
   const openEditor = (m, values) =>
     m instanceof NumberMetric && open != null && open.metricId === m.id ? editor(m, open.day, values) : null;
 
+  // Today is not over: without a value on today, today has no score yet.
+  const todayOpen = !metrics.some((m) => valuesById.get(m.id)?.has(today));
+  /**
+   * @param {Day} d
+   * @returns {number | null}
+   */
+  const scoreOf = (d) => (d === today && todayOpen ? null : (scores?.get(d) ?? null));
+
   if (layout === DayLayout.CALENDARS) {
     const columns =
       calendarColumns == null ? null : { gridTemplateColumns: `repeat(${calendarColumns}, minmax(0, 1fr))` };
     return (
       <div class="habit-calendars" style={columns ?? undefined}>
+        {scores != null && (
+          <AppCard class="habit-calendar">
+            <div class="habit-calendar-head">
+              <ScoreName title={scoreTitle} onScore={onScore} withUnit={false} />
+              <p class="habit-calendar-text body-small">
+                The score of each day, in % of the points. More points give a stronger color.
+              </p>
+            </div>
+            <MonthGrid days={days} cell={(d) => <ScoreCell day={d} today={today} score={scoreOf(d)} />} />
+          </AppCard>
+        )}
         {metrics.map((m) => {
           const values = /** @type {Map<Day, number>} */ (valuesById.get(m.id));
           return (
             <AppCard key={m.id} class="habit-calendar">
-              {showsTitle && <MetricName metric={m} onOpen={onOpen} />}
-              <MonthGrid days={days} cell={(d) => cell(m, d, values, calendarCellSize)} />
+              {showsTitle && <MetricName metric={m} onOpen={onOpen} withGoal />}
+              <MonthGrid days={days} cell={(d) => cell(m, d, values)} />
               {calendarExtra?.(m, values)}
               {openEditor(m, values)}
             </AppCard>
@@ -197,76 +226,164 @@ export function HabitTable({
     );
   }
 
-  // Phones: smaller cells, so that the days and the metric names fit without scrolling. Whole pixels, so that the
-  // cells keep sharp edges.
-  const narrow = width <= NARROW;
-  const fitting = Math.trunc((width - TABLE_PADDING - NAME_WIDTH) / days.length - CELL_GAP);
-  const cellSize = Math.min(MAX_CELL, Math.max(MIN_CELL, fitting));
-  const columnWidth = cellSize + CELL_GAP;
-  // The name column takes the space that the day columns leave, but at least 120 px: the table scrolls sideways on
-  // very narrow screens.
-  const nameWidth = Math.max(120, width - columnWidth * days.length - TABLE_PADDING);
-  const rowWidth = nameWidth + columnWidth * days.length;
+  // The name column takes the space that the day columns leave. The table scrolls sideways in its card if it is too
+  // narrow.
+  const nameWidth = Math.max(NAME_WIDTH, width - 2 * CARD_PADDING - CELL_GAP - (CELL + CELL_GAP) * days.length);
+  const withGoal = nameWidth >= NAME_WITH_GOAL;
   return (
     <div ref={measure} class="habit-table-box">
       <AppCard class="habit-table-card">
-        <table class="habit-table" style={{ inlineSize: `${rowWidth}px` }}>
-          <colgroup>
-            <col style={{ inlineSize: `${nameWidth}px` }} />
-            {days.map((d) => (
-              <col key={d.toString()} style={{ inlineSize: `${columnWidth}px` }} />
-            ))}
-          </colgroup>
-          <thead>
-            <tr>
-              <td />
+        <div class="habit-table-head">
+          <h2 class="title-medium">{`Last ${formatNumber(days.length)} days`}</h2>
+          <p class="habit-table-text body-small">
+            The bars show the score of each day. Tap a cell to change its value. More points give a stronger color.
+          </p>
+        </div>
+        <div class="habit-table-scroll">
+          <table class="habit-table">
+            <colgroup>
+              <col style={{ inlineSize: `${nameWidth}px` }} />
               {days.map((d) => (
-                <DayHeader key={d.toString()} day={d} isToday={d === today} />
+                <col key={d.toString()} style={{ inlineSize: `${CELL}px` }} />
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {metrics.map((m) => {
-              const values = /** @type {Map<Day, number>} */ (valuesById.get(m.id));
-              const shownEditor = openEditor(m, values);
-              return (
-                <Fragment key={m.id}>
-                  <tr class="habit-table-row">
-                    <th scope="row" class={narrow ? 'habit-table-name habit-table-name-narrow' : 'habit-table-name'}>
-                      <MetricName metric={m} onOpen={onOpen} />
-                    </th>
-                    {days.map((d) => (
-                      <td key={d.toString()}>{cell(m, d, values, cellSize)}</td>
-                    ))}
-                  </tr>
-                  {shownEditor != null && (
-                    <tr class="habit-table-editor-row">
-                      <td colSpan={days.length + 1}>{shownEditor}</td>
+            </colgroup>
+            <thead>
+              {scores != null && (
+                <tr class="habit-table-scores">
+                  <th scope="row" class="habit-table-name">
+                    <ScoreName title={scoreTitle} onScore={onScore} />
+                  </th>
+                  {days.map((d) => (
+                    <td key={d.toString()}>
+                      <ScoreBar day={d} score={scoreOf(d)} />
+                    </td>
+                  ))}
+                </tr>
+              )}
+              <tr class="habit-table-days">
+                <td />
+                {days.map((d) => (
+                  <DayHeader key={d.toString()} day={d} />
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {metrics.map((m) => {
+                const values = /** @type {Map<Day, number>} */ (valuesById.get(m.id));
+                const shownEditor = openEditor(m, values);
+                return (
+                  <Fragment key={m.id}>
+                    <tr class="habit-table-row">
+                      <th scope="row" class="habit-table-name">
+                        <MetricName metric={m} onOpen={onOpen} withGoal={withGoal} />
+                      </th>
+                      {days.map((d) => (
+                        <td key={d.toString()}>{cell(m, d, values)}</td>
+                      ))}
                     </tr>
-                  )}
-                </Fragment>
-              );
-            })}
-          </tbody>
-        </table>
+                    {shownEditor != null && (
+                      <tr class="habit-table-editor-row">
+                        <td colSpan={days.length + 1}>{shownEditor}</td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <CellLegend />
       </AppCard>
     </div>
   );
 }
 
 /**
- * The weekday and the day number of a table column. Today is bold, in the app color.
+ * The name of the score at the start of the score bars and on the score calendar. With `withUnit`, the unit of the
+ * score below the name. With `onScore`, a link to the Score screen.
  * @param {object} props
- * @param {Day} props.day
- * @param {boolean} props.isToday
+ * @param {string} props.title
+ * @param {(() => void) | null} props.onScore
+ * @param {boolean} [props.withUnit] Default: true.
  * @returns {JSX.Element}
  */
-function DayHeader({ day, isToday }) {
+function ScoreName({ title, onScore, withUnit = true }) {
+  const content = (
+    <>
+      <span class={withUnit ? 'title-small' : 'title-medium'}>{title}</span>
+      {withUnit && <span class="habit-table-text body-small">% of the points</span>}
+    </>
+  );
+  if (onScore == null) return <span class="score-name">{content}</span>;
   return (
-    <th scope="col" class={isToday ? 'day-header day-header-today' : 'day-header'}>
-      <span class="day-header-weekday">{weekdayNames[day.weekday - 1]}</span>
-      <span class="day-header-day">{day.day}</span>
+    <button
+      type="button"
+      class="score-name score-name-link"
+      style={outset(4, 4)}
+      title="Show the Score screen"
+      aria-label={`${title}: show the Score screen`}
+      onClick={() => onScore()}
+    >
+      {content}
+    </button>
+  );
+}
+
+/**
+ * The bar of the score of a day, with the score above it. No score: no bar.
+ * @param {object} props
+ * @param {Day} props.day
+ * @param {number | null} props.score From 0 to 100.
+ * @returns {JSX.Element}
+ */
+function ScoreBar({ day, score }) {
+  if (score == null) return <div class="score-bar-box" />;
+  const text = `${shortDay(day)}: score ${formatNumber(score)}%`;
+  return (
+    <div class="score-bar-box" role="img" title={text} aria-label={text}>
+      <span class="score-bar-value label-medium">{formatNumber(score)}</span>
+      <span class="score-bar" style={{ blockSize: `${Math.max(2, Math.round((score / 100) * BAR_HEIGHT))}px` }} />
+    </div>
+  );
+}
+
+/**
+ * The weekday and the day number of a table column. Today looks as the other days.
+ * @param {object} props
+ * @param {Day} props.day
+ * @returns {JSX.Element}
+ */
+function DayHeader({ day }) {
+  return (
+    <th scope="col" class="day-header">
+      <span class="day-header-weekday body-small">{weekdayNames[day.weekday - 1]}</span>
+      <span class="day-header-day title-small">{day.day}</span>
     </th>
+  );
+}
+
+/**
+ * The colors of the day cells: no value, 0 points, some points, 1 point.
+ * @returns {JSX.Element}
+ */
+export function CellLegend() {
+  return (
+    <ul class="cell-legend" aria-label="Cell colors">
+      <li class="cell-legend-item">
+        <span class="cell-swatch day-cell-none" />
+        No value
+      </li>
+      <li class="cell-legend-item">
+        <span class="cell-swatch day-cell-value" style={{ '--cell-fill': 0 }} />0 points
+      </li>
+      <li class="cell-legend-item">
+        <span class="cell-swatch day-cell-value" style={{ '--cell-fill': 0.4 }} />
+        Some points
+      </li>
+      <li class="cell-legend-item">
+        <span class="cell-swatch day-cell-value" style={{ '--cell-fill': 1 }} />1 point
+      </li>
+    </ul>
   );
 }
 
@@ -306,17 +423,22 @@ export function MonthGrid({ days, cell }) {
 }
 
 /**
- * The icon and the name of `metric`. With `onOpen`, a link to its detail screen.
+ * The icon and the name of `metric`. With `withGoal`, the goal below the name. With `onOpen`, a link to its detail
+ * screen.
  * @param {object} props
  * @param {Metric} props.metric
  * @param {((metric: Metric) => void) | null} [props.onOpen] Null: the name is not a link.
+ * @param {boolean} [props.withGoal] Default: false.
  * @returns {JSX.Element}
  */
-export function MetricName({ metric, onOpen = null }) {
+export function MetricName({ metric, onOpen = null, withGoal = false }) {
   const content = (
     <>
       <MetricIcon icon={metric.icon} />
-      <span class="metric-name-text">{metric.name}</span>
+      <span class="metric-name-texts">
+        <span class="metric-name-text">{metric.name}</span>
+        {withGoal && <span class="metric-name-goal body-small">{`Goal: ${goalSummary(metric)}`}</span>}
+      </span>
     </>
   );
   if (onOpen == null) return <span class="metric-name">{content}</span>;
@@ -334,77 +456,4 @@ export function MetricName({ metric, onOpen = null }) {
       {content}
     </button>
   );
-}
-
-/**
- * A day cell. A cell with a value has one fixed color, whatever the value: the logo gradient. A cell without a value
- * has the empty color and a thin border, so that it shows as a cell on the card. A day after today has only a thin
- * outline and does nothing. Today has a ring in the cell. The cell of the open editor and the cell with the keyboard
- * focus have a ring around the cell: it does not change the size of the cell.
- *
- * With `countInput`, the cell is a count cell: it is not disabled during a write, because taps queue and show at once.
- * Each cell has a tooltip with the metric, the day and the value.
- * @param {object} props
- * @param {Metric} props.metric
- * @param {Day} props.day
- * @param {Day} props.today
- * @param {number | null} props.value
- * @param {boolean} props.selected
- * @param {boolean} props.enabled
- * @param {number} props.size The width and the height, in CSS pixels.
- * @param {CountInput<MetricDay> | null} props.countInput
- * @param {(sign: number) => void} props.onAdd
- * @param {() => void} props.onClick
- * @returns {JSX.Element}
- */
-export function DayCell({ metric, day, today, value, selected, enabled, size, countInput, onAdd, onClick }) {
-  const style = { '--cell-size': `${size}px` };
-  if (day.isAfter(today)) {
-    return <span class="day-cell day-cell-future" style={style} role="img" aria-label={`${day}`} title={`${day}`} />;
-  }
-  const description = `${metric.name}, ${day}${valueText(metric, value)}${hint(metric)}`;
-  const classes = [
-    'day-cell',
-    value != null ? 'day-cell-filled' : null,
-    day === today ? 'day-cell-today' : null,
-    selected ? 'day-cell-selected' : null,
-  ].filter(Boolean);
-  const input = countInput == null ? { onClick } : countInputProps(countInput, metricDayKey(metric.id, day), onAdd);
-  return (
-    <button
-      type="button"
-      class={classes.join(' ')}
-      style={style}
-      disabled={!enabled}
-      title={description}
-      aria-label={description}
-      {...input}
-    >
-      {/* No letter spacing and no wrap: 4 characters such as "82.6" fit the smallest cell. */}
-      {metric instanceof NumberMetric && value != null ? formatCompact(value) : null}
-    </button>
-  );
-}
-
-/**
- * The input help in the cell description of count metrics.
- * @param {Metric} m
- * @returns {string}
- */
-function hint(m) {
-  if (!(m instanceof NumberMetric) || !m.isCount) return '';
-  const step = formatNumber(m.step, 3);
-  return ` · Click or tap: +${step}. Right-click or double-tap: −${step}.`;
-}
-
-/**
- * The value part of the cell description. Example: ": 82.1 kg".
- * @param {Metric} m
- * @param {number | null} v
- * @returns {string}
- */
-function valueText(m, v) {
-  if (v == null) return '';
-  if (m instanceof YesNoMetric) return ': yes';
-  return `: ${formatValue(v, m.step, m.unit)}`;
 }
