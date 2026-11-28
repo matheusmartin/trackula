@@ -1,5 +1,5 @@
 // The key numbers and the charts of the score in the time window of the Score screen.
-import { useMemo } from 'preact/hooks';
+import { useMemo, useState } from 'preact/hooks';
 import { monthOf } from '../../model/Day.js';
 import {
   formatNumber,
@@ -22,23 +22,23 @@ import {
   monthlyAverages,
   monthsUntil,
   weekMondays,
-  weekdaysInRange,
   weeklyAverages,
 } from '../../model/ScoreStats.js';
 import { STRENGTH_WEIGHT, bestWeekday, countStats, strength } from '../../model/Stats.js';
 import { Aggregate, BarUnit, barStart } from '../../model/Zoom.js';
 import { ChartGrid, KeyNumbers } from './ChartParts.jsx';
 import { BarChart, LineChart, StackedBarChart } from './Charts.jsx';
-import { ChangeTable, RangeBarChart } from './CompareCharts.jsx';
+import { ChangeTable } from './CompareCharts.jsx';
 import { groupLabel } from './GroupChips.jsx';
 import { NoData, timeBarItem, unitName } from './MetricCharts.jsx';
+import { SegmentedButtons } from './SegmentedButtons.jsx';
 import './MetricCharts.css';
 
 /** @import { JSX } from 'preact' */
 /** @import { Day } from '../../model/Day.js' */
 /** @import { Metric } from '../../model/Metric.js' */
 /** @import { CountStats } from '../../model/Stats.js' */
-/** @import { ZoomWindow } from '../../model/Zoom.js' */
+/** @import { ZoomBar, ZoomWindow } from '../../model/Zoom.js' */
 
 /** No points of the groups: the score of fewer than 2 groups. */
 const NO_POINTS = /** @type {Map<string, Map<Day, number>>} */ (new Map());
@@ -98,15 +98,16 @@ function scoreParts(metrics, groups, points) {
  * @param {Map<Day, number>} props.values The score of each day with a score.
  * @param {Metric[]} props.scoreMetrics The metrics of the score.
  * @param {Map<string, Map<Day, number>>} props.points The points of each metric by metric id. See `pointsByMetric`.
+ * @param {((bar: ZoomBar) => void) | null} [props.onBar] A click on a bar of "Average per day" calls it. Default: null.
  * @returns {JSX.Element}
  */
-export function ScoreCharts({ window, values, scoreMetrics, points }) {
+export function ScoreCharts({ window, values, scoreMetrics, points, onBar = null }) {
   return (
     <div class="metric-charts">
       {values.size === 0 ? (
         <NoData score />
       ) : (
-        <ScoreContent window={window} values={values} scoreMetrics={scoreMetrics} points={points} />
+        <ScoreContent window={window} values={values} scoreMetrics={scoreMetrics} points={points} onBar={onBar} />
       )}
     </div>
   );
@@ -123,23 +124,23 @@ function scoreText(value) {
 
 /**
  * The numbers and charts of the score. Each one answers one question: how the score changes over time, how strong the
- * habits are, how the week of the window end compares with the 4 weeks before (for each weekday, and for each group or
- * metric), how its month compares with the 3 months before (for each group or metric), and which weekdays are good.
+ * habits are, how each group or metric changes from week to week or from month to month (one table with a switch),
+ * and which weekdays are good.
  * The month calendar below the charts shows the score of each day (see `ScoreCalendar`). The score of a day is a
  * percentage from 0 to 100, so the charts show averages, not totals.
  *
  * - `values`: the score of each day. The change compares the first half of the window with the second half.
  * - `scoreMetrics`, `points`: the metrics of the score, and the points of each metric. With metrics of 2 or more
- *   groups, the week and month tables are by group, and the weekday bars show the part of each group. Else the tables
- *   are by metric.
+ *   groups, the table is by group, and the weekday bars show the part of each group. Else the table is by metric.
  * @param {object} props
  * @param {ZoomWindow} props.window
  * @param {Map<Day, number>} props.values
  * @param {Metric[]} props.scoreMetrics
  * @param {Map<string, Map<Day, number>>} props.points
+ * @param {((bar: ZoomBar) => void) | null} props.onBar
  * @returns {JSX.Element}
  */
-function ScoreContent({ window, values, scoreMetrics, points }) {
+function ScoreContent({ window, values, scoreMetrics, points, onBar }) {
   const stats = countStats(values, window.days);
   const [firstHalf, secondHalf] = halves(window.days);
   const average = countStats(values, secondHalf).average;
@@ -180,7 +181,7 @@ function ScoreContent({ window, values, scoreMetrics, points }) {
             window,
             values,
             Aggregate.AVERAGE,
-            { max: 100, format: (v) => formatPercent(v / 100) },
+            { max: 100, format: (v) => formatPercent(v / 100), onBar },
           ),
           {
             key: 'strength',
@@ -200,9 +201,7 @@ function ScoreContent({ window, values, scoreMetrics, points }) {
               />
             ),
           },
-          { key: 'week', wide: true, content: () => <WeekInRange values={values} window={window} /> },
-          { key: 'weekly', wide: false, content: () => <WeeklyScores parts={parts} window={window} /> },
-          { key: 'monthly', wide: false, content: () => <MonthlyScores parts={parts} window={window} /> },
+          { key: 'table', wide: true, content: () => <ScoreTable parts={parts} window={window} /> },
           {
             key: 'weekdays',
             wide: true,
@@ -223,83 +222,52 @@ function weekName(window) {
   return window.atEnd ? 'this week' : `the week of ${shortDay(barStart(window.to, BarUnit.WEEK))}`;
 }
 
-/**
- * `text` with a capital first letter. Example: "this week" → "This week".
- * @param {string} text
- * @returns {string}
- */
-function capitalized(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
+/** The columns of the score table: weeks or months. */
+const TABLE_SPANS = [
+  { value: 'week', label: 'Week', icon: 'view_week' },
+  { value: 'month', label: 'Month', icon: 'calendar_month' },
+];
 
 /**
- * The score of each weekday of the week of the window end, in the range of that weekday in the 4 weeks before. See
- * `weekdaysInRange`.
- * @param {object} props
- * @param {Map<Day, number>} props.values
- * @param {ZoomWindow} props.window
- * @returns {JSX.Element}
- */
-function WeekInRange({ values, window }) {
-  const week = weekName(window);
-  const weekdays = weekdaysInRange(values, window.to);
-  const weeks = formatNumber(COMPARED_WEEKS);
-  return (
-    <RangeBarChart
-      title={`${capitalized(week)} and the ${weeks} weeks before`}
-      description={
-        `For each weekday: the score of ${week} (diamond), and the lowest to the highest score of the ` +
-        `${weeks} weeks before (bar), with their average (dot).`
-      }
-      labels={weekdayNames}
-      ranges={weekdays.map((w) => w.range)}
-      marks={weekdays.map((w) => w.score)}
-      rangeLabel={`${weeks} weeks before`}
-      markLabel={capitalized(week)}
-    />
-  );
-}
-
-/**
- * The average score of each part of the score in the week of the window end and in each of the 4 weeks before, on the
- * same weekdays. The color of a cell shows the change from the week before. See `weeklyAverages`.
+ * The average score of each part of the score (each group, or each metric of one group) in columns of time. The
+ * switch in the title row selects the columns. The color of a cell shows the change from the column before.
+ *
+ * - Week: the week of the window end and the 4 weeks before, on the same weekdays. See `weeklyAverages`.
+ * - Month: the month of the window end, up to the window end, and the 3 months before. See `monthlyAverages`.
  * @param {object} props
  * @param {ScoreParts} props.parts
  * @param {ZoomWindow} props.window
  * @returns {JSX.Element}
  */
-function WeeklyScores({ parts, window }) {
-  const weekly = weeklyAverages(parts.scores, window.to, COMPARED_WEEKS);
-  return (
-    <ChangeTable
-      title={`Score by ${parts.noun} and week`}
-      description={
-        `The average score of each ${parts.noun} in ${weekName(window)} (last column) and in the ` +
-        `${formatNumber(COMPARED_WEEKS)} weeks before, on the same weekdays. The color shows the change from the ` +
-        'week before.'
-      }
-      columns={weekMondays(window.to, COMPARED_WEEKS).map(shortDay)}
-      rows={[...weekly].map(([id, perWeek]) => [parts.name(id), perWeek])}
-      upLabel="More than the week before"
-      downLabel="Less than the week before"
-    />
+function ScoreTable({ parts, window }) {
+  const [span, setSpan] = useState('week');
+  const title = `Score by ${parts.noun}`;
+  const action = (
+    <SegmentedButtons label="Columns of the table" segments={TABLE_SPANS} selected={span} onSelect={setSpan} />
   );
-}
-
-/**
- * The average score of each part of the score in the month of the window end, up to the window end, and in each of
- * the 3 months before. The color of a cell shows the change from the month before. See `monthlyAverages`.
- * @param {object} props
- * @param {ScoreParts} props.parts
- * @param {ZoomWindow} props.window
- * @returns {JSX.Element}
- */
-function MonthlyScores({ parts, window }) {
+  if (span === 'week') {
+    const weekly = weeklyAverages(parts.scores, window.to, COMPARED_WEEKS);
+    return (
+      <ChangeTable
+        title={title}
+        description={
+          `The average score of each ${parts.noun} in ${weekName(window)} (last column) and in the ` +
+          `${formatNumber(COMPARED_WEEKS)} weeks before, on the same weekdays. The color shows the change from the ` +
+          'week before.'
+        }
+        columns={weekMondays(window.to, COMPARED_WEEKS).map(shortDay)}
+        rows={[...weekly].map(([id, perWeek]) => [parts.name(id), perWeek])}
+        upLabel="More than the week before"
+        downLabel="Less than the week before"
+        action={action}
+      />
+    );
+  }
   const monthly = monthlyAverages(parts.scores, window.to, COMPARED_MONTHS);
   const month = window.atEnd ? 'this month' : monthTitle(monthOf(window.to));
   return (
     <ChangeTable
-      title={`Score by ${parts.noun} and month`}
+      title={title}
       description={
         `The average score of each ${parts.noun} in ${month} (last column, up to ${shortDay(window.to)}) and in ` +
         `the ${formatNumber(COMPARED_MONTHS)} months before. The color shows the change from the month before.`
@@ -308,6 +276,7 @@ function MonthlyScores({ parts, window }) {
       rows={[...monthly].map(([id, perMonth]) => [parts.name(id), perMonth])}
       upLabel="More than the month before"
       downLabel="Less than the month before"
+      action={action}
     />
   );
 }

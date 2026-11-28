@@ -208,31 +208,28 @@ Rules:
     of the way to the score of that day. So it goes up slowly on days with a high score and down slowly on days with
     a low score. One bad day changes it only a little. Example: 20 days at 100% give 64%. The strength uses the days
     before the period too.
-  - "This week and the 4 weeks before": for each weekday, the score of this week (a diamond), and a bar from the
-    lowest to the highest score of that weekday in the 4 weeks before, with a dot at their average. A day after today
-    has only the bar: the usual range of that weekday. "This week" is the week of the end of the period. If you move
-    the period back, the chart shows the week of its end, for example "The week of Oct 5 and the 4 weeks before".
-  - "Score by group and week": a table with one row for each group and one column for each week: the 4 weeks before
-    and this week (the last column). Each cell has the average score of the group on the same weekdays as this week.
-    Example: on a Wednesday, each week counts its Monday to Wednesday. The color of a cell shows the change from the
-    week before: green for more, orange for less, darker for a larger change. A cell of the first column, or without
-    change, has no color. A week without a score of the group shows "–".
-  - "Score by group and month": the same table with one column for each month: the 3 months before and this month
-    (the last column), up to the end of the period. Each cell has the average score of the group in the days of that
-    month. The color shows the change from the month before. Example: on Nov 10, the columns are Aug, Sep, Oct and
-    Nov, and Nov counts Nov 1 to Nov 10.
-  - In these 2 tables, the score of a group is the average of the points of its metrics on a day, as a percentage.
-    A group without a score in these weeks or months has no row. With a group selected, or with only one group, the
-    tables are by metric: "Score by metric and week" and "Score by metric and month", with one row for each metric.
-    The score of a metric is its points as a percentage. "This week" and "this month" are the week and the month of
-    the end of the period.
+  - "Score by group": a table with one row for each group. A switch selects its columns:
+    - Week: one column for each week, the 4 weeks before and this week (the last column). Each cell has the average
+      score of the group on the same weekdays as this week. Example: on a Wednesday, each week counts its Monday to
+      Wednesday.
+    - Month: one column for each month, the 3 months before and this month (the last column), up to the end of the
+      period. Each cell has the average score of the group in the days of that month. Example: on Nov 10, the columns
+      are Aug, Sep, Oct and Nov, and Nov counts Nov 1 to Nov 10.
+  - The color of a cell shows the change from the column before: the data orange for more, wine for less, stronger
+    for a larger change. A cell of the first column, or without change, is grey. A column without a score of the
+    group shows "–". The score of a group is the average of the points of its metrics on a day, as a percentage. A
+    group without a score in these weeks or months has no row. With a group selected, or with only one group, the
+    table is by metric: "Score by metric", with one row for each metric. The score of a metric is its points as a
+    percentage. "This week" and "this month" are the week and the month of the end of the period.
   - "Weekday averages": the average score on each weekday. For the score of all metrics, with 2 or more groups,
     each bar stacks the part of each group, in one tone of the data orange for each group. The part of a group on a
     day is the sum of the points of its metrics, divided by the number of metrics that count on that day. So the parts
     of a weekday add up to its average. The tones go from deep to light, in the order of the groups, and the legend
     names them. A thin gap separates the parts.
-  - "Score by month": a month calendar with the score of each day. A darker day has a higher score: 100 has the most
-    color. It is read-only. It shows the month of the end of the period, and its arrows show the other months.
+  - "Days": month calendars with the score of each day, read-only. A day has the fill of a day cell: more score, a
+    stronger orange; 100 is the full gradient. Today has no score until a metric has a value on today. The card shows
+    the month of the end of the period, and its arrows show the other months. A tap on a bar of "Average per day"
+    shows its month.
 - The group filter of the app (the `group` column) also applies to the score. With a group selected, the chart and
   the "Score" view show the group score: the average of the points of the metrics of that group only. The title shows
   the group, for example "Score · Habits". The `Score` column always has the score of all metrics.

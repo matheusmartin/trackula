@@ -5,7 +5,7 @@ import { formatScore } from '../../model/Format.js';
 import { defaultStepIndex } from '../../model/Zoom.js';
 import { useElementWidth } from '../components/ElementWidth.js';
 import { ScoreCharts } from '../components/ScoreCharts.jsx';
-import { ChartsArea, PeriodBar, usePeriod } from '../components/Period.jsx';
+import { ChartsArea, PeriodBar, useBarTap, usePeriod } from '../components/Period.jsx';
 import { ScoreCalendar } from '../components/ScoreCalendar.jsx';
 import { WIDE_CONTENT } from '../components/Sizes.js';
 import './MetricDetail.css';
@@ -17,7 +17,8 @@ import './MetricDetail.css';
 
 /**
  * The Score view: the score of each day over a period. Key numbers and charts over time, by weekday, by group and by
- * metric, and a read-only month calendar with the score of each day: the app calculates the scores.
+ * metric, and the Days card with the score of each day, read-only: the app calculates the scores. A tap on a bar of
+ * "Average per day" shows its month in the Days card (see `useBarTap`).
  *
  * The period works as on the detail screen of a metric (see `usePeriod`). It opens at All. The group filter of the
  * page selects the metrics of the score: the parent gives a new key for each group, so each group starts with its own
@@ -33,6 +34,7 @@ import './MetricDetail.css';
 export function ScorePage({ title, scores, today, metrics, points }) {
   const [measure, width] = useElementWidth();
   const period = usePeriod(scores, today, (steps) => defaultStepIndex(null, steps));
+  const { calendar, onBar } = useBarTap(period);
   const first = period.window.first;
   const bars = useMemo(() => dayBars(StripKind.SCORE, scores, new Map(), first, today), [scores, first, today]);
   return (
@@ -42,14 +44,16 @@ export function ScorePage({ title, scores, today, metrics, points }) {
       </div>
       <PeriodBar period={period} bars={bars} valueText={scoreText} wide={width >= WIDE_CONTENT} />
       <ChartsArea period={period}>
-        <ScoreCharts window={period.window} values={scores} scoreMetrics={metrics} points={points} />
+        <ScoreCharts window={period.window} values={scores} scoreMetrics={metrics} points={points} onBar={onBar} />
       </ChartsArea>
-      <ScoreCalendar
-        scores={scores}
-        today={today}
-        month={period.month ?? monthOf(period.window.to)}
-        onMonth={period.setMonth}
-      />
+      <div ref={calendar} class="metric-detail-days">
+        <ScoreCalendar
+          scores={scores}
+          today={today}
+          month={period.month ?? monthOf(period.window.to)}
+          onMonth={period.setMonth}
+        />
+      </div>
     </div>
   );
 }

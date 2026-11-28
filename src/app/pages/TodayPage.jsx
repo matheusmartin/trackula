@@ -8,7 +8,7 @@ import { NumberMetric, YesNoMetric, groupOf, metricsOf } from '../../model/Metri
 import { formatStep } from '../../model/NumberInput.js';
 import { Route, Screen } from '../../model/Route.js';
 import { dayScores, pointsByMetric, pointsOf } from '../../model/Score.js';
-import { dayValues } from '../../model/Summary.js';
+import { dayValues, metricValues } from '../../model/Summary.js';
 import { errorText } from '../Errors.js';
 import { useNavigator, useRoute } from '../Navigation.js';
 import { ActionBar } from '../components/ActionBar.jsx';
@@ -358,7 +358,14 @@ export function TodayPage({
       data == null ? new Map() : pointsOf(metrics, selectedGroup, pointsByMetric(metrics, data.log, today, pending)),
     [data, today, pending, selectedGroup],
   );
-  const scores = useMemo(() => dayScores(points), [points]);
+  // Today is not over: without a value on today, today has no score yet, as in the Days table.
+  const scores = useMemo(() => {
+    const all = dayScores(points);
+    if (data == null || !all.has(today) || shown.some((m) => metricValues(m, data.log, pending).has(today))) return all;
+    const open = new Map(all);
+    open.delete(today);
+    return open;
+  }, [points, data, shown, pending, today]);
   const scoreTitle = selectedGroup == null ? 'Score' : `Score · ${groupLabel(selectedGroup)}`;
 
   /** @param {Metric} m */

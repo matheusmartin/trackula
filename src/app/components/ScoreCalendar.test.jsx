@@ -22,9 +22,10 @@ describe('ScoreCalendar', () => {
       />,
     );
     expect(screen.getByText('September 2026')).toBeTruthy();
-    expect(screen.getByRole('cell', { name: 'Sep 29: 12' })).toBeTruthy();
-    expect(screen.getByRole('cell', { name: 'Sep 28: no score' })).toBeTruthy();
-    expect(screen.getByTitle('Sep 29: 12')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Sep 29: score 12%' })).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Sep 28: no score' })).toBeTruthy();
+    expect(screen.getByTitle('Sep 29: score 12%').textContent).toBe('2912');
+    expect(screen.getByRole('list', { name: 'Cell colors' }).textContent).toBe('No score0%Some100%');
     fireEvent.click(screen.getByRole('button', { name: 'Next month' }));
     expect(month).toEqual({ year: 2026, month: 10 });
   });

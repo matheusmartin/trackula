@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useMemo } from 'preact/hooks';
 import { StripKind, dayBars } from '../../model/DayBars.js';
 import { monthOf } from '../../model/Day.js';
 import { formatPoints, formatValue } from '../../model/Format.js';
@@ -7,13 +7,13 @@ import { detailSummary } from '../../model/MetricDraft.js';
 import { pointsByMetric } from '../../model/Score.js';
 import { yesNoStates } from '../../model/Stats.js';
 import { dayValues } from '../../model/Summary.js';
-import { barMonth, defaultStepIndex } from '../../model/Zoom.js';
+import { defaultStepIndex } from '../../model/Zoom.js';
 import { AppIconButton } from '../components/AppIconButton.jsx';
 import { useElementWidth } from '../components/ElementWidth.js';
 import { MetricCharts } from '../components/MetricCharts.jsx';
 import { MetricIcon } from '../components/MetricIcon.jsx';
 import { MonthCalendar } from '../components/MonthCalendar.jsx';
-import { ChartsArea, PeriodBar, usePeriod } from '../components/Period.jsx';
+import { ChartsArea, PeriodBar, useBarTap, usePeriod } from '../components/Period.jsx';
 import { WIDE_CONTENT } from '../components/Sizes.js';
 import './MetricDetail.css';
 
@@ -22,7 +22,6 @@ import './MetricDetail.css';
 /** @import { CountStep, LogTable, MetricDay } from '../../model/LogEntry.js' */
 /** @import { Metric, NumberMetric } from '../../model/Metric.js' */
 /** @import { DayBar } from '../../model/DayBars.js' */
-/** @import { ZoomBar } from '../../model/Zoom.js' */
 
 /** The yes/no states of a metric that is not a yes/no metric. */
 const NO_STATES = /** @type {Map<Day, boolean>} */ (new Map());
@@ -53,9 +52,6 @@ const NO_STATES = /** @type {Map<Day, boolean>} */ (new Map());
  */
 export function MetricDetail({ metric, log, today, busy, onRecord, pending, onCount, onBack }) {
   const [measure, width] = useElementWidth();
-  const days = useRef(/** @type {HTMLDivElement | null} */ (null));
-  // The number of bar taps. After each tap, the page scrolls to the Days card, when it shows the new months.
-  const [barTaps, setBarTaps] = useState(0);
   const states = useMemo(() => (metric instanceof YesNoMetric ? yesNoStates(metric, log) : NO_STATES), [metric, log]);
   // For yes/no metrics: 1 for yes and 0 for no, as the rate bars expect.
   const values = useMemo(() => {
@@ -63,6 +59,7 @@ export function MetricDetail({ metric, log, today, busy, onRecord, pending, onCo
     return dayValues(metric, log, pending);
   }, [metric, states, log, pending]);
   const period = usePeriod(values, today, (steps) => defaultStepIndex(metric, steps));
+  const { calendar, onBar } = useBarTap(period);
   const window = period.window;
   const month = period.month ?? monthOf(window.to);
   const first = window.first;
@@ -84,19 +81,6 @@ export function MetricDetail({ metric, log, today, busy, onRecord, pending, onCo
     return `${formatValue(value, metric.step, metric.unit)}, ${formatPoints(bar.points ?? 0)}`;
   }
 
-  useEffect(() => {
-    if (barTaps > 0) days.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
-  }, [barTaps]);
-
-  /**
-   * Shows the month of `bar` in the Days card, and scrolls to the card.
-   * @param {ZoomBar} bar
-   */
-  function showBar(bar) {
-    period.setMonth(barMonth(bar.start, window.unit));
-    setBarTaps((n) => n + 1);
-  }
-
   // On wide screens, the chart grid has more columns, so that the cards keep their shape.
   return (
     <div ref={measure} class="metric-detail">
@@ -110,9 +94,9 @@ export function MetricDetail({ metric, log, today, busy, onRecord, pending, onCo
       </div>
       <PeriodBar period={period} bars={bars} valueText={barText} wide={width >= WIDE_CONTENT} />
       <ChartsArea period={period}>
-        <MetricCharts metric={metric} window={window} values={values} states={states} onBar={showBar} />
+        <MetricCharts metric={metric} window={window} values={values} states={states} onBar={onBar} />
       </ChartsArea>
-      <div ref={days} class="metric-detail-days">
+      <div ref={calendar} class="metric-detail-days">
         <MonthCalendar
           metric={metric}
           log={log}

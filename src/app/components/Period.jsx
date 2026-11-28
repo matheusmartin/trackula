@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { earliestDay } from '../../model/Day.js';
 import { formatDateRange } from '../../model/Format.js';
 import { roundHalfAwayFromZero } from '../../model/Numbers.js';
-import { ZoomWindow, zoomSteps } from '../../model/Zoom.js';
+import { ZoomWindow, barMonth, zoomSteps } from '../../model/Zoom.js';
 import { AppIconButton } from './AppIconButton.jsx';
 import { DayStrip } from './DayStrip.jsx';
 import { FilterChip } from './GroupChips.jsx';
@@ -14,7 +14,7 @@ import { Symbol } from './Symbol.jsx';
 /** @import { ComponentChildren, JSX } from 'preact' */
 /** @import { Day, MonthKey } from '../../model/Day.js' */
 /** @import { DayBar } from '../../model/DayBars.js' */
-/** @import { ZoomStep } from '../../model/Zoom.js' */
+/** @import { ZoomBar, ZoomStep } from '../../model/Zoom.js' */
 
 /** The side wheel movement for one bar, in CSS pixels. */
 const WHEEL_STEP = 40;
@@ -79,6 +79,29 @@ export function usePeriod(values, today, defaultIndex) {
   }
 
   return { window, steps, index, zoom, moveTo, month, setMonth };
+}
+
+/**
+ * A tap on a bar over time: it shows the month of the bar in the calendar of the screen (see `barMonth`), and scrolls
+ * to the calendar when the calendar shows the new months.
+ * @param {Period} period
+ * @returns {{ calendar: { current: HTMLDivElement | null }, onBar: (bar: ZoomBar) => void }} `calendar` is the ref of
+ *   the box around the calendar. `onBar` goes to the charts.
+ */
+export function useBarTap(period) {
+  const calendar = useRef(/** @type {HTMLDivElement | null} */ (null));
+  // The number of bar taps. After each tap, the page scrolls to the calendar, when it shows the new months.
+  const [taps, setTaps] = useState(0);
+  useEffect(() => {
+    if (taps > 0) calendar.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  }, [taps]);
+  return {
+    calendar,
+    onBar: (bar) => {
+      period.setMonth(barMonth(bar.start, period.window.unit));
+      setTaps((n) => n + 1);
+    },
+  };
 }
 
 /**

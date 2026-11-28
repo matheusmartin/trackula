@@ -83,25 +83,32 @@ export function DayCell({
 
 /**
  * The read-only day cell of the score: the same fill as a metric cell, from the score of the day (0 to 100). It shows
- * the score. A day without a score has only a border. A day after today has no cell.
+ * the score. A day without a score has only a border. A day after today has no cell. With `showsDay`, the day number
+ * is above the score, for a month calendar.
  * @param {object} props
  * @param {Day} props.day
  * @param {Day} props.today
  * @param {number | null} props.score
+ * @param {boolean} [props.showsDay] Default: false.
  * @returns {JSX.Element}
  */
-export function ScoreCell({ day, today, score }) {
+export function ScoreCell({ day, today, score, showsDay = false }) {
   if (day.isAfter(today)) return <span class="day-cell day-cell-after" aria-hidden="true" />;
   const points = score == null ? null : score / 100;
   const description = `${shortDay(day)}: ${score == null ? 'no score' : `score ${formatNumber(score)}%`}`;
   return (
     <span
-      class={['day-cell', ...fillClasses(points)].join(' ')}
+      class={['day-cell', ...fillClasses(points), showsDay ? 'day-cell-with-day' : null].filter(Boolean).join(' ')}
       style={points == null ? undefined : { '--cell-fill': cellFill(points) }}
       role="img"
       title={description}
       aria-label={description}
     >
+      {showsDay && (
+        <span class="day-cell-day" aria-hidden="true">
+          {day.day}
+        </span>
+      )}
       {score == null ? null : formatNumber(score)}
     </span>
   );

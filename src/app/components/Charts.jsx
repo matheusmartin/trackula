@@ -527,14 +527,12 @@ function toRange(bar) {
 }
 
 /**
- * One bar in the CSS color `bar` from the lowest to the highest value for each of `ranges`, and the average as a dot
- * in the CSS color `dot`. A null range has no bar. With `marks`, a diamond in the cell color shows the mark of each
- * column, also in a column without a range. A null mark has no diamond. The scale goes from `low` (bottom) to `high`
- * (top). Each bar, dot and diamond has a tooltip: its entry of `titles`, the name of the range or the mark, and its
- * value. With `onColumn`, a click on a column calls it with the index of the column. See {@link ColumnTarget}.
+ * One bar in the data color from the lowest to the highest value for each of `ranges`, and the average as a dot in the
+ * color of the lowest surface. A null range has no bar. The scale goes from `low` (bottom) to `high` (top). Each bar
+ * and dot has a tooltip: its entry of `titles` and its value. With `onColumn`, a click on a column calls it with the
+ * index of the column. See {@link ColumnTarget}.
  *
- * The default colors have a contrast of 3:1 or more in both themes: the bar on the card, and the dot on the bar. A
- * diamond has a thin frame in the card color, so that it stays apart from a bar below it.
+ * The colors have a contrast of 3:1 or more in both themes: the bar on the card, and the dot on the bar.
  * @param {object} props
  * @param {(ValueRange | null)[]} props.ranges
  * @param {number} props.high
@@ -542,28 +540,10 @@ function toRange(bar) {
  * @param {string} props.label The text for screen readers.
  * @param {string[]} props.titles The name of each column, for the tooltips.
  * @param {(value: number) => string} props.format
- * @param {string} [props.bar] Default: the data color (`--cell`).
- * @param {string} [props.dot] Default: the lowest surface container color.
- * @param {(number | null)[]} [props.marks] Default: no marks.
- * @param {string | null} [props.rangeName] The name of a bar and its dot in their tooltips. Default: null, no name.
- * @param {string | null} [props.markName] The name of a mark in its tooltip. Default: null, no name.
  * @param {((index: number) => void) | null} [props.onColumn] Default: null, no clicks.
  * @returns {JSX.Element}
  */
-export function RangeBars({
-  ranges,
-  high,
-  low,
-  label,
-  titles,
-  format,
-  bar = 'var(--cell)',
-  dot = 'var(--surface-container-lowest)',
-  marks = [],
-  rangeName = null,
-  markName = null,
-  onColumn = null,
-}) {
+export function RangeBars({ ranges, high, low, label, titles, format, onColumn = null }) {
   const y = yScale(high, low);
   const total = ranges.length * COLUMN_UNITS;
   /**
@@ -571,13 +551,6 @@ export function RangeBars({
    * @returns {string}
    */
   const x = (i) => percent(i * COLUMN_UNITS + 5, total);
-  /**
-   * The start of a tooltip: the column and the name, for example "Mo, This week".
-   * @param {number} i
-   * @param {string | null} name
-   * @returns {string}
-   */
-  const tip = (i, name) => (name == null ? titles[i] : `${titles[i]}, ${name}`);
   return (
     <svg class={onColumn == null ? 'chart-plot' : 'chart-plot chart-plot-taps'} role="img" aria-label={label}>
       {onColumn != null &&
@@ -588,8 +561,8 @@ export function RangeBars({
             count={ranges.length}
             title={
               r == null
-                ? `${tip(i, rangeName)}: no value`
-                : `${tip(i, rangeName)}: ${format(r.low)} to ${format(r.high)}, average ${format(r.average)}`
+                ? `${titles[i]}: no value`
+                : `${titles[i]}: ${format(r.low)} to ${format(r.high)}, average ${format(r.average)}`
             }
             onColumn={onColumn}
           />
@@ -605,32 +578,15 @@ export function RangeBars({
               x2={x(i)}
               y1={coordinate(y(r.high) * PLOT_SCALE)}
               y2={coordinate(Math.max(y(r.high) + 0.5, y(r.low)) * PLOT_SCALE)}
-              style={{ stroke: bar }}
             >
-              <title>{`${tip(i, rangeName)}: ${format(r.low)} to ${format(r.high)}`}</title>
+              <title>{`${titles[i]}: ${format(r.low)} to ${format(r.high)}`}</title>
             </line>
-            <circle
-              class="range-dot"
-              cx={x(i)}
-              cy={coordinate(y(r.average) * PLOT_SCALE)}
-              r="2.5"
-              style={{ fill: dot }}
-            >
-              <title>{`${tip(i, rangeName)}: average ${format(r.average)}`}</title>
+            <circle class="range-dot" cx={x(i)} cy={coordinate(y(r.average) * PLOT_SCALE)} r="2.5">
+              <title>{`${titles[i]}: average ${format(r.average)}`}</title>
             </circle>
           </g>
         );
       })}
-      {marks.map((v, i) =>
-        v == null ? null : (
-          // A diamond of 12 px around the point of the mark.
-          <svg key={`mark-${i}`} x={x(i)} y={coordinate(y(v) * PLOT_SCALE)} overflow="visible">
-            <path class="range-mark" d="M0 -6 L6 0 L0 6 L-6 0 Z">
-              <title>{`${tip(i, markName)}: ${format(v)}`}</title>
-            </path>
-          </svg>
-        ),
-      )}
     </svg>
   );
 }

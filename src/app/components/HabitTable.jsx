@@ -322,25 +322,29 @@ function DayHeader({ day }) {
 }
 
 /**
- * The colors of the day cells: no value, 0 points, some points, 1 point.
+ * The colors of the day cells: no value, 0 points, some points, 1 point. `labels` names them, in this order.
+ * @param {object} props
+ * @param {[string, string, string, string]} [props.labels] Default: "No value", "0 points", "Some points", "1 point".
  * @returns {JSX.Element}
  */
-export function CellLegend() {
+export function CellLegend({ labels = ['No value', '0 points', 'Some points', '1 point'] }) {
   return (
     <ul class="cell-legend" aria-label="Cell colors">
       <li class="cell-legend-item">
         <span class="cell-swatch day-cell-none" />
-        No value
+        {labels[0]}
       </li>
       <li class="cell-legend-item">
-        <span class="cell-swatch day-cell-value" style={{ '--cell-fill': 0 }} />0 points
+        <span class="cell-swatch day-cell-value" style={{ '--cell-fill': 0 }} />
+        {labels[1]}
       </li>
       <li class="cell-legend-item">
         <span class="cell-swatch day-cell-value" style={{ '--cell-fill': 0.4 }} />
-        Some points
+        {labels[2]}
       </li>
       <li class="cell-legend-item">
-        <span class="cell-swatch day-cell-value" style={{ '--cell-fill': 1 }} />1 point
+        <span class="cell-swatch day-cell-value" style={{ '--cell-fill': 1 }} />
+        {labels[3]}
       </li>
     </ul>
   );
