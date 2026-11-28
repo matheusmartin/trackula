@@ -29,7 +29,7 @@ import { STRENGTH_WEIGHT, bestWeekday, countStats, strength } from '../../model/
 import { Aggregate, BarUnit, barStart } from '../../model/Zoom.js';
 import { ChartGrid, KeyNumbers } from './ChartParts.jsx';
 import { BarChart, LineChart, StackedBarChart } from './Charts.jsx';
-import { ChangeTable, MAX_FILL, RangeBarChart, cellFill } from './CompareCharts.jsx';
+import { ChangeTable, RangeBarChart } from './CompareCharts.jsx';
 import { groupLabel } from './GroupChips.jsx';
 import { NoData, timeBarItem, unitName } from './MetricCharts.jsx';
 import './MetricCharts.css';
@@ -337,17 +337,16 @@ function WeekdayAverages({ values, window, stats, groupParts }) {
   return (
     <StackedBarChart
       title={title}
-      description="The average score on each weekday, from the days with a score. Each color is a group."
+      description="The average score on each weekday, from the days with a score. Each tone is a group."
       labels={weekdayNames}
       parts={parts.map(([group, averages], i) => ({
         label: groupLabel(group),
-        // The soft tone of the strongest table and calendar cells, so that the colors match the other charts.
-        color: cellFill(`var(--group-${(i % GROUP_COLORS) + 1})`, MAX_FILL),
+        color: `var(--group-${(i % GROUP_COLORS) + 1})`,
         values: averages,
       }))}
     />
   );
 }
 
-/** The number of group colors of the theme: `--group-1` to `--group-8`. */
-const GROUP_COLORS = 8;
+/** The number of group colors of the theme: `--group-1` to `--group-4`, 4 tones of the data color. */
+const GROUP_COLORS = 4;

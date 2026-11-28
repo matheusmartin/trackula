@@ -105,8 +105,8 @@ The screens after phase 2 of the consolidation. Phase 4 redraws them.
 | Setup | — | After the sign-in, without a sheet | Pick a sheet with the Google Picker. The app adds the tabs. |
 | Today | `#/today` | Navigation | One tile for each metric. A number tile has a ruler. A yes/no tile has a check mark. A count tile adds its step at each tap. |
 | Days | `#/days` | Navigation | The recent days in one of two layouts. Table: one card with the score bars on top, then one row for each metric and one column for each day, 5 to 14 days. Calendars: the score bars of the days, then a month grid for each metric for 31 days, and a chart of each number or count metric. The cell color shows the points of the day. |
-| Score | `#/score` | Navigation | The score of a period: zoom buttons, key numbers, 6 charts and tables, a month calendar. |
-| Metric detail | `#/metric/<id>` | A tap on a metric name | The values of a period: zoom buttons, key numbers, 3 to 5 charts, and the Days card: a month calendar to see and edit the days. A tap on a bar over time shows its month in the calendar. |
+| Score | `#/score` | Navigation | The score of a period: the period panel (span chips, dates, a bar for each day), key numbers, 6 charts and tables, a month calendar. |
+| Metric detail | `#/metric/<id>` | A tap on a metric name | The values of a period: the period panel (span chips, dates, a bar for each day), key numbers, 3 to 5 charts, and the Days card: a month calendar to see and edit the days. A tap on a bar over time shows its month in the calendar. |
 | Metrics | `#/metrics` | `tune` button in the app bar, or Show in the line of the sheet problems | The problems of the sheet first, then the list of metrics, in order. Add, move and delete metrics. Restore deleted metrics. Fix the rows with problems. |
 | Metric form | `#/metrics/new`, `#/metrics/edit/<id>`, `#/metrics/fix/<row>`, `#/metrics/restore/<column>` | A tap on a metric, Add metric, Fix or Restore | Name, icon, kind, unit, step, group and goal. |
 | More menu | — | App bar | Change sheet, Sign out. |

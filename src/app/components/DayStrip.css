@@ -1,0 +1,56 @@
+/* DayStrip.jsx: thin bars for the days, a box on the period, and the month names below. */
+.day-strip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.day-strip-plot {
+  position: relative;
+}
+
+/* All moves of a drag go to the strip, also vertical moves. */
+.day-strip-taps {
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+
+.day-strip-bars {
+  display: block;
+  inline-size: 100%;
+  overflow: visible;
+}
+
+.day-strip-none {
+  fill: var(--outline);
+}
+
+/* The box on the days of the period, 4 px above and below the bars. */
+.day-strip-box {
+  position: absolute;
+  inset-block: -4px;
+  box-sizing: border-box;
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-s);
+  pointer-events: none;
+}
+
+.day-strip-months {
+  position: relative;
+  block-size: 16px;
+}
+
+.day-strip-month {
+  position: absolute;
+  inset-block-start: 0;
+  box-sizing: border-box;
+  padding-inline-start: var(--space-1);
+  overflow: hidden;
+  border-inline-start: 1px solid var(--outline-variant);
+  font-size: var(--small-text);
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--on-surface-variant);
+}

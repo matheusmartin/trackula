@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { Day, monthOf } from '../../model/Day.js';
 import { formatDateRange, monthTitle, shortDay } from '../../model/Format.js';
@@ -27,6 +27,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 /**
@@ -83,16 +84,23 @@ function hasText(text) {
 }
 
 /**
+ * True if the span chip `name` is the selected chip.
+ * @param {string} name
+ * @returns {boolean}
+ */
+function selected(name) {
+  return button(name).getAttribute('aria-pressed') === 'true';
+}
+
+/**
  * Zooms the detail screen of Weight from All to 1 month: 5 weeks, from Monday 2026-08-31 to today, Saturday
  * 2026-10-03.
  */
 async function weightAtOneMonth() {
   await showPage();
   await openDetail('Weight');
-  // All, then 3 months, then 1 month.
-  fireEvent.click(button('Zoom in'));
-  fireEvent.click(button('Zoom in'));
-  expect(screen.getByText('1 month')).toBeTruthy();
+  fireEvent.click(button('1 month'));
+  expect(selected('1 month')).toBe(true);
   expect(screen.getByText(formatDateRange(Day.of(2026, 8, 31), today))).toBeTruthy();
 }
 
@@ -122,34 +130,28 @@ describe('MetricDetail', () => {
     expect(screen.getByText('total')).toBeTruthy();
   });
 
-  test('the zoom buttons change the window and the label goes to All and back', async () => {
+  test('the span chips change the window', async () => {
     await showPage();
     await openDetail('Water');
-    // The demo data has 120 days: the window of a count opens at 3 months, and All is 6 months.
-    expect(screen.getByText('3 months')).toBeTruthy();
-    fireEvent.click(button('Show all'));
-    expect(screen.getByText('All')).toBeTruthy();
-    expect(button('Zoom out').disabled).toBe(true);
-    fireEvent.click(button('Back to 3 months'));
-    expect(screen.getByText('3 months')).toBeTruthy();
-    fireEvent.click(button('Zoom in'));
-    expect(screen.getByText('1 month')).toBeTruthy();
+    // The demo data has 120 days: the window of a count opens at 3 months, and the last chip is all data.
+    expect(selected('3 months')).toBe(true);
+    expect(screen.getAllByRole('button', { name: /^(1 week|2 weeks|1 month|3 months|All data)$/ })).toHaveLength(5);
+    fireEvent.click(button('All data'));
+    expect(selected('All data')).toBe(true);
+    expect(selected('3 months')).toBe(false);
+    fireEvent.click(button('1 month'));
+    expect(selected('1 month')).toBe(true);
   });
 
-  test('the window of a number opens at All and the label goes to 3 months and back', async () => {
+  test('the window of a number opens at All', async () => {
     await showPage();
     await openDetail('Weight');
     // All: the 120 days of the demo data, from the first value to today.
-    expect(screen.getByText('All')).toBeTruthy();
-    expect(button('Zoom out').disabled).toBe(true);
+    expect(selected('All data')).toBe(true);
     expect(button('Later').disabled).toBe(true);
     expect(button('Earlier').disabled).toBe(true);
-    fireEvent.click(button('Back to 3 months'));
-    expect(screen.getByText('3 months')).toBeTruthy();
-    fireEvent.click(button('Show all'));
-    expect(screen.getByText('All')).toBeTruthy();
-    fireEvent.click(button('Zoom in'));
-    expect(screen.getByText('3 months')).toBeTruthy();
+    fireEvent.click(button('3 months'));
+    expect(button('Earlier').disabled).toBe(false);
   });
 
   test('the arrows move the window by its span and the calendar follows it', async () => {
@@ -180,13 +182,13 @@ describe('MetricDetail', () => {
     await waitFor(() => expect(store.last?.log.valueAt('meditate', today)).toBe(1), { timeout: TIMEOUT });
   });
 
-  test('a tap on the overview moves the window there', async () => {
+  test('a tap on the day strip moves the window there', async () => {
     await weightAtOneMonth();
-    // The overview starts at the first week of the data, 2026-06-01: a tap at the left end shows the oldest weeks.
+    // The strip starts at the first day of the data: a tap at the left end shows the oldest weeks.
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 400, 40));
-    const overview = screen.getByRole('img', { name: 'All data' });
-    fireEvent.pointerDown(overview, { clientX: 0, button: 0, pointerId: 1 });
-    fireEvent.pointerUp(overview, { clientX: 0, button: 0, pointerId: 1 });
+    const strip = screen.getByRole('img', { name: /^All data, / });
+    fireEvent.pointerDown(strip, { clientX: 0, button: 0, pointerId: 1 });
+    fireEvent.pointerUp(strip, { clientX: 0, button: 0, pointerId: 1 });
     expect(button('Earlier').disabled).toBe(true);
     expect(button('Later').disabled).toBe(false);
   });
@@ -250,7 +252,7 @@ describe('MetricDetail', () => {
     fireEvent.click(button('Earlier'));
     expect(screen.getByText(formatDateRange(Day.of(2026, 7, 27), Day.of(2026, 8, 30)))).toBeTruthy();
     // 2 weeks: the 14 days that end on 2026-08-30.
-    fireEvent.click(button('Zoom in'));
+    fireEvent.click(button('2 weeks'));
     expect(screen.getByText(formatDateRange(Day.of(2026, 8, 17), Day.of(2026, 8, 30)))).toBeTruthy();
   });
 
@@ -267,5 +269,38 @@ describe('MetricDetail', () => {
     // A vertical wheel scrolls the page.
     fireEvent.wheel(chart, { deltaX: 10, deltaY: 100 });
     expect(screen.getByText(formatDateRange(Day.of(2026, 8, 3), Day.of(2026, 9, 6)))).toBeTruthy();
+  });
+
+  test('after a scroll past the panel, a thin row stays at the top and opens the panel', async () => {
+    /** @type {IntersectionObserverCallback[]} */
+    const callbacks = [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        /** @param {IntersectionObserverCallback} callback */
+        constructor(callback) {
+          callbacks.push(callback);
+        }
+
+        observe() {}
+
+        disconnect() {}
+      },
+    );
+    await weightAtOneMonth();
+    expect(screen.queryByRole('button', { name: /^Period: / })).toBeNull();
+    // The panel goes above the app bar.
+    const entry = /** @type {IntersectionObserverEntry} */ (
+      /** @type {unknown} */ ({ isIntersecting: false, boundingClientRect: new DOMRect(0, -200, 400, 120) })
+    );
+    act(() => callbacks.forEach((c) => c([entry], /** @type {IntersectionObserver} */ (/** @type {unknown} */ ({})))));
+    const row = button(`Period: 1 month, ${formatDateRange(Day.of(2026, 8, 31), today)}`);
+    expect(row.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(row);
+    expect(row.getAttribute('aria-expanded')).toBe('true');
+    // The panel shows a second time, below the row.
+    expect(screen.getAllByRole('button', { name: 'Earlier' })).toHaveLength(2);
+    fireEvent.keyDown(row, { key: 'Escape' });
+    expect(row.getAttribute('aria-expanded')).toBe('false');
   });
 });

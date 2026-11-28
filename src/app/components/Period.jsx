@@ -1,17 +1,20 @@
-// The period of the metric detail screen and of the Score view: the zoom, the moves, the period bar and the drags.
+// The period of the metric detail screen and of the Score view: the spans, the moves, the period panel and the drags.
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { earliestDay } from '../../model/Day.js';
 import { formatDateRange } from '../../model/Format.js';
 import { roundHalfAwayFromZero } from '../../model/Numbers.js';
-import { BarUnit, ZoomWindow, barStarts, threeMonthsStepIndex, zoomBars, zoomSteps } from '../../model/Zoom.js';
+import { ZoomWindow, zoomSteps } from '../../model/Zoom.js';
 import { AppIconButton } from './AppIconButton.jsx';
-import { Button } from './Button.jsx';
-import { Overview } from './Overview.jsx';
+import { DayStrip } from './DayStrip.jsx';
+import { FilterChip } from './GroupChips.jsx';
+import { useScrolledPast } from './ScrolledPast.js';
 import { useStickyHeight } from './StickyHeight.js';
+import { Symbol } from './Symbol.jsx';
 
 /** @import { ComponentChildren, JSX } from 'preact' */
 /** @import { Day, MonthKey } from '../../model/Day.js' */
-/** @import { Aggregate, ZoomStep } from '../../model/Zoom.js' */
+/** @import { DayBar } from '../../model/DayBars.js' */
+/** @import { ZoomStep } from '../../model/Zoom.js' */
 
 /** The side wheel movement for one bar, in CSS pixels. */
 const WHEEL_STEP = 40;
@@ -25,9 +28,7 @@ const TOUCH_SLOP = 18;
  * @property {ZoomWindow} window The days that the screen shows.
  * @property {ZoomStep[]} steps The zoom steps, from the shortest to all data.
  * @property {number} index The index of the step of the window in `steps`.
- * @property {number | null} beforeAll The step before a tap on the zoom label went to All. A second tap goes back.
- * @property {(to: number, all: number | null) => void} zoom Zooms to the step `to`. `all` is the step that a tap on the
- *   All label goes back to.
+ * @property {(to: number) => void} zoom Zooms to the step `to`.
  * @property {(end: Day | null) => void} moveTo Moves the window to end in the bar of a day. Null: the newest bar.
  * @property {MonthKey | null} month The month of the calendar. Null: the month of the window end.
  * @property {(month: MonthKey | null) => void} setMonth
@@ -36,9 +37,8 @@ const TOUCH_SLOP = 18;
 /**
  * The period of a screen with charts over time.
  *
- * - The zoom buttons set its span and the bar size (see `ZoomStep`). It opens at the step `defaultIndex`. A tap on the
- *   zoom label goes to All, and a second tap goes back. At All without an earlier step, the tap goes to 3 months.
- * - The arrows move the window by its full span. A tap or a drag on the overview, or a side drag or a side wheel on
+ * - The span chips set its span and the bar size (see `ZoomStep`). It opens at the step `defaultIndex`.
+ * - The arrows move the window by its full span. A tap or a drag on the day strip, or a side drag or a side wheel on
  *   the charts, moves it by bars. A zoom keeps the same time in view, except at the newest bar.
  * - The calendar shows the month of the window end until the user changes the month.
  * @param {Map<Day, number>} values The value of each day: the first value sets the start of the steps.
@@ -49,7 +49,6 @@ const TOUCH_SLOP = 18;
 export function usePeriod(values, today, defaultIndex) {
   // The index in zoomSteps. Null: defaultIndex.
   const [stepIndex, setStepIndex] = useState(/** @type {number | null} */ (null));
-  const [beforeAll, setBeforeAll] = useState(/** @type {number | null} */ (null));
   // A day in the newest bar of the window. Null: the newest bar of all. A day, not an index, so that a zoom keeps the
   // same time in view.
   const [end, setEnd] = useState(/** @type {Day | null} */ (null));
@@ -70,99 +69,148 @@ export function usePeriod(values, today, defaultIndex) {
     setMonth(null);
   }
 
-  /**
-   * @param {number} to
-   * @param {number | null} all
-   */
-  function zoom(to, all) {
+  /** @param {number} to */
+  function zoom(to) {
     if (!window.atEnd) {
       lastEnd.current = window.to;
       setEnd(window.to);
     }
     setStepIndex(to);
-    setBeforeAll(all);
   }
 
-  return { window, steps, index, beforeAll, zoom, moveTo, month, setMonth };
+  return { window, steps, index, zoom, moveTo, month, setMonth };
 }
 
 /**
- * The zoom buttons, the dates of the window with arrows, and the overview of all data. The bar with the buttons stays
- * at the top while the page scrolls. When the window shows all data, there is no overview: the first chart shows the
- * same bars, and there is no other part of the data to move to.
+ * The period panel: the span chips, the dates of the window with arrows, and the day strip of all data with a box on
+ * the window. A tap or a drag on the strip moves the window there. Wide screens: the chips and the dates in one row.
+ *
+ * When the page scrolls past the panel, a thin row stays below the app bar: the span, the dates and the bars of the
+ * window. A tap on the row opens the panel below it. A second tap, Escape, or a scroll back to the panel closes it.
  * @param {object} props
  * @param {Period} props.period
- * @param {Map<Day, number>} props.values
- * @param {Aggregate} props.aggregate How the overview makes one bar of the days of a week.
- * @param {boolean} props.fromZero True if the bars of the overview start at 0.
- * @param {boolean} props.wide True on wide screens: one row.
+ * @param {DayBar[]} props.bars One bar for each day of all data. See `dayBars`.
+ * @param {(bar: DayBar) => string} props.valueText The value of a bar in its tooltip. Example: "6 glasses, 0.8 points".
+ * @param {boolean} props.wide True on wide screens.
  * @returns {JSX.Element}
  */
-export function PeriodBar({ period, values, aggregate, fromZero, wide }) {
-  const { window, steps, index, beforeAll, zoom, moveTo } = period;
+export function PeriodBar({ period, bars, valueText, wide }) {
+  const { window, steps, index, zoom, moveTo } = period;
   // The last step shows all data. See zoomSteps.
   const last = steps.length - 1;
-  const atAll = index === last;
-  // The window can open at All: then the tap goes to 3 months.
-  const back = Math.min(beforeAll ?? threeMonthsStepIndex(steps), last);
   const count = window.starts.length;
-  const box = window.boxOn(BarUnit.WEEK);
-  const labelName = atAll ? `Back to ${steps[back].label}` : 'Show all';
-  const band = useRef(/** @type {HTMLDivElement | null} */ (null));
-  useStickyHeight(band);
-  // One tool bar in a soft color. Wide screens: the zoom buttons on the left and the dates on the right, in one row.
-  // Phones: 2 rows, each with its buttons at the edges and its label in the center.
-  return (
-    <>
-      <div class="window-bar-band" ref={band}>
-        <div class={wide ? 'window-bar window-bar-wide' : 'window-bar'}>
-          <div class="window-bar-row">
-            <AppIconButton icon="zoom_in" title="Zoom in" onClick={() => zoom(index - 1, null)} enabled={index > 0} />
-            <Button
-              text={atAll ? 'All' : steps[index].label}
-              description={labelName}
-              tooltip={labelName}
-              onClick={() => (atAll ? zoom(back, null) : zoom(last, index))}
-              class="window-zoom-label"
+  const panel = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const scrolledPast = useScrolledPast(panel);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!scrolledPast) setOpen(false);
+  }, [scrolledPast]);
+  const dates = formatDateRange(window.from, window.to);
+  const span = index === last ? 'All' : wide ? steps[index].label : steps[index].short;
+  const inWindow = bars.filter((b) => !b.start.isBefore(window.from) && !b.start.isAfter(window.to));
+
+  // A function, not one element: the panel can show twice, in the page and below the thin row.
+  const content = () => (
+    <div class={wide ? 'period-panel period-panel-wide' : 'period-panel'}>
+      <div class="period-panel-top">
+        <div class="period-chips" role="group" aria-label="Span">
+          {steps.map((step, i) => (
+            <FilterChip
+              key={step.name}
+              label={i === last ? 'All' : step.short}
+              description={i === last ? 'All data' : step.label}
+              selected={i === index}
+              onClick={() => zoom(i)}
             />
-            <AppIconButton icon="zoom_out" title="Zoom out" onClick={() => zoom(index + 1, null)} enabled={!atAll} />
-          </div>
-          <div class="window-bar-row">
-            <AppIconButton
-              icon="chevron_left"
-              title="Earlier"
-              onClick={() => moveTo(window.endMovedBy(-count))}
-              enabled={!window.atStart}
-            />
-            <span class="window-dates body-medium">{formatDateRange(window.from, window.to)}</span>
-            <AppIconButton
-              icon="chevron_right"
-              title="Later"
-              onClick={() => moveTo(window.endMovedBy(count))}
-              enabled={!window.atEnd}
-            />
-          </div>
+          ))}
         </div>
-      </div>
-      {!window.showsAll && (
-        <div class="metric-detail-overview">
-          <Overview
-            weeks={zoomBars(
-              values,
-              aggregate,
-              barStarts(window.first, window.today, BarUnit.WEEK),
-              BarUnit.WEEK,
-              window.first,
-              window.today,
-            )}
-            fromZero={fromZero}
-            from={box.from}
-            to={box.to}
-            onPoint={(d) => moveTo(window.endCenteredOn(d))}
+        <div class="period-dates">
+          <AppIconButton
+            icon="chevron_left"
+            title="Earlier"
+            onClick={() => moveTo(window.endMovedBy(-count))}
+            enabled={!window.atStart}
+          />
+          <span class="period-dates-text body-medium">{dates}</span>
+          <AppIconButton
+            icon="chevron_right"
+            title="Later"
+            onClick={() => moveTo(window.endMovedBy(count))}
+            enabled={!window.atEnd}
           />
         </div>
-      )}
+      </div>
+      <DayStrip
+        bars={bars}
+        label={`All data, ${formatDateRange(window.first, window.today)}. The box shows the period.`}
+        valueText={valueText}
+        from={window.from}
+        to={window.to}
+        onPoint={(d) => moveTo(window.endCenteredOn(d))}
+      />
+    </div>
+  );
+
+  return (
+    <>
+      <div ref={panel}>{content()}</div>
+      {/* The row is in the page only after the scroll: before it, the panel shows all of it. */}
+      <div
+        class="period-row"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape') setOpen(false);
+        }}
+      >
+        {scrolledPast && (
+          <PeriodRow
+            span={span}
+            name={`Period: ${index === last ? 'all data' : steps[index].label}, ${dates}`}
+            dates={dates}
+            bars={inWindow}
+            valueText={valueText}
+            open={open}
+            onToggle={() => setOpen(!open)}
+          />
+        )}
+        {open && scrolledPast && <div class="period-row-panel">{content()}</div>}
+      </div>
     </>
+  );
+}
+
+/**
+ * The thin row of the period after a scroll: the span, the dates and the bars of the window, and an arrow. While it
+ * shows, the page keeps its height free at the top for the keyboard focus (see `useStickyHeight`).
+ * @param {object} props
+ * @param {string} props.span Example: "3M".
+ * @param {string} props.name The name for screen readers. Example: "Period: 3 months, Aug 30 – Nov 28, 2026".
+ * @param {string} props.dates
+ * @param {DayBar[]} props.bars The bars of the window.
+ * @param {(bar: DayBar) => string} props.valueText
+ * @param {boolean} props.open True while the panel shows below the row.
+ * @param {() => void} props.onToggle
+ * @returns {JSX.Element}
+ */
+function PeriodRow({ span, name, dates, bars, valueText, open, onToggle }) {
+  const row = useRef(/** @type {HTMLButtonElement | null} */ (null));
+  useStickyHeight(row);
+  return (
+    <button
+      ref={row}
+      type="button"
+      class="period-row-button"
+      aria-expanded={open}
+      aria-label={name}
+      title={open ? 'Close the period panel' : 'Open the period panel'}
+      onClick={onToggle}
+    >
+      <span class="period-row-span label-large">{span}</span>
+      <span class="period-row-dates body-medium">{dates}</span>
+      <span class="period-row-bars" aria-hidden="true">
+        <DayStrip bars={bars} label="" valueText={valueText} height={14} months={false} />
+      </span>
+      <Symbol name={open ? 'expand_less' : 'expand_more'} />
+    </button>
   );
 }
 

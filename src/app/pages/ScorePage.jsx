@@ -1,5 +1,8 @@
+import { useMemo } from 'preact/hooks';
+import { StripKind, dayBars } from '../../model/DayBars.js';
 import { monthOf } from '../../model/Day.js';
-import { Aggregate, defaultStepIndex } from '../../model/Zoom.js';
+import { formatScore } from '../../model/Format.js';
+import { defaultStepIndex } from '../../model/Zoom.js';
 import { useElementWidth } from '../components/ElementWidth.js';
 import { ScoreCharts } from '../components/ScoreCharts.jsx';
 import { ChartsArea, PeriodBar, usePeriod } from '../components/Period.jsx';
@@ -9,6 +12,7 @@ import './MetricDetail.css';
 
 /** @import { JSX } from 'preact' */
 /** @import { Day } from '../../model/Day.js' */
+/** @import { DayBar } from '../../model/DayBars.js' */
 /** @import { Metric } from '../../model/Metric.js' */
 
 /**
@@ -29,12 +33,14 @@ import './MetricDetail.css';
 export function ScorePage({ title, scores, today, metrics, points }) {
   const [measure, width] = useElementWidth();
   const period = usePeriod(scores, today, (steps) => defaultStepIndex(null, steps));
+  const first = period.window.first;
+  const bars = useMemo(() => dayBars(StripKind.SCORE, scores, new Map(), first, today), [scores, first, today]);
   return (
     <div ref={measure} class="metric-detail">
       <div class="metric-detail-header">
         <h2 class="metric-detail-title headline-small">{title}</h2>
       </div>
-      <PeriodBar period={period} values={scores} aggregate={Aggregate.AVERAGE} fromZero wide={width >= WIDE_CONTENT} />
+      <PeriodBar period={period} bars={bars} valueText={scoreText} wide={width >= WIDE_CONTENT} />
       <ChartsArea period={period}>
         <ScoreCharts window={period.window} values={scores} scoreMetrics={metrics} points={points} />
       </ChartsArea>
@@ -46,4 +52,14 @@ export function ScorePage({ title, scores, today, metrics, points }) {
       />
     </div>
   );
+}
+
+/**
+ * The score of a bar of the day strip. Examples: "score 64.0%", "score 57.1% on average".
+ * @param {DayBar} bar
+ * @returns {string}
+ */
+function scoreText(bar) {
+  const text = `score ${formatScore((bar.points ?? 0) * 100)}`;
+  return bar.start === bar.end ? text : `${text} on average`;
 }

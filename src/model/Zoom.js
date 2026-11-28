@@ -21,27 +21,29 @@ export const BarUnit = Object.freeze({ DAY: 'DAY', WEEK: 'WEEK', MONTH: 'MONTH',
 export class ZoomStep {
   /**
    * @param {string} name The name in capital letters. Example: `MONTH3`.
-   * @param {string} label
+   * @param {string} label Example: "3 months".
+   * @param {string} short The label of a chip. Example: "3M".
    * @param {BarUnit} unit
    * @param {number} bars The number of bars in view.
    */
-  constructor(name, label, unit, bars) {
+  constructor(name, label, short, unit, bars) {
     this.name = name;
     this.label = label;
+    this.short = short;
     this.unit = unit;
     this.bars = bars;
     Object.freeze(this);
   }
 
-  static WEEK1 = new ZoomStep('WEEK1', '1 week', BarUnit.DAY, 7);
-  static WEEK2 = new ZoomStep('WEEK2', '2 weeks', BarUnit.DAY, 14);
-  static MONTH1 = new ZoomStep('MONTH1', '1 month', BarUnit.WEEK, 5);
-  static MONTH3 = new ZoomStep('MONTH3', '3 months', BarUnit.WEEK, 13);
-  static MONTH6 = new ZoomStep('MONTH6', '6 months', BarUnit.WEEK, 26);
-  static YEAR1 = new ZoomStep('YEAR1', '1 year', BarUnit.MONTH, 12);
-  static YEAR2 = new ZoomStep('YEAR2', '2 years', BarUnit.MONTH, 24);
-  static YEAR3 = new ZoomStep('YEAR3', '3 years', BarUnit.QUARTER, 12);
-  static YEAR5 = new ZoomStep('YEAR5', '5 years', BarUnit.QUARTER, 20);
+  static WEEK1 = new ZoomStep('WEEK1', '1 week', '1W', BarUnit.DAY, 7);
+  static WEEK2 = new ZoomStep('WEEK2', '2 weeks', '2W', BarUnit.DAY, 14);
+  static MONTH1 = new ZoomStep('MONTH1', '1 month', '1M', BarUnit.WEEK, 5);
+  static MONTH3 = new ZoomStep('MONTH3', '3 months', '3M', BarUnit.WEEK, 13);
+  static MONTH6 = new ZoomStep('MONTH6', '6 months', '6M', BarUnit.WEEK, 26);
+  static YEAR1 = new ZoomStep('YEAR1', '1 year', '1Y', BarUnit.MONTH, 12);
+  static YEAR2 = new ZoomStep('YEAR2', '2 years', '2Y', BarUnit.MONTH, 24);
+  static YEAR3 = new ZoomStep('YEAR3', '3 years', '3Y', BarUnit.QUARTER, 12);
+  static YEAR5 = new ZoomStep('YEAR5', '5 years', '5Y', BarUnit.QUARTER, 20);
 
   /** All steps, from the smallest span to the largest. */
   static entries = [

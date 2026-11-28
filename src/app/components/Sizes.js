@@ -10,6 +10,9 @@ export const BUTTON_TEXT = 16;
 /** The smallest width and height of a touch target. */
 export const TOUCH_TARGET = 48;
 
+/** The height of the app bar. `--app-bar-height` in theme.css. */
+export const APP_BAR_HEIGHT = 64;
+
 /** From this width of the window, the app shows a navigation rail on the left, not a bottom navigation bar. */
 export const RAIL_WIDTH = 840;
 
@@ -18,6 +21,6 @@ export const FORM_WIDTH = 640;
 
 /**
  * The content width of a wide screen: a 640 px window, without the 16 px page padding on each side. From this width,
- * the Today tiles have 4 columns and the month calendar shows 2 months.
+ * the Today tiles have 4 columns and the period panel has one row of buttons.
  */
 export const WIDE_CONTENT = 608;

@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { StripKind, dayBars } from '../../model/DayBars.js';
 import { monthOf } from '../../model/Day.js';
+import { formatPoints, formatValue } from '../../model/Format.js';
 import { YesNoMetric } from '../../model/Metric.js';
 import { detailSummary } from '../../model/MetricDraft.js';
+import { pointsByMetric } from '../../model/Score.js';
 import { yesNoStates } from '../../model/Stats.js';
 import { dayValues } from '../../model/Summary.js';
-import { Aggregate, barMonth, defaultStepIndex } from '../../model/Zoom.js';
+import { barMonth, defaultStepIndex } from '../../model/Zoom.js';
 import { AppIconButton } from '../components/AppIconButton.jsx';
 import { useElementWidth } from '../components/ElementWidth.js';
 import { MetricCharts } from '../components/MetricCharts.jsx';
@@ -18,6 +21,7 @@ import './MetricDetail.css';
 /** @import { Day } from '../../model/Day.js' */
 /** @import { CountStep, LogTable, MetricDay } from '../../model/LogEntry.js' */
 /** @import { Metric, NumberMetric } from '../../model/Metric.js' */
+/** @import { DayBar } from '../../model/DayBars.js' */
 /** @import { ZoomBar } from '../../model/Zoom.js' */
 
 /** The yes/no states of a metric that is not a yes/no metric. */
@@ -27,9 +31,9 @@ const NO_STATES = /** @type {Map<Day, boolean>} */ (new Map());
  * All data of one metric: key numbers and charts for one period, and the Days card to see and edit its days.
  *
  * - Title: the icon, the name, and a line with the kind, the unit and the goal.
- * - Period: see `usePeriod`. It opens at All for a metric of kind `number`, and at 3 months for the other kinds (see
- *   `defaultStepIndex`). All numbers and charts show the same period. The bar with the zoom buttons and the dates stays
- *   at the top while the page scrolls.
+ * - Period: see `usePeriod` and `PeriodBar`. It opens at All for a metric of kind `number`, and at 3 months for the
+ *   other kinds (see `defaultStepIndex`). All numbers and charts show the same period. The day strip of the panel has
+ *   one bar for each day of all data: see `dayBars`.
  * - Days: any month, with the same day cells and inputs as the Days screen. Its last month is the month of the period
  *   end, until the arrows, a swipe or a tap on a bar over time change it. A tap on a bar also scrolls to the card.
  *
@@ -61,6 +65,24 @@ export function MetricDetail({ metric, log, today, busy, onRecord, pending, onCo
   const period = usePeriod(values, today, (steps) => defaultStepIndex(metric, steps));
   const window = period.window;
   const month = period.month ?? monthOf(window.to);
+  const first = window.first;
+  const bars = useMemo(() => {
+    const kind = metric instanceof YesNoMetric ? StripKind.YES_NO : metric.isCount ? StripKind.COUNT : StripKind.NUMBER;
+    const points = pointsByMetric([metric], log, today, pending).get(metric.id) ?? new Map();
+    return dayBars(kind, values, points, first, today);
+  }, [metric, log, today, pending, values, first]);
+
+  /**
+   * The value of a bar of the day strip. Examples: "yes", "6 glasses, 0.8 points", "0.6 points on average".
+   * @param {DayBar} bar
+   * @returns {string}
+   */
+  function barText(bar) {
+    if (bar.start !== bar.end) return `${formatPoints(bar.points ?? 0)} on average`;
+    if (metric instanceof YesNoMetric) return bar.points === 1 ? 'yes' : 'no';
+    const value = values.get(bar.start) ?? 0;
+    return `${formatValue(value, metric.step, metric.unit)}, ${formatPoints(bar.points ?? 0)}`;
+  }
 
   useEffect(() => {
     if (barTaps > 0) days.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
@@ -86,13 +108,7 @@ export function MetricDetail({ metric, log, today, busy, onRecord, pending, onCo
           <p class="metric-detail-summary body-small">{detailSummary(metric)}</p>
         </div>
       </div>
-      <PeriodBar
-        period={period}
-        values={values}
-        aggregate={aggregateOf(metric)}
-        fromZero={aggregateOf(metric) !== Aggregate.AVERAGE}
-        wide={width >= WIDE_CONTENT}
-      />
+      <PeriodBar period={period} bars={bars} valueText={barText} wide={width >= WIDE_CONTENT} />
       <ChartsArea period={period}>
         <MetricCharts metric={metric} window={window} values={values} states={states} onBar={showBar} />
       </ChartsArea>
@@ -111,15 +127,4 @@ export function MetricDetail({ metric, log, today, busy, onRecord, pending, onCo
       </div>
     </div>
   );
-}
-
-/**
- * How the overview makes one bar of the days of a week: the rate of yes days, the sum of a count, or the average of a
- * number.
- * @param {Metric} metric
- * @returns {Aggregate}
- */
-function aggregateOf(metric) {
-  if (metric instanceof YesNoMetric) return Aggregate.RATE;
-  return metric.isCount ? Aggregate.SUM : Aggregate.AVERAGE;
 }

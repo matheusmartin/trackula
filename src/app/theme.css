@@ -68,15 +68,18 @@
 
   /*
    * The colors of the app that Material Design 3 does not have.
-   * - --cell, --on-cell: the fill of a day with a value: table cells, calendars and bars. The same in both
-   *   themes. --cell-image: the deep orange gradient on the cells and the score bars. --cell-empty: a day with no
-   *   value.
+   * - --cell-image, --on-cell: the deep orange gradient of a full day cell and of the score bars, and its text. The
+   *   same in both themes. --cell: the flat data color of the chart marks: lighter in the dark theme, so that it has
+   *   3:1 on the dark cards. --cell-empty: a day with no value.
+   * - --data-soft: the light tone of the data, for the second marks: the range of the 4 weeks before, a `no` in the
+   *   day strip. --data-contrast: the wine color for "less", "no" and this week, next to the data color.
    * - --action-start, --action-end: a darker logo gradient for the main buttons, with --on-action text (5:1 or more).
    *   --action-image: the gradient on a square.
    * - --header-start, --header-end: the gradient of the app bar, in both themes. It starts darker than the logo
    *   gradient, so that the white title has a contrast of 4:1 or more.
-   * - --group-1 to --group-8: the colors of the groups in the score charts, in the order of the groups. After the last
-   *   color, the first color comes again. The first 4 colors pass a colorblind check on the chart cards.
+   * - --group-1 to --group-4: the colors of the groups in the score charts, in the order of the groups: 4 tones of the
+   *   data orange, deep to light (scheme R05, Mono ember). After the last tone, the first comes again. The tones are
+   *   one hue, so a chart with groups always has their names.
    * A gradient goes from the top-left corner to the bottom-right corner of the box. On a square, this is a CSS
    * gradient of 135deg.
    */
@@ -94,21 +97,18 @@
   --header-end: #be123c;
   /* The color roles of docs/design.md. The data keeps --cell, --cell-image and --on-cell, also for the score. The day
      cell of phase 4 of the consolidation replaces --cell-empty with --cell-value and a border. */
-  --worse: #5b6b82;
+  --data-soft: #f4b393;
+  --data-contrast: #7a2439;
   --warning: #b45309;
   --on-warning: #ffffff;
   --warning-container: #fde7cf;
   --on-warning-container: #3d1d00;
   /* A day cell with a value and 0 points. More points put --cell-image on it, at a higher opacity. */
   --cell-value: #e2e6eb;
-  --group-1: #2e7d32;
-  --group-2: #1565c0;
-  --group-3: #e06a10;
-  --group-4: #8a3fc0;
-  --group-5: #00838f;
-  --group-6: #ad1457;
-  --group-7: #5d4037;
-  --group-8: #546e7a;
+  --group-1: #732500;
+  --group-2: #b14c00;
+  --group-3: #e97e2b;
+  --group-4: #ffc394;
 
   /* The shadows of the app, the same in both themes. 1 dp, a card: a thin, soft edge, a little darker at the bottom.
      3 dp: a menu. */
@@ -182,20 +182,18 @@
 
     /* A lighter slate, so that empty cells show the blue of the theme. */
     --cell-empty: #323c49;
-    --worse: #9fb0c6;
+    --cell: #ec7a3b;
+    --data-soft: #834a2d;
+    --data-contrast: #b5596a;
     --warning: #f0a35a;
     --on-warning: #2e1500;
     --warning-container: #4d2c0a;
     --on-warning-container: #ffdcc0;
     --cell-value: #323c49;
-    --group-1: #4ca352;
-    --group-2: #3d8fd8;
-    --group-3: #cc7a22;
-    --group-4: #a06acb;
-    --group-5: #4dd0e1;
-    --group-6: #f06292;
-    --group-7: #a1887f;
-    --group-8: #90a4ae;
+    --group-1: #842c00;
+    --group-2: #c35401;
+    --group-3: #f78a3b;
+    --group-4: #ffd5b4;
   }
 }
 

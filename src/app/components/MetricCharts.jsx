@@ -219,8 +219,8 @@ function YesNoCharts({ window, values, stats, onBar }) {
                 center={formatPercent(stats.rate)}
                 parts={[
                   { label: 'Yes', value: stats.yes, color: 'var(--cell)' },
-                  { label: 'No', value: stats.no, color: 'var(--worse)' },
-                  { label: 'No value', value: stats.none, color: 'var(--cell-empty)' },
+                  { label: 'No', value: stats.no, color: 'var(--data-contrast)' },
+                  { label: 'No value', value: stats.none, color: 'var(--cell-value)' },
                 ]}
               />
             ),

@@ -39,14 +39,18 @@ export function GroupChips({ groups, selected, onSelect }) {
  * @param {boolean} props.selected
  * @param {() => void} props.onClick
  * @param {boolean} [props.enabled] Default: true.
+ * @param {string | null} [props.description] The name for screen readers and the tooltip, if the label is short.
+ *   Example: "3 months" for the label "3M". Default: null, the label.
  * @returns {JSX.Element}
  */
-export function FilterChip({ label, selected, onClick, enabled = true }) {
+export function FilterChip({ label, selected, onClick, enabled = true, description = null }) {
   return (
     <button
       type="button"
       class={selected ? 'group-chip group-chip-selected label-large' : 'group-chip label-large'}
       aria-pressed={selected}
+      aria-label={description ?? undefined}
+      title={description ?? undefined}
       disabled={!enabled}
       onClick={onClick}
     >

@@ -70,14 +70,14 @@ function button(name) {
 describe('ScorePage', () => {
   test('the score view opens at all data', async () => {
     await showScore('Average per day');
-    // At All, the zoom label goes back to 3 months. The text "All" is also the chip of all groups.
-    expect(button('Back to 3 months')).toBeTruthy();
-    expect(button('Zoom out').disabled).toBe(true);
+    // The span chip of all data. The text "All" is also the chip of all groups.
+    expect(button('All data').getAttribute('aria-pressed')).toBe('true');
     expect(button('Earlier').disabled).toBe(true);
-    // At All, the overview would show the same bars as "Average per day".
-    expect(screen.queryByRole('img', { name: 'All data' })).toBeNull();
-    fireEvent.click(button('Back to 3 months'));
-    expect(screen.getByRole('img', { name: 'All data' })).toBeTruthy();
+    // The day strip shows all days, also at All.
+    expect(screen.getByRole('img', { name: /^All data, / })).toBeTruthy();
+    fireEvent.click(button('3 months'));
+    expect(button('3 months').getAttribute('aria-pressed')).toBe('true');
+    expect(button('Earlier').disabled).toBe(false);
   });
 
   test('the score view has averages per day and per weekday and no calendar', async () => {
@@ -97,7 +97,7 @@ describe('ScorePage', () => {
   test('the score view compares the halves of the period and shows the score of each day in the calendar', async () => {
     await showScore('change');
     // At All, no day comes before the window. The change compares the halves of the window, so it has values.
-    expect(button('Back to 3 months')).toBeTruthy();
+    expect(button('All data').getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByText('No values in this period.')).toBeNull();
     // The calendar shows the score of each day, so there is no heatmap of the same days.
     expect(screen.getByText('Score by month')).toBeTruthy();
@@ -132,7 +132,7 @@ describe('ScorePage', () => {
     expect(screen.getByText('Score by group and month')).toBeTruthy();
     expect(screen.queryByText('Score by metric and month')).toBeNull();
     // An older window, 3 months that end on Sunday 2026-08-30: the week of its end.
-    fireEvent.click(button('Back to 3 months'));
+    fireEvent.click(button('3 months'));
     fireEvent.click(button('Earlier'));
     expect(screen.queryByText('This week and the 4 weeks before')).toBeNull();
     expect(screen.getByText('The week of Aug 24 and the 4 weeks before')).toBeTruthy();
@@ -156,7 +156,7 @@ describe('ScorePage', () => {
 
   test('the weekday averages of all metrics stack the groups and of one group do not', async () => {
     await showScore('Weekday averages');
-    const stacked = 'The average score on each weekday, from the days with a score. Each color is a group.';
+    const stacked = 'The average score on each weekday, from the days with a score. Each tone is a group.';
     expect(screen.getByText(stacked)).toBeTruthy();
     // The legends have each group name, and the group chips have it too.
     expect(screen.getAllByText('Hygiene').length).toBeGreaterThanOrEqual(2);
