@@ -17,7 +17,7 @@ Each color has one role, the same on all screens. The table gives the light and 
 | Main action | `--action-start`, `--action-end` | `#c2410c` → `#9f1239` | the same | The one main button of a screen. Example: "Add metric". | Other buttons. |
 | Accent | `--primary` | `#b8321a` | `#ff8c66` | Links, text buttons, the focus ring. | Data, warnings. |
 | Selected | `--primary-container` | `#ffdfd4` | `#7a2a14` | The selected item of the navigation and of the chips. | Data. |
-| Data | `--cell-image`, `--cell`, `--on-cell` | `#c3540a` → `#b5470a`, `#bd4e0a`, white | the same gradient, `#ec7a3b` | The day cells (`--cell-image`), the bars, lines and dots of the charts (`--cell`), a done tile, the score, a change for the better. | Text. |
+| Data | `--cell-image`, `--cell`, `--on-cell` | `#c3540a` → `#b5470a`, `#bd4e0a`, white | the same gradient, `#ec7a3b` | The day cells (`--cell-image`), the bars, lines and dots of the charts (`--cell`), the fill of a Today tile, the score, a change for the better. | Text. |
 | Soft data | `--data-soft` | `#f4b393` | `#834a2d` | The second marks of the data: the range of the 4 weeks before, a `no` in the day strip, the start of the color scale of the day bars. | The main data. |
 | No points | `--cell-value` | `#e2e6eb` | `#323c49` | A day cell with a value and 0 points. | — |
 | Contrast | `--data-contrast` | `#7a2439` (wine) | `#b5596a` | The color next to the data: "less" in the score tables, the `no` days of a yes/no metric, a bar below 0, the diamond of this week. | The main data. |
@@ -132,7 +132,7 @@ One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
 
 | Screen | Narrow | Wide |
 |---|---|---|
-| Today | Number tiles in 1 column. Yes/no and count tiles in 2 columns. | Number tiles in 2 columns. Yes/no and count tiles in 4 to 6 columns (`--tile-min-width` 160 px). A ruler is not wider than its tile. |
+| Today | Number tiles in 1 column. Yes/no and count tiles in 2 columns. The tiles keep the order of the metrics: each run of the same kind is one grid. | Number tiles in 2 columns. Yes/no and count tiles in 4 to 6 columns (`--tile-min-width` 160 px). A ruler is not wider than its tile. |
 | Days, table | One card. Its first row has the score bars, each bar in the column of its day, so that a bar is exactly above the cells of its day. Then the day headers and one row for each metric. 5 days. | The same card, with as many days as the width holds, up to 14. |
 | Days, calendars | The score bars first, in one card, as in the table. Then 1 calendar card for each metric. | The same, with the card grid: 2 or 3 calendars in each row, all of the same size. |
 | Score, metric detail | The period panel (chips, then the dates, then the strip), the key numbers in 2 columns, then the cards in 1 column. | The period panel (chips and dates in one row), the key numbers in one row, then the card grid. The last small card of a row that is not full fills the row. |
@@ -160,7 +160,7 @@ the others with the redraw of their screens: the Days screen made `DayCell`, the
 | `Snackbar` | with Undo, with Try again | new |
 | `Dialog` | confirm | the alert dialog of the metrics screen (done: `ConfirmDialog` in `Dialog.jsx`) |
 | `TextField` | text, number | the fields of the form (done) and of the number editor |
-| `EmptyState` | — | the empty states of the Today page and of the metrics screen |
+| `EmptyState` | — | the empty states of the Today page (done: `EmptyState.jsx`) and of the metrics screen |
 
 The charts (`TimeBars`, `LineChart`, `RangeBars`, `Distribution`, `StackedBars`, `ChangeTable`) use the Data role
 (`--cell`) for a metric and for the score. The `ChangeTable` tints a better cell with `--cell` and a worse cell with

@@ -1,0 +1,19 @@
+/* EmptyState.jsx: centered in the page, with --space-7 above and below. */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding-block: var(--space-7);
+  text-align: center;
+}
+
+.empty-state-text {
+  max-inline-size: 360px;
+  color: var(--on-surface-variant);
+}
+
+/* The action has 4 px more space above and below. */
+.empty-state > :last-child:not(.empty-state-text) {
+  margin-block: var(--space-1);
+}

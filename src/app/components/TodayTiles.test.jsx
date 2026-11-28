@@ -1,10 +1,12 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, test } from 'vitest';
 import { Day } from '../../model/Day.js';
-import { LogTable } from '../../model/LogEntry.js';
+import { LogTable, metricDayKey } from '../../model/LogEntry.js';
 import { NumberGoal, NumberMetric, YesNoMetric } from '../../model/Metric.js';
 import { TodayTiles } from './TodayTiles.jsx';
 
+/** @import { Day as DayType } from '../../model/Day.js' */
+/** @import { CountStep, MetricDay } from '../../model/LogEntry.js' */
 /** @import { Metric } from '../../model/Metric.js' */
 
 afterEach(cleanup);
@@ -30,9 +32,11 @@ const coffee = water.copy({
  * Shows the tiles of `metrics` on an empty log, and returns the values and the taps that they give.
  * @param {Metric[]} metrics
  * @param {boolean} [busy]
+ * @param {Map<MetricDay, CountStep[]>} [pending] Default: no taps.
+ * @param {Map<string, Map<DayType, number>>} [points] Default: no points.
  * @returns {string[]}
  */
-function showTiles(metrics, busy = false) {
+function showTiles(metrics, busy = false, pending = new Map(), points = new Map()) {
   /** @type {string[]} */
   const calls = [];
   render(
@@ -43,13 +47,33 @@ function showTiles(metrics, busy = false) {
       busy={busy}
       onRecord={(m, d, value) => calls.push(`${m.id} ${d} ${value}`)}
       onCount={(m, d, step) => calls.push(`${m.id} ${d} ${step.delta > 0 ? '+' : ''}${step.delta}`)}
-      pending={new Map()}
+      pending={pending}
+      points={points}
     />,
   );
   return calls;
 }
 
 describe('TodayTiles', () => {
+  test('the fill of a tile shows the points of today, as a day cell, and a tile without a value has none', () => {
+    const pending = new Map([
+      [metricDayKey('water', today), [{ delta: 6 }]],
+      [metricDayKey('coffee', today), [{ delta: 1 }]],
+    ]);
+    const points = new Map([
+      ['water', new Map([[today, 0.75]])],
+      ['coffee', new Map([[today, 1]])],
+    ]);
+    showTiles([water, coffee, meditate], false, pending, points);
+    const tile = (/** @type {string} */ name) =>
+      screen.getByRole(name === 'Meditate' ? 'checkbox' : 'button', { name });
+    expect(tile('Water').className).toBe('tile tile-button tile-count tile-value');
+    expect(parseFloat(tile('Water').style.getPropertyValue('--cell-fill'))).toBeCloseTo(0.55);
+    expect(tile('Water').title).toMatch(/^6, 0\.8 points\./);
+    expect(tile('Coffee').className).toBe('tile tile-button tile-count tile-value tile-full');
+    expect(tile('Meditate').className).toBe('tile tile-button');
+  });
+
   test('a count tile shows the target of its goal below the counter', () => {
     showTiles([water, coffee]);
     expect(screen.getByText('of 8 glasses')).toBeTruthy();

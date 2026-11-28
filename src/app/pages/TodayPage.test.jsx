@@ -187,7 +187,7 @@ describe('TodayPage', () => {
     await showPage();
     const vitamins = /** @type {HTMLButtonElement} */ (screen.getByRole('checkbox', { name: 'Vitamins' }));
     fireEvent.click(vitamins);
-    await waitFor(() => expect(vitamins.getAttribute('title')).toBe('Yes, over the limit of the goal no'), {
+    await waitFor(() => expect(vitamins.getAttribute('title')).toBe('Yes, over the limit of the goal no, 0 points'), {
       timeout: TIMEOUT,
     });
     // A yes tile of the goal yes reaches the goal: it is checked, without a limit.
@@ -195,7 +195,7 @@ describe('TodayPage', () => {
     await waitFor(() => expect(meditate.disabled).toBe(false));
     fireEvent.click(meditate);
     await waitFor(() => expect(meditate.getAttribute('aria-checked')).toBe('true'), { timeout: TIMEOUT });
-    expect(meditate.getAttribute('title')).toBe('Yes, goal reached');
+    expect(meditate.getAttribute('title')).toBe('Yes, goal reached, 1 point');
   });
 
   test('a count tile reaches the target of at least', async () => {
@@ -203,9 +203,11 @@ describe('TodayPage', () => {
     await showPage();
     const tile = button('Water');
     mouseClick(tile);
-    await waitFor(() => expect(tile.title).toBe('1. Tap or click: +1. Double-tap or right-click: −1.'));
+    await waitFor(() => expect(tile.title).toBe('1, 0.5 points. Tap or click: +1. Double-tap or right-click: −1.'));
     mouseClick(tile);
-    await waitFor(() => expect(tile.title).toBe('2, goal reached. Tap or click: +1. Double-tap or right-click: −1.'));
+    await waitFor(() =>
+      expect(tile.title).toBe('2, goal reached, 1 point. Tap or click: +1. Double-tap or right-click: −1.'),
+    );
   });
 
   test('a count tile above the target of at most is over the limit', async () => {
@@ -215,11 +217,11 @@ describe('TodayPage', () => {
     mouseClick(tile);
     mouseClick(tile);
     // Within the limit: no mark.
-    await waitFor(() => expect(tile.title).toBe('2. Tap or click: +1. Double-tap or right-click: −1.'));
+    await waitFor(() => expect(tile.title).toBe('2, 1 point. Tap or click: +1. Double-tap or right-click: −1.'));
     mouseClick(tile);
     await waitFor(() =>
       expect(tile.title).toBe(
-        '3, over the limit of the goal at most 2. Tap or click: +1. Double-tap or right-click: −1.',
+        '3, over the limit of the goal at most 2, 0 points. Tap or click: +1. Double-tap or right-click: −1.',
       ),
     );
   });
