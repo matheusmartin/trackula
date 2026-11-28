@@ -1,13 +1,16 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { Day } from '../../model/Day.js';
 import { LogTable } from '../../model/LogEntry.js';
 import { YesNoMetric } from '../../model/Metric.js';
-import { MonthCalendar } from './MonthCalendar.jsx';
+import { MonthCalendar, monthCount } from './MonthCalendar.jsx';
 
 /** @import { MonthKey } from '../../model/Day.js' */
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 const today = Day.of(2026, 10, 3);
 const read = new YesNoMetric({ id: 'read', name: 'Read', icon: 'menu_book' });
@@ -63,5 +66,23 @@ describe('MonthCalendar', () => {
       { year: 2026, month: 9 },
       { year: 2026, month: 7 },
     ]);
+  });
+
+  test('a card shows as many months side by side as its width holds, up to 3', () => {
+    expect(monthCount(0)).toBe(1);
+    expect(monthCount(358)).toBe(1);
+    expect(monthCount(672)).toBe(2);
+    expect(monthCount(1200)).toBe(3);
+    expect(monthCount(2000)).toBe(3);
+  });
+
+  test('a wide card shows the months before the month in view, each with its title and day numbers', () => {
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 1200, 600));
+    showCalendar({ year: 2026, month: 10 });
+    expect(screen.getByText('August – October 2026')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'September 2026' })).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: /^Read, (Aug|Sep|Oct) \d+:/ })).toHaveLength(31 + 30 + 3);
+    expect(screen.getByRole('button', { name: /^Read, Sep 12:/ }).textContent).toBe('12');
+    expect(screen.getByRole('list', { name: 'Cell colors' })).toBeTruthy();
   });
 });

@@ -42,9 +42,6 @@ const MAX_SPOKEN = 14;
 /** The largest number of bars that show their values above them. */
 export const MAX_BARS_WITH_VALUES = 13;
 
-/** The largest number of days that show as single cells. Single days of a longer window are too small. */
-export const MAX_HEATMAP_DAYS = 371;
-
 /**
  * The text of a value: at most 1 decimal.
  * @param {number} value
@@ -144,7 +141,7 @@ function textWidth(text) {
 export function ChartCard({ title, description, children }) {
   return (
     <section class="chart-card">
-      <h3 class="chart-card-title title-small">{title}</h3>
+      <h3 class="chart-card-title title-medium">{title}</h3>
       <p class="chart-card-description chart-label chart-label-trim">{description}</p>
       {children}
     </section>
@@ -169,8 +166,9 @@ export function NoValues() {
 
 /**
  * The chart cards of the detail screen: 1 column on phones, 2 on wider screens, 3 from 1000 px. Wide cards take the
- * full width. Dense: a small card fills the gap before a wide card (see `tileRows`). The cards are in the order of the
- * rows, so that the order of the keyboard focus is the order on the screen. Each card has its own height.
+ * full width. Dense: a small card fills the gap before a wide card (see `tileRows`). The last small card of a row that
+ * is not full fills the row, so that no row has a gap at its end. The cards are in the order of the rows, so that the
+ * order of the keyboard focus is the order on the screen. The cards of a row have the same height.
  * @param {object} props
  * @param {ChartItem[]} props.items
  * @returns {JSX.Element}
@@ -181,11 +179,27 @@ export function ChartGrid({ items }) {
   const rows = tileRows(items, columns, (item) => item.wide);
   return (
     <div ref={measure} class="chart-grid" style={{ '--chart-columns': columns }}>
-      {rows.flat().map((i) => (
-        <div key={items[i].key} class={items[i].wide ? 'chart-grid-item chart-grid-wide' : 'chart-grid-item'}>
-          {items[i].content()}
-        </div>
-      ))}
+      {rows.flatMap((row) =>
+        row.map((i, j) => {
+          const item = items[i];
+          // The columns that the last card of a short row of small cards fills.
+          const span = !item.wide && j === row.length - 1 ? columns - row.length + 1 : 1;
+          const classes = [
+            'chart-grid-item',
+            item.wide ? 'chart-grid-wide' : null,
+            span > 1 ? 'chart-grid-fill' : null,
+          ];
+          return (
+            <div
+              key={item.key}
+              class={classes.filter(Boolean).join(' ')}
+              style={span > 1 ? { '--chart-span': span } : undefined}
+            >
+              {item.content()}
+            </div>
+          );
+        }),
+      )}
     </div>
   );
 }

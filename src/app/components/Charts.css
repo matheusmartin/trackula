@@ -1,5 +1,5 @@
-/* The chart cards, the key numbers and the chart kinds of the detail screens (ChartParts.jsx, Charts.jsx,
-   Overview.jsx, DayHeatmap.jsx). The data has the brand color (--cell) for a metric and for the score. */
+/* The chart cards, the key numbers and the chart kinds of the detail screens (ChartParts.jsx, Charts.jsx). The data
+   has the brand color (--cell) for a metric and for the score. */
 .chart-card {
   display: flex;
   flex-direction: column;
@@ -43,11 +43,10 @@
   color: var(--on-surface-variant);
 }
 
-/* ChartGrid: the cards in rows. ChartGrid sets --chart-columns. Each card has its own height. */
+/* ChartGrid: the cards in rows. ChartGrid sets --chart-columns. The cards of a row have the same height. */
 .chart-grid {
   display: grid;
   grid-template-columns: repeat(var(--chart-columns, 1), minmax(0, 1fr));
-  align-items: start;
   gap: var(--space-3);
 }
 
@@ -57,8 +56,17 @@
   min-inline-size: 0;
 }
 
+.chart-grid-item > * {
+  flex: 1;
+}
+
 .chart-grid-wide {
   grid-column: 1 / -1;
+}
+
+/* The last small card of a row that is not full: it fills the row. ChartGrid sets --chart-span. */
+.chart-grid-fill {
+  grid-column: span var(--chart-span);
 }
 
 /* KeyNumbers: as many columns as fit, each at least 144 px wide. Few tiles stretch to fill the row. */
@@ -91,8 +99,7 @@
 /* The value can use 12 px of the padding on the right, so that a long value fits. Example: "94.6% · Oct 27". */
 .key-number-value {
   margin-inline-end: -12px;
-  font-weight: 500;
-  color: var(--primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .key-number-label {
@@ -161,7 +168,17 @@
 }
 
 .chart-bar-negative {
-  fill: var(--tertiary);
+  fill: var(--data-contrast);
+}
+
+/* The click area of a column: see ColumnTarget in Charts.jsx. A click on a column of a chart with taps does more than
+   its tooltip. */
+.chart-column-target {
+  fill: transparent;
+}
+
+.chart-plot-taps :is(.chart-column-target, .chart-bar, .range-bar, .range-dot) {
+  cursor: pointer;
 }
 
 .chart-legend {
@@ -261,10 +278,10 @@
   transform-origin: 52px 52px;
 }
 
+/* A number of the data: the text color, as the key numbers. */
 .donut-chart-center {
   position: relative;
   font-weight: 500;
-  color: var(--primary);
   pointer-events: none;
 }
 
@@ -285,63 +302,10 @@
 }
 
 .range-mark {
-  fill: var(--cell);
+  fill: var(--data-contrast);
   stroke: var(--surface-container);
   stroke-width: 1.5px;
   stroke-linejoin: round;
-}
-
-/* Overview: all data in weeks, with a box on the window. All moves of a drag go to the overview. */
-.overview {
-  display: block;
-  inline-size: 100%;
-  block-size: 40px;
-  overflow: visible;
-  cursor: pointer;
-  touch-action: none;
-  user-select: none;
-}
-
-/* The bars out of the window: grey, with a contrast of 3:1 on the page. */
-.overview-bar {
-  fill: color-mix(in srgb, var(--outline) 80%, transparent);
-}
-
-.overview-bar-in {
-  fill: var(--cell);
-}
-
-.overview-box {
-  fill: none;
-  stroke: var(--primary);
-  stroke-width: 2px;
-}
-
-/* DayHeatmap: square cells in week columns, at most 28 px for each column, centered. */
-.day-heatmap {
-  display: block;
-  inline-size: 100%;
-  block-size: auto;
-  margin-inline: auto;
-  overflow: visible;
-}
-
-.day-heatmap-cell {
-  fill: var(--cell-empty);
-}
-
-.day-heatmap-filled {
-  fill: var(--cell);
-}
-
-.day-heatmap-today {
-  stroke: var(--on-surface);
-  stroke-width: 1.5px;
-  vector-effect: non-scaling-stroke;
-}
-
-.day-heatmap-taps .day-heatmap-cell {
-  cursor: pointer;
 }
 
 /*

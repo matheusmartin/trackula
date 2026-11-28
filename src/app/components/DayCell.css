@@ -75,3 +75,14 @@
 .day-cell-after {
   visibility: hidden;
 }
+
+/* A cell of a month calendar: the day number above the value. */
+.day-cell-with-day {
+  flex-direction: column;
+}
+
+.day-cell-day {
+  font-size: 10px;
+  line-height: 12px;
+  font-weight: 400;
+}

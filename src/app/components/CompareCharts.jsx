@@ -60,10 +60,10 @@ export function RangeBarChart({
   const lowest = Math.min(...values);
   // Space below the lowest value, so that its bar or diamond is not on the bottom line.
   const low = Math.max(0, lowest - Math.max(high - lowest, 1) * 0.25);
-  // A grey bar, not the data color: the data color is for the diamonds of this week. The grey has a contrast of 3:1
-  // or more on the card, and the dot on the grey, in both themes.
-  const bar = 'var(--outline)';
-  const dot = 'var(--surface-container-lowest)';
+  // The soft data color for the 4 weeks before, with the dot of the average in the text color on it (3:1 or more), and
+  // the contrast color for the diamonds of this week.
+  const bar = 'var(--data-soft)';
+  const dot = 'var(--on-surface)';
   return (
     <ChartCard title={title} description={description}>
       <Scroller columns={labels.length}>
@@ -86,9 +86,8 @@ export function RangeBarChart({
       <Legend
         parts={[
           { label: rangeLabel, color: bar, values: [] },
-          // The dot is on the bar: the legend shows it in the color of the text, not in the color of the card.
-          { label: 'Average', color: 'var(--on-surface-variant)', values: [] },
-          { label: markLabel, color: 'var(--cell)', values: [] },
+          { label: 'Average', color: 'var(--on-surface)', values: [] },
+          { label: markLabel, color: 'var(--data-contrast)', values: [] },
         ]}
       />
     </ChartCard>
@@ -120,7 +119,7 @@ export function cellFill(color, share) {
 /**
  * A table of numbers: one row for each of `rows`, one column for each of `columns`. A row is a label and one value for
  * each column. The color of a cell shows the change from the cell on its left (see `stepChanges`): the cell color for
- * more, the tertiary color for less. A larger change has a stronger color, up to the largest change of the table. A
+ * more, the contrast color for less. A larger change has a stronger color, up to the largest change of the table. A
  * cell without change has the empty color: a cell of the first column, a cell with the same value as the cell on its
  * left, and a cell with no value on it or on its left. A null value shows "–". The legend names the 2 colors `upLabel`
  * and `downLabel`. If `rows` is empty, the card says that there are no values. Each cell has a tooltip and a name for
@@ -147,7 +146,7 @@ export function ChangeTable({ title, description, columns, rows, upLabel, downLa
     );
   }
   const up = 'var(--cell)';
-  const down = 'var(--tertiary)';
+  const down = 'var(--data-contrast)';
   const changes = rows.map(([, values]) => stepChanges(values));
   const largest = Math.max(0, ...changes.flat().map((c) => Math.abs(c ?? 0)));
   // Narrow cards: a smaller label column, so that the numbers fit in their cells.

@@ -1,8 +1,9 @@
 // The time window of the metric detail screen: bars over time, from the first value to today. A zoom step sets the
 // span in view and the size of one bar. All charts of the screen show the same window.
-import { Day, daysBetween } from './Day.js';
+import { Day, addMonths, daysBetween, monthOf } from './Day.js';
 import { NumberMetric } from './Metric.js';
 
+/** @import { MonthKey } from './Day.js' */
 /** @import { Metric } from './Metric.js' */
 
 /**
@@ -20,27 +21,29 @@ export const BarUnit = Object.freeze({ DAY: 'DAY', WEEK: 'WEEK', MONTH: 'MONTH',
 export class ZoomStep {
   /**
    * @param {string} name The name in capital letters. Example: `MONTH3`.
-   * @param {string} label
+   * @param {string} label Example: "3 months".
+   * @param {string} short The label of a chip. Example: "3M".
    * @param {BarUnit} unit
    * @param {number} bars The number of bars in view.
    */
-  constructor(name, label, unit, bars) {
+  constructor(name, label, short, unit, bars) {
     this.name = name;
     this.label = label;
+    this.short = short;
     this.unit = unit;
     this.bars = bars;
     Object.freeze(this);
   }
 
-  static WEEK1 = new ZoomStep('WEEK1', '1 week', BarUnit.DAY, 7);
-  static WEEK2 = new ZoomStep('WEEK2', '2 weeks', BarUnit.DAY, 14);
-  static MONTH1 = new ZoomStep('MONTH1', '1 month', BarUnit.WEEK, 5);
-  static MONTH3 = new ZoomStep('MONTH3', '3 months', BarUnit.WEEK, 13);
-  static MONTH6 = new ZoomStep('MONTH6', '6 months', BarUnit.WEEK, 26);
-  static YEAR1 = new ZoomStep('YEAR1', '1 year', BarUnit.MONTH, 12);
-  static YEAR2 = new ZoomStep('YEAR2', '2 years', BarUnit.MONTH, 24);
-  static YEAR3 = new ZoomStep('YEAR3', '3 years', BarUnit.QUARTER, 12);
-  static YEAR5 = new ZoomStep('YEAR5', '5 years', BarUnit.QUARTER, 20);
+  static WEEK1 = new ZoomStep('WEEK1', '1 week', '1W', BarUnit.DAY, 7);
+  static WEEK2 = new ZoomStep('WEEK2', '2 weeks', '2W', BarUnit.DAY, 14);
+  static MONTH1 = new ZoomStep('MONTH1', '1 month', '1M', BarUnit.WEEK, 5);
+  static MONTH3 = new ZoomStep('MONTH3', '3 months', '3M', BarUnit.WEEK, 13);
+  static MONTH6 = new ZoomStep('MONTH6', '6 months', '6M', BarUnit.WEEK, 26);
+  static YEAR1 = new ZoomStep('YEAR1', '1 year', '1Y', BarUnit.MONTH, 12);
+  static YEAR2 = new ZoomStep('YEAR2', '2 years', '2Y', BarUnit.MONTH, 24);
+  static YEAR3 = new ZoomStep('YEAR3', '3 years', '3Y', BarUnit.QUARTER, 12);
+  static YEAR5 = new ZoomStep('YEAR5', '5 years', '5Y', BarUnit.QUARTER, 20);
 
   /** All steps, from the smallest span to the largest. */
   static entries = [
@@ -130,6 +133,26 @@ export function nextBarStart(start, unit) {
       return Day.of(start.year, start.month + 1, 1);
     case BarUnit.QUARTER:
       return Day.of(start.year, start.month + 3, 1);
+  }
+}
+
+/**
+ * The month of a calendar that shows the bar that starts on `start`: the month of a day or of a month, the month with
+ * the most days of a week (the month of its Thursday), and the last month of a quarter. A calendar of 3 months that
+ * ends at the last month shows the full quarter.
+ * @param {Day} start
+ * @param {BarUnit} unit
+ * @returns {MonthKey}
+ */
+export function barMonth(start, unit) {
+  switch (unit) {
+    case BarUnit.DAY:
+    case BarUnit.MONTH:
+      return monthOf(start);
+    case BarUnit.WEEK:
+      return monthOf(start.addDays(3));
+    case BarUnit.QUARTER:
+      return addMonths(monthOf(start), 2);
   }
 }
 

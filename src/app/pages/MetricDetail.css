@@ -1,4 +1,4 @@
-/* MetricDetail.jsx: the title, the window bar, the overview, the charts and the calendar, in a column. */
+/* MetricDetail.jsx and ScorePage.jsx: the title, the period panel, the charts and the calendar, in a column. */
 .metric-detail {
   display: flex;
   flex-direction: column;
@@ -12,10 +12,16 @@
   gap: var(--space-2);
 }
 
+/* The name and the line with the kind, the unit and the goal. */
+.metric-detail-titles {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
 /* The name: at most 2 lines. */
 .metric-detail-title {
-  flex: 1;
-  min-inline-size: 0;
   margin: 0;
   overflow: hidden;
   overflow-wrap: anywhere;
@@ -25,33 +31,62 @@
   line-clamp: 2;
 }
 
-/* The window bar stays below the app bar while the page scrolls. A band in the page color around it hides the charts
-   below it. The negative margins keep the spaces of the column. */
-.window-bar-band {
-  position: sticky;
-  inset-block-start: var(--app-bar-height);
-  z-index: 2;
-  margin-block: -8px;
-  padding-block: var(--space-2);
-  background-color: var(--surface);
+.metric-detail-summary {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--on-surface-variant);
 }
 
-/* One tool bar in a soft color. Phones: 2 rows, each with its buttons at the edges and its label in the center. */
-.window-bar {
+/* A scroll to the Days card keeps it below the app bar and the thin row of the period. */
+.metric-detail-days {
+  scroll-margin-block: calc(var(--app-bar-height) + 44px + var(--space-4)) var(--space-4);
+}
+
+/* PeriodBar in Period.jsx: the span chips, the dates with arrows and the day strip, in a soft card. */
+.period-panel {
   display: flex;
   flex-direction: column;
-  padding-inline: var(--space-1);
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-2);
   border-radius: var(--radius-m);
   background-color: var(--surface-container);
 }
 
-.window-bar-row {
+.period-panel-top {
   display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Wide screens: the chips on the left and the dates on the right, in one row. */
+.period-panel-wide .period-panel-top {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* The chips scroll sideways if they do not fit. */
+.period-chips {
+  display: flex;
+  gap: var(--space-2);
+  min-inline-size: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.period-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.period-dates {
+  display: flex;
+  flex: none;
   align-items: center;
 }
 
-.window-zoom-label,
-.window-dates {
+.period-dates-text {
   flex: 1;
   min-inline-size: 0;
   overflow: hidden;
@@ -59,36 +94,70 @@
   white-space: nowrap;
 }
 
-/* The zoom label: a text button. */
-.window-zoom-label {
-  min-inline-size: 58px;
-}
-
-/* Wide screens: the zoom buttons on the left and the dates on the right, in one row. The zoom label has a fixed
-   width, so that the zoom buttons do not move when the label changes. The longest label, "3 months", fits. */
-.window-bar-wide {
-  flex-direction: row;
-  justify-content: space-between;
-}
-
-.window-bar-wide :is(.window-zoom-label, .window-dates) {
+.period-panel-wide .period-dates-text {
   flex: none;
-}
-
-.window-bar-wide .window-zoom-label {
-  min-inline-size: 96px;
-}
-
-.window-bar-wide .window-dates {
   padding-inline: var(--space-1);
 }
 
-/* The overview is 8 px below the window bar. */
-.metric-detail-overview {
-  margin-block-start: -8px;
+/* The thin row after a scroll: below the app bar, with no space of its own in the column. */
+.period-row {
+  position: sticky;
+  inset-block-start: var(--app-bar-height);
+  z-index: 2;
+  block-size: 0;
+  margin-block-start: calc(-1 * var(--space-4));
 }
 
-/* The charts and the heatmap. A side drag of a finger goes to the page code, and a vertical drag scrolls the page. */
+/* The page keeps the height of the row free at the top for the focus (see useStickyHeight). The row itself is in that
+   height: its negative scroll margin keeps a focus on it from scrolling the page. */
+.period-row-button {
+  scroll-margin-block-start: calc(-44px - var(--space-2));
+  display: flex;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  inline-size: 100%;
+  block-size: 44px;
+  padding: 0 var(--space-3);
+  border-radius: 0 0 var(--radius-m) var(--radius-m);
+  color: var(--on-surface);
+  background-color: var(--surface-container);
+  box-shadow: var(--elevate1);
+}
+
+.period-row-span {
+  flex: none;
+  color: var(--primary);
+}
+
+.period-row-dates {
+  flex: none;
+  white-space: nowrap;
+}
+
+.period-row-bars {
+  flex: 1;
+  min-inline-size: 0;
+}
+
+/* The panel that a tap on the row opens, joined to the bottom of the row. */
+.period-row-button[aria-expanded='true'] {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.period-row-panel {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 44px;
+  border-radius: 0 0 var(--radius-m) var(--radius-m);
+  box-shadow: var(--elevate2);
+}
+
+.period-row-panel > .period-panel {
+  border-radius: 0 0 var(--radius-m) var(--radius-m);
+}
+
+/* The charts. A side drag of a finger goes to the page code, and a vertical drag scrolls the page. */
 .charts-area {
   display: flex;
   flex-direction: column;

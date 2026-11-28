@@ -8,6 +8,7 @@ import {
   MetricKind,
   canChangeKind,
   deletedSummary,
+  detailSummary,
   draftOf,
   goalExamples,
   goalSummary,
@@ -175,6 +176,8 @@ describe('MetricDraft', () => {
     });
     expect(metricSummary(weight)).toBe('Number · kg · Health');
     expect(goalSummary(weight)).toBe('at most 80 from 83');
+    expect(detailSummary(weight)).toBe('Number · kg · goal at most 80 from 83');
+    expect(detailSummary(new YesNoMetric({ id: 'read', name: 'Read', icon: 'menu_book' }))).toBe('Yes/no · goal yes');
     expect(metricSummary(new YesNoMetric({ id: 'read', name: 'Read', icon: 'menu_book' }))).toBe('Yes/no');
     expect(goalSummary(new YesNoMetric({ id: 'smoke', name: 'Smoke', icon: 'smoking_rooms', goalIsYes: false }))).toBe(
       'no',

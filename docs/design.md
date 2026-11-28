@@ -17,13 +17,14 @@ Each color has one role, the same on all screens. The table gives the light and 
 | Main action | `--action-start`, `--action-end` | `#c2410c` → `#9f1239` | the same | The one main button of a screen. Example: "Add metric". | Other buttons. |
 | Accent | `--primary` | `#b8321a` | `#ff8c66` | Links, text buttons, the focus ring. | Data, warnings. |
 | Selected | `--primary-container` | `#ffdfd4` | `#7a2a14` | The selected item of the navigation and of the chips. | Data. |
-| Data | `--cell-image`, `--cell`, `--on-cell` | `#c3540a` → `#b5470a`, `#bd4e0a`, white | the same | The day cells (`--cell-image`), the bars, lines and dots of the charts (`--cell`), a done tile, the score, a change for the better. | Text. |
+| Data | `--cell-image`, `--cell`, `--on-cell` | `#c3540a` → `#b5470a`, `#bd4e0a`, white | the same gradient, `#ec7a3b` | The day cells (`--cell-image`), the bars, lines and dots of the charts (`--cell`), a done tile, the score, a change for the better. | Text. |
+| Soft data | `--data-soft` | `#f4b393` | `#834a2d` | The second marks of the data: the range of the 4 weeks before, a `no` in the day strip, the start of the color scale of the day bars. | The main data. |
 | No points | `--cell-value` | `#e2e6eb` | `#323c49` | A day cell with a value and 0 points. | — |
-| Worse | `--worse` | `#5b6b82` | `#9fb0c6` | A change for the worse in the score tables. | Other data. |
+| Contrast | `--data-contrast` | `#7a2439` (wine) | `#b5596a` | The color next to the data: "less" in the score tables, the `no` days of a yes/no metric, a bar below 0, the diamond of this week. | The main data. |
 | Warning | `--warning`, `--warning-container` | `#b45309`, `#fde7cf` | `#f0a35a`, `#4d2c0a` | Sheet warnings, the warning sign of a tile over a limit. | Day cells, charts. |
 | Error | `--error`, `--error-container` | `#ba1a1a`, `#ffdad6` | `#ffb4ab`, `#93000a` | A failed write or load, an invalid field. | Data. |
 | Neutral | `--surface…`, `--on-surface…`, `--outline…` | slate grey | slate blue | Pages, cards, text, borders. | — |
-| Groups | `--group-1` to `--group-8` | 8 hues | lighter tones | The parts of each group in a stacked chart. | Other data. |
+| Groups | `--group-1` to `--group-4` | `#732500`, `#b14c00`, `#e97e2b`, `#ffc394` | `#842c00`, `#c35401`, `#f78a3b`, `#ffd5b4` | The parts of each group in a stacked chart: tones of the data orange, deep to light. | Other data. |
 
 Rules:
 
@@ -32,13 +33,18 @@ Rules:
 - **Decision (owner, 2026-11-28):** the data color is the deep orange of the brand gradient (`#c3540a` → `#b5470a`),
   not its red: red on all data was too strong. Option B of the color mocks. An orange this dark keeps white text at
   4.5:1 or more.
+- **Decision (owner, 2026-11-28):** scheme R05, "Mono ember", of the color schemes canvas
+  (https://claude.ai/artifact/C17UorNzgi5P3sugCKVU8N): one hue for the data. The second marks use the soft orange,
+  not grey. "Less" and "no" use wine. The groups are 4 tones of the data orange, so they match the brand. The other
+  colors of the app stay.
+- The charts have no grey marks and no other hue next to the data: `--tertiary` (`#b45309`) is almost the data
+  orange, and grey bars blend with the cards.
+- The group tones differ only in lightness: a chart with groups always shows their names (a legend in the order of the
+  stack) and a 2 px gap between the parts. A fifth group gets the first tone again.
 - A score bar of a Saturday or a Sunday is lighter (50% opacity), so that the weeks show.
 - The score has no own theme: it uses the Data role, as each day cell does.
 - The current day has no special color and no ring. It is the last column of the table, or its day number in a
   calendar.
-- The group colors do not use the brand hues (red, orange), so that a group does not look like data. Now `--group-3`
-  is orange and `--group-6` is crimson: phase 4 gives them other hues, and checks that each pair of groups differs in
-  hue or in lightness.
 - Each text has a contrast of 4.5:1 or more on its background. Each border of a control, and each chart mark, has 3:1
   or more.
 
@@ -83,7 +89,8 @@ One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
 | `.label-large` | 14 / 20 px | 500 | Buttons and chips. |
 | `.label-medium` | 12 / 16 px | 500 | The labels of the navigation. Text in a day cell. |
 
-- No other font size, except the ruler and the logo of the sign-in screen.
+- No other font size, except the ruler, the logo of the sign-in screen, and the day number in a cell of a month
+  calendar (10 / 12 px, weight 400).
 - Numbers that line up in columns use `font-variant-numeric: tabular-nums`: tables, cells, key numbers and axes.
 - Text starts with a capital letter, and the other words are in lowercase ("Add metric", not "Add Metric").
 
@@ -116,22 +123,29 @@ One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
   phone shows 1 column and a desktop 2 or 3 columns. A small chart does not fill a wide card: the grid gives it a
   narrow column.
 - Each part of a screen is a card with a title and one sentence that tells what it shows. Also the calendars. Now
-  "Edit days" and "Score by month" are headings without a card.
-- The bar of a screen (for example the period bar) stays at the top while the page scrolls.
+  "Score by month" is a heading without a card.
+- The period panel (P9 of the canvas): the span chips (1W to 5Y and All), the dates with arrows, and the day strip:
+  one bar for each day of all data, a lighter bar on a Saturday or a Sunday, a box on the period. A strip too narrow
+  for days (less than 1.5 px a day) shows weeks. When the page scrolls past the panel, a thin row with the span, the
+  dates and the bars of the period stays below the app bar. A tap on it opens the panel.
+- The day bars: yes is a full bar, no a short soft bar; a count, a number and the score have the height of their
+  value. The color goes from the soft data color (0 points) to the data color (1 point). No value: a thin line.
 
 | Screen | Narrow | Wide |
 |---|---|---|
 | Today | Number tiles in 1 column. Yes/no and count tiles in 2 columns. | Number tiles in 2 columns. Yes/no and count tiles in 4 to 6 columns (`--tile-min-width` 160 px). A ruler is not wider than its tile. |
 | Days, table | One card. Its first row has the score bars, each bar in the column of its day, so that a bar is exactly above the cells of its day. Then the day headers and one row for each metric. 5 days. | The same card, with as many days as the width holds, up to 14. |
 | Days, calendars | The score bars first, in one card, as in the table. Then 1 calendar card for each metric. | The same, with the card grid: 2 or 3 calendars in each row, all of the same size. |
-| Score, metric detail | The period bar, the key numbers in 2 columns, then the cards in 1 column. | The period bar in one row, the key numbers in one row, then the card grid. |
+| Score, metric detail | The period panel (chips, then the dates, then the strip), the key numbers in 2 columns, then the cards in 1 column. | The period panel (chips and dates in one row), the key numbers in one row, then the card grid. The last small card of a row that is not full fills the row. |
+| Metric detail, Days card | One month, with arrows to change it. Each cell shows its day number and its value. | Up to 3 months side by side, each with its name. A tap on a bar over time shows its month in the card. |
 | Metrics | The list. A tap opens the form as a screen. | The list on the left and the form on the right. |
 
 ## Components
 
 The shared components. Each one replaces the parts in the right column. Phases 2 and 3 made `PeriodBar`, `Notice`,
 `Snackbar` (with Undo), `Button`, `Dialog`, `KeyNumbers` (in `ChartParts.jsx`) and a first `TextField`. Phase 4 makes
-the others with the redraw of their screens: the Days screen made `DayCell`.
+the others with the redraw of their screens: the Days screen made `DayCell`, the metric detail made the first
+`Calendar`.
 
 | Component | Variants | Replaces |
 |---|---|---|
@@ -141,8 +155,8 @@ the others with the redraw of their screens: the Days screen made `DayCell`.
 | `Card` | with title, description and content | the chart cards, the calendar headings, the tiles' frame |
 | `KeyNumbers` | — | `KeyNumbers` in `ChartParts.jsx` (done) |
 | `DayCell` | see "Day cell" | the cells of `HabitTable` and `MonthCalendar` (done: `DayCell` and `ScoreCell` in `DayCell.jsx`), and of `ScoreCalendar` |
-| `Calendar` | editable, read-only | `MonthCalendar`, `ScoreCalendar` |
-| `PeriodBar` | — | `WindowBar` (done in phase 2: `Period.jsx`) |
+| `Calendar` | editable, read-only | `MonthCalendar` (done: the Days card of the metric detail, with `useDayCells` in `DayCells.jsx`), `ScoreCalendar` |
+| `PeriodBar` | — | `WindowBar` (done in phase 2: `Period.jsx`). Since the detail redraw: P9 of the canvas, with `DayStrip` |
 | `Notice` | info, warning, error | `Notice`, the sheet warnings |
 | `Snackbar` | with Undo, with Try again | new |
 | `Dialog` | confirm | the alert dialog of the metrics screen (done: `ConfirmDialog` in `Dialog.jsx`) |
@@ -151,7 +165,7 @@ the others with the redraw of their screens: the Days screen made `DayCell`.
 
 The charts (`TimeBars`, `LineChart`, `RangeBars`, `Distribution`, `StackedBars`, `ChangeTable`) use the Data role
 (`--cell`) for a metric and for the score. The `ChangeTable` tints a better cell with `--cell` and a worse cell with
-`--worse`.
+`--data-contrast`.
 
 ## Numbers and dates
 

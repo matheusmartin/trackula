@@ -88,6 +88,27 @@ describe('DayCell', () => {
     expect(no.textContent).toBe('');
   });
 
+  test('a cell of a month calendar shows the day number above the value', () => {
+    render(
+      <DayCell
+        metric={water}
+        day={Day.of(2026, 9, 26)}
+        today={today}
+        value={5}
+        points={null}
+        selected={false}
+        enabled
+        countInput={null}
+        onAdd={() => {}}
+        onClick={() => {}}
+        showsDay
+      />,
+    );
+    const cell = screen.getByRole('button', { name: /^Water, Sep 26:/ });
+    expect(cell.textContent).toBe('265');
+    expect(cell.className).toContain('day-cell-with-day');
+  });
+
   test('a click calls onClick, and a day after today has no cell', () => {
     let clicks = 0;
     fireEvent.click(showCell(read, null, today, () => clicks++));

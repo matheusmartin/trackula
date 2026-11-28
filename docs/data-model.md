@@ -227,13 +227,12 @@ Rules:
     The score of a metric is its points as a percentage. "This week" and "this month" are the week and the month of
     the end of the period.
   - "Weekday averages": the average score on each weekday. For the score of all metrics, with 2 or more groups,
-    each bar stacks the part of each group, in one color for each group. The part of a group on a day is the sum of
-    the points of its metrics, divided by the number of metrics that count on that day. So the parts of a weekday add
-    up to its average. The colors have the soft tone of the strongest cells of the tables and the calendar, so that
-    they match the other charts. A thin gap separates the parts.
+    each bar stacks the part of each group, in one tone of the data orange for each group. The part of a group on a
+    day is the sum of the points of its metrics, divided by the number of metrics that count on that day. So the parts
+    of a weekday add up to its average. The tones go from deep to light, in the order of the groups, and the legend
+    names them. A thin gap separates the parts.
   - "Score by month": a month calendar with the score of each day. A darker day has a higher score: 100 has the most
-    color. It is read-only. It shows the month of the end of the period, and its arrows show the other months. The
-    "Score" view has no day heatmap: the calendar shows the same days, with their scores.
+    color. It is read-only. It shows the month of the end of the period, and its arrows show the other months.
 - The group filter of the app (the `group` column) also applies to the score. With a group selected, the chart and
   the "Score" view show the group score: the average of the points of the metrics of that group only. The title shows
   the group, for example "Score · Habits". The `Score` column always has the score of all metrics.
