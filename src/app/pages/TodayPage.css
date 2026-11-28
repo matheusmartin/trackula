@@ -44,26 +44,3 @@
   gap: var(--space-4);
   padding-block: 64px;
 }
-
-/* A sheet without metrics. */
-.today-page-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  padding-block: var(--space-7);
-  text-align: center;
-}
-
-.today-page-empty-title {
-  margin: 0;
-}
-
-.today-page-empty-text {
-  max-inline-size: 360px;
-}
-
-/* A filled button of Material 3: 40 px high in a touch target of 48 px. */
-.today-page-add {
-  margin-block: var(--space-1);
-}

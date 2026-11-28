@@ -103,7 +103,7 @@ The screens after phase 2 of the consolidation. Phase 4 redraws them.
 |---|---|---|---|
 | Sign-in | — | First open | Google sign-in. |
 | Setup | — | After the sign-in, without a sheet | Pick a sheet with the Google Picker. The app adds the tabs. |
-| Today | `#/today` | Navigation | One tile for each metric. A number tile has a ruler. A yes/no tile has a check mark. A count tile adds its step at each tap. |
+| Today | `#/today` | Navigation | One tile for each metric. A number tile has a ruler. A yes/no tile has a check mark. A count tile adds its step at each tap. The fill of a yes/no or count tile shows the points of today, as a day cell. |
 | Days | `#/days` | Navigation | The recent days in one of two layouts. Table: one card with the score bars on top, then one row for each metric and one column for each day, 5 to 14 days. Calendars: the score bars of the days, then a month grid for each metric for 31 days, and a chart of each number or count metric. The cell color shows the points of the day. |
 | Score | `#/score` | Navigation | The score of a period: the period panel (span chips, dates, a bar for each day), key numbers, 4 charts and tables, and the Days card with the score of each day. A tap on a bar over time shows its month in the Days card. |
 | Metric detail | `#/metric/<id>` | A tap on a metric name | The values of a period: the period panel (span chips, dates, a bar for each day), key numbers, 3 to 5 charts, and the Days card: a month calendar to see and edit the days. A tap on a bar over time shows its month in the calendar. |

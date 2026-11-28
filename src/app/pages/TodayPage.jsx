@@ -13,13 +13,13 @@ import { errorText } from '../Errors.js';
 import { useNavigator, useRoute } from '../Navigation.js';
 import { ActionBar } from '../components/ActionBar.jsx';
 import { useElementWidth } from '../components/ElementWidth.js';
+import { EmptyState } from '../components/EmptyState.jsx';
 import { GroupChips, groupLabel } from '../components/GroupChips.jsx';
 import { HabitTable, tableDays } from '../components/HabitTable.jsx';
 import { Notice, NoticeKind } from '../components/Notice.jsx';
 import { Button } from '../components/Button.jsx';
 import { SegmentedButtons } from '../components/SegmentedButtons.jsx';
 import { Snackbar } from '../components/Snackbar.jsx';
-import { Symbol } from '../components/Symbol.jsx';
 import { TodayTiles } from '../components/TodayTiles.jsx';
 import { TrendChart } from '../components/TrendChart.jsx';
 import { MetricDetail } from './MetricDetail.jsx';
@@ -431,6 +431,7 @@ export function TodayPage({
           onRecord={record}
           onCount={count}
           pending={pending}
+          points={points}
         />
       );
     }
@@ -553,14 +554,13 @@ function Loading() {
  */
 function NoMetrics({ onAdd }) {
   return (
-    <div class="today-page-empty">
-      <Symbol name="tune" size={40} color="var(--on-surface-variant)" />
-      <h2 class="today-page-empty-title title-large">No metrics yet</h2>
-      <p class="today-page-empty-text today-page-quiet">
-        A metric is a thing that you record each day, for example your weight or a habit.
-      </p>
-      <Button variant="filled" text="Add a metric" onClick={onAdd} class="today-page-add" />
-    </div>
+    <EmptyState
+      icon="tune"
+      title="No metrics yet"
+      text="A metric is a thing that you record each day, for example your weight or a habit."
+    >
+      <Button variant="filled" text="Add a metric" onClick={onAdd} />
+    </EmptyState>
   );
 }
 
