@@ -77,13 +77,40 @@ describe('HabitTable', () => {
     expect(calls).toEqual(['read 2026-10-03 1', 'read 2026-09-30 0', 'read 2026-10-01 1']);
   });
 
-  test('the calendars start with the score, and the score name opens the Score screen', () => {
+  test('the calendars start with the score bars, and the score name opens the Score screen', () => {
     const calls = showTable(DayLayout.CALENDARS);
     expect(screen.queryByRole('table')).toBeNull();
     expect(screen.getByRole('img', { name: 'Sep 30: score 100%' })).toBeTruthy();
-    // Today is not over: without a value, it has no score yet.
-    expect(screen.getByRole('img', { name: 'Oct 3: no score' })).toBeTruthy();
+    // Today is not over: without a value, it has no score bar yet.
+    expect(screen.queryByRole('img', { name: /^Oct 3:/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Score: show the Score screen' }));
     expect(calls).toEqual(['score']);
+  });
+
+  test('the score bar of a Saturday or a Sunday is lighter', () => {
+    // Today, Saturday Oct 3, has a value: it has its score bar.
+    const withToday = new LogTable(
+      [{ row: 2, date: today, metricId: 'read', value: 1 }],
+      new Map([[today, 2]]),
+      new Map([['read', 1]]),
+    );
+    render(
+      <HabitTable
+        metrics={[read]}
+        log={withToday}
+        today={today}
+        days={days}
+        layout={DayLayout.TABLE}
+        busy={false}
+        onRecord={() => {}}
+        pending={new Map()}
+        onCount={() => {}}
+        scores={new Map([...scores, [today, 100]])}
+      />,
+    );
+    const bar = (/** @type {string} */ name) =>
+      /** @type {Element} */ (screen.getByRole('img', { name }).querySelector('.score-bar')).className;
+    expect(bar('Oct 3: score 100%')).toBe('score-bar score-bar-weekend');
+    expect(bar('Sep 30: score 100%')).toBe('score-bar');
   });
 });

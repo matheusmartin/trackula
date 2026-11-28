@@ -494,7 +494,7 @@ function toRange(bar) {
  * @param {string} props.label The text for screen readers.
  * @param {string[]} props.titles The name of each column, for the tooltips.
  * @param {(value: number) => string} props.format
- * @param {string} [props.bar] Default: the theme primary color.
+ * @param {string} [props.bar] Default: the data color (`--cell`).
  * @param {string} [props.dot] Default: the lowest surface container color.
  * @param {(number | null)[]} [props.marks] Default: no marks.
  * @param {string | null} [props.rangeName] The name of a bar and its dot in their tooltips. Default: null, no name.
@@ -508,7 +508,7 @@ export function RangeBars({
   label,
   titles,
   format,
-  bar = 'var(--primary)',
+  bar = 'var(--cell)',
   dot = 'var(--surface-container-lowest)',
   marks = [],
   rangeName = null,

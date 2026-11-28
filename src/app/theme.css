@@ -69,7 +69,8 @@
   /*
    * The colors of the app that Material Design 3 does not have.
    * - --cell, --on-cell: the fill of a day with a value: table cells, calendars, heatmap and bars. The same in both
-   *   themes. --cell-image: the logo gradient on the table and calendar cells. --cell-empty: a day with no value.
+   *   themes. --cell-image: the deep orange gradient on the cells and the score bars. --cell-empty: a day with no
+   *   value.
    * - --action-start, --action-end: a darker logo gradient for the main buttons, with --on-action text (5:1 or more).
    *   --action-image: the gradient on a square.
    * - --header-start, --header-end: the gradient of the app bar, in both themes. It starts darker than the logo
@@ -79,9 +80,10 @@
    * A gradient goes from the top-left corner to the bottom-right corner of the box. On a square, this is a CSS
    * gradient of 135deg.
    */
-  --cell: #da3625;
+  /* The data color: the deep orange of the brand gradient, with no red end. White text on it has 4.5:1 or more. */
+  --cell: #bd4e0a;
   --on-cell: #ffffff;
-  --cell-image: linear-gradient(135deg, #ca4a09, #e41648);
+  --cell-image: linear-gradient(135deg, #c3540a, #b5470a);
   /* Darker than the cards and the tiles, so that an empty day shows as a cell. */
   --cell-empty: #d5dbe3;
   --action-start: #c2410c;
