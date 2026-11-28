@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/preact';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { Day, monthOf } from '../../model/Day.js';
-import { monthTitle } from '../../model/Format.js';
+import { monthTitle, shortDay } from '../../model/Format.js';
 import { MainView } from '../../model/MainView.js';
 import { Route } from '../../model/Route.js';
 import { DemoStore } from '../../sheets/DemoStore.js';
@@ -99,9 +99,8 @@ describe('ScorePage', () => {
     // At All, no day comes before the window. The change compares the halves of the window, so it has values.
     expect(button('All data').getAttribute('aria-pressed')).toBe('true');
     expect(screen.queryByText('No values in this period.')).toBeNull();
-    // The calendar shows the score of each day, so there is no heatmap of the same days.
-    expect(screen.getByText('Score by month')).toBeTruthy();
-    expect(screen.queryByText('Score by day')).toBeNull();
+    // The Days card shows the score of each day.
+    expect(screen.getByRole('heading', { name: 'Days', level: 3 })).toBeTruthy();
   });
 
   test('the score view has only the charts that show different data', async () => {
@@ -125,33 +124,43 @@ describe('ScorePage', () => {
     }
   });
 
-  test('the score view compares the week of the window end with the 4 weeks before', async () => {
-    await showScore('This week and the 4 weeks before');
-    // All metrics with 2 or more groups: the week and month tables are by group.
-    expect(screen.getByText('Score by group and week')).toBeTruthy();
-    expect(screen.getByText('Score by group and month')).toBeTruthy();
-    expect(screen.queryByText('Score by metric and month')).toBeNull();
-    // An older window, 3 months that end on Sunday 2026-08-30: the week of its end.
-    fireEvent.click(button('3 months'));
-    fireEvent.click(button('Earlier'));
-    expect(screen.queryByText('This week and the 4 weeks before')).toBeNull();
-    expect(screen.getByText('The week of Aug 24 and the 4 weeks before')).toBeTruthy();
-    // One group: the week and month tables are by metric.
+  test('the score table has a week and a month switch, by group or by metric of one group', async () => {
+    await showScore('Score by group');
+    // All metrics with 2 or more groups: the table is by group. "This week and the 4 weeks before" is gone (P4).
+    expect(screen.queryByText(/and the 4 weeks before$/)).toBeNull();
+    expect(button('Week').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('More than the week before')).toBeTruthy();
+    fireEvent.click(button('Month'));
+    expect(button('Month').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('More than the month before')).toBeTruthy();
+    // One group: the table is by metric.
     fireEvent.click(screen.getAllByText('Hygiene')[0]);
-    await screen.findByText('Score by metric and week', {}, { timeout: TIMEOUT });
-    expect(screen.getByText('Score by metric and month')).toBeTruthy();
-    expect(screen.queryByText('Score by group and month')).toBeNull();
+    await screen.findByText('Score by metric', {}, { timeout: TIMEOUT });
+    expect(screen.queryByText('Score by group')).toBeNull();
   });
 
-  test('the score calendar shows the month of the window end and its arrows change the month', async () => {
-    await showScore('Score by month');
-    expect(screen.queryByText('Edit days')).toBeNull();
+  test('the Days card shows the month of the window end and its arrows change the month', async () => {
+    await showScore('Days');
     expect(screen.getByText(monthTitle(monthOf(today)))).toBeTruthy();
-    expect(screen.getByRole('cell', { name: /^Oct 1:/ })).toBeTruthy();
+    expect(screen.getByRole('img', { name: /^Oct 1: score / })).toBeTruthy();
+    // Today has no value in the demo data: no score yet.
+    expect(screen.getByRole('img', { name: `${shortDay(today)}: no score` })).toBeTruthy();
     expect(button('Next month').disabled).toBe(true);
     fireEvent.click(button('Previous month'));
     expect(screen.getByText(monthTitle(monthOf(Day.of(2026, 9, 1))))).toBeTruthy();
-    expect(screen.getByRole('cell', { name: /^Sep 30:/ })).toBeTruthy();
+    expect(screen.getByRole('img', { name: /^Sep 30: score / })).toBeTruthy();
+  });
+
+  test('a tap on a bar of the average per day shows its month in the Days card', async () => {
+    await showScore('Average per day');
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
+    expect(button('Next month').disabled).toBe(true);
+    // At All, the first bar is the oldest week of the data: not the month of today.
+    const chart = /** @type {HTMLElement} */ (screen.getByRole('heading', { name: 'Average per day' }).parentElement);
+    fireEvent.click(/** @type {Element} */ (chart.querySelector('.chart-column-target')));
+    expect(button('Next month').disabled).toBe(false);
+    expect(screen.queryByText(monthTitle(monthOf(today)))).toBeNull();
+    expect(scroll).toHaveBeenCalledTimes(1);
   });
 
   test('the weekday averages of all metrics stack the groups and of one group do not', async () => {

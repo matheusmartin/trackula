@@ -4,7 +4,6 @@ import { withoutFloatNoise } from './LogEntry.js';
 import { BarUnit, barStart } from './Zoom.js';
 
 /** @import { Day, MonthKey } from './Day.js' */
-/** @import { ValueRange } from './Zoom.js' */
 
 /** The weekdays, Monday (1) first. */
 const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
@@ -86,49 +85,6 @@ function downToZero(n) {
  */
 export function weekMondays(end, weeks) {
   return downToZero(weeks).map((n) => barStart(end, BarUnit.WEEK).addDays(-7 * n));
-}
-
-/**
- * One weekday of {@link weekdaysInRange}: its `score` in the week, and its `range` in the weeks before.
- * @typedef {object} WeekdayInRange
- * @property {number | null} score
- * @property {ValueRange | null} range
- */
-
-/**
- * For each weekday, Monday first: the score of that weekday in the week of `end`, and the lowest, highest and average
- * score of that weekday in the `weeks` weeks before. Only the days with a score in `values` count. A weekday after
- * `end` or without a score has a null score. A weekday without a score in the weeks before has a null range.
- *
- * Example: the Mondays of the weeks before have 10, 12 and 14, and the Monday of the week has 15. Monday gets the
- * score 15 and the range 10 to 14, with the average 12.
- * @param {Map<Day, number>} values
- * @param {Day} end
- * @param {number} [weeks] {@link COMPARED_WEEKS} by default.
- * @returns {WeekdayInRange[]}
- */
-export function weekdaysInRange(values, end, weeks = COMPARED_WEEKS) {
-  const monday = barStart(end, BarUnit.WEEK);
-  const before = daysBetween(monday.addDays(-7 * weeks), monday.addDays(-1));
-  return WEEKDAYS.map((weekday) => {
-    /** @type {number[]} */
-    const scores = [];
-    for (const d of before) {
-      const score = values.get(d);
-      if (d.weekday === weekday && score !== undefined) scores.push(score);
-    }
-    return {
-      score: weekday > end.weekday ? null : (values.get(monday.addDays(weekday - 1)) ?? null),
-      range:
-        scores.length === 0
-          ? null
-          : {
-              low: scores.reduce((low, s) => Math.min(low, s)),
-              high: scores.reduce((high, s) => Math.max(high, s)),
-              average: withoutFloatNoise(averageOf(scores)),
-            },
-    };
-  });
 }
 
 /**

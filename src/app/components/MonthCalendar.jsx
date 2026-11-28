@@ -39,10 +39,7 @@ export function monthCount(width) {
 /**
  * The Days card of the detail screen, to see and edit the days of one metric in any month. It has the same day cells
  * and inputs as the Days screen (see `useDayCells`), and each cell also shows its day number. The editor of a number
- * metric opens below the months. A legend tells the cell colors.
- *
- * The card shows as many months side by side as its width holds, up to 3. `month` is the last of them. The arrows and
- * the swipes change the months, but not after the month of today.
+ * metric opens below the months. A legend tells the cell colors. See {@link MonthsCard}.
  * @param {object} props
  * @param {Metric} props.metric
  * @param {LogTable} props.log
@@ -57,8 +54,40 @@ export function monthCount(width) {
  * @returns {JSX.Element}
  */
 export function MonthCalendar({ metric, log, today, busy, onRecord, pending, onCount, month, onMonth }) {
-  const [measure, width] = useElementWidth();
   const { cell, editorOf } = useDayCells({ metrics: [metric], log, today, busy, onRecord, pending, onCount });
+  return (
+    <MonthsCard
+      title="Days"
+      description="Tap a day to change its value. The color shows the points."
+      today={today}
+      month={month}
+      onMonth={onMonth}
+      cell={(d) => cell(metric, d, true)}
+    >
+      {editorOf(metric)}
+      <CellLegend />
+    </MonthsCard>
+  );
+}
+
+/**
+ * A card with months of day cells: the Days card of the detail screen and of the Score screen. Below the title and the
+ * sentence: a bar with the months in view and arrows, the months side by side, then `children`, for example a legend.
+ *
+ * The card shows as many months side by side as its width holds, up to 3. `month` is the last of them. The arrows and
+ * the swipes change the months, but not after the month of today. With more than one month, each has its name.
+ * @param {object} props
+ * @param {string} props.title
+ * @param {string} props.description
+ * @param {Day} props.today
+ * @param {MonthKey} props.month The last month in view.
+ * @param {(month: MonthKey) => void} props.onMonth Called when the arrows or a swipe change the month.
+ * @param {(day: Day) => ComponentChildren} props.cell The cell of a day.
+ * @param {ComponentChildren} props.children
+ * @returns {JSX.Element}
+ */
+export function MonthsCard({ title, description, today, month, onMonth, cell, children }) {
+  const [measure, width] = useElementWidth();
   const count = monthCount(width);
   const months = Array.from({ length: count }, (_, i) => addMonths(month, i + 1 - count));
   const isThisMonth = sameMonth(month, monthOf(today));
@@ -90,7 +119,7 @@ export function MonthCalendar({ metric, log, today, busy, onRecord, pending, onC
 
   return (
     <div ref={measure} class="month-calendar">
-      <ChartCard title="Days" description="Tap a day to change its value. The color shows the points.">
+      <ChartCard title={title} description={description}>
         <div class="month-calendar-body">
           <div class="month-calendar-bar">
             <AppIconButton icon="chevron_left" title="Previous month" onClick={() => move(-1)} />
@@ -108,17 +137,10 @@ export function MonthCalendar({ metric, log, today, busy, onRecord, pending, onC
             }}
           >
             {months.map((m) => (
-              <MonthDays
-                key={`${m.year}-${m.month}`}
-                month={m}
-                today={today}
-                titled={count > 1}
-                cell={(d) => cell(metric, d, true)}
-              />
+              <MonthDays key={`${m.year}-${m.month}`} month={m} today={today} titled={count > 1} cell={cell} />
             ))}
           </div>
-          {editorOf(metric)}
-          <CellLegend />
+          {children}
         </div>
       </ChartCard>
     </div>

@@ -7,7 +7,6 @@ import {
   monthsUntil,
   stepChanges,
   weekMondays,
-  weekdaysInRange,
   weeklyAverages,
 } from './ScoreStats.js';
 import { countStats } from './Stats.js';
@@ -73,27 +72,6 @@ describe('ScoreStats', () => {
     ]);
     const parts = groupWeekdayParts(total, new Map([['habits', total]]), range(7, 7));
     expect(parts.get('habits')?.[0]).toBe(6);
-  });
-
-  test('weekdaysInRange give the score of the week and the range of the weeks before', () => {
-    // day(28) is the Monday of the 5th week, day(30) its Wednesday. The 4 weeks before are day(0) to day(27).
-    const values = new Map([
-      [day(-7), 99],
-      [day(0), 10],
-      [day(7), 12],
-      [day(14), 14],
-      [day(3), 5],
-      [day(28), 15],
-      [day(29), 8],
-      [day(31), 20],
-    ]);
-    const weekdays = weekdaysInRange(values, day(30));
-    expect(weekdays.length).toBe(7);
-    expect(weekdays[0]).toEqual({ score: 15, range: { low: 10, high: 14, average: 12 } });
-    expect(weekdays[1]).toEqual({ score: 8, range: null });
-    expect(weekdays[2]).toEqual({ score: null, range: null });
-    // Thursday comes after the end: no score of the week, but the range of the weeks before.
-    expect(weekdays[3]).toEqual({ score: null, range: { low: 5, high: 5, average: 5 } });
   });
 
   test('weeklyAverages give the average score of the same weekdays of each week', () => {

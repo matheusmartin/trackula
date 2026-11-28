@@ -131,17 +131,27 @@ function textWidth(text) {
 }
 
 /**
- * A chart card: a title, a one-sentence description, the chart, and labels below it. The title is a heading.
+ * A chart card: a title, a one-sentence description, the chart, and labels below it. The title is a heading. With
+ * `action`, a control at the end of the title row. Example: the Week and Month switch of the score table.
  * @param {object} props
  * @param {string} props.title
  * @param {string} props.description
  * @param {ComponentChildren} props.children
+ * @param {ComponentChildren} [props.action] Default: null, no control.
  * @returns {JSX.Element}
  */
-export function ChartCard({ title, description, children }) {
+export function ChartCard({ title, description, children, action = null }) {
+  const heading = <h3 class="chart-card-title title-medium">{title}</h3>;
   return (
     <section class="chart-card">
-      <h3 class="chart-card-title title-medium">{title}</h3>
+      {action == null ? (
+        heading
+      ) : (
+        <div class="chart-card-head">
+          {heading}
+          {action}
+        </div>
+      )}
       <p class="chart-card-description chart-label chart-label-trim">{description}</p>
       {children}
     </section>

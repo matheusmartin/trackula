@@ -1,13 +1,12 @@
 // The charts that compare a period with the periods before it.
 import { formatNumber, formatSigned } from '../../model/Format.js';
 import { stepChanges } from '../../model/ScoreStats.js';
-import { ChartCard, Labels, NoValues, Scroller, ValueRow, spokenValues } from './ChartParts.jsx';
-import { Legend, RangeBars } from './Charts.jsx';
+import { ChartCard, NoValues } from './ChartParts.jsx';
+import { Legend } from './Charts.jsx';
 import { useElementWidth } from './ElementWidth.js';
 import './CompareCharts.css';
 
-/** @import { JSX } from 'preact' */
-/** @import { ValueRange } from '../../model/Zoom.js' */
+/** @import { ComponentChildren, JSX } from 'preact' */
 
 /**
  * The text of a value: at most 1 decimal.
@@ -18,109 +17,30 @@ function defaultFormat(value) {
   return formatNumber(value);
 }
 
-/**
- * For each of `labels`, a bar from the lowest to the highest value of `ranges`, a dot at their average, and a diamond
- * at the value of `marks`. The values of `marks` are above the bars. A null range has no bar, and a null mark has no
- * diamond and no value. The scale goes from a little below the lowest value to the highest value, but not below 0, so
- * that the bars are tall enough to compare. The legend names the bar `rangeLabel`, the dot "Average" and the diamond
- * `markLabel`. Example: the score of each weekday of this week in the range of the 4 weeks before.
- * @param {object} props
- * @param {string} props.title
- * @param {string} props.description
- * @param {string[]} props.labels
- * @param {(ValueRange | null)[]} props.ranges
- * @param {(number | null)[]} props.marks
- * @param {string} props.rangeLabel
- * @param {string} props.markLabel
- * @param {(value: number) => string} [props.format] Default: at most 1 decimal.
- * @returns {JSX.Element}
- */
-export function RangeBarChart({
-  title,
-  description,
-  labels,
-  ranges,
-  marks,
-  rangeLabel,
-  markLabel,
-  format = defaultFormat,
-}) {
-  const values = [
-    ...ranges.flatMap((r) => (r == null ? [] : [r.low, r.high])),
-    ...marks.flatMap((v) => (v == null ? [] : [v])),
-  ];
-  if (values.length === 0) {
-    return (
-      <ChartCard title={title} description={description}>
-        <NoValues />
-      </ChartCard>
-    );
-  }
-  const high = Math.max(...values);
-  const lowest = Math.min(...values);
-  // Space below the lowest value, so that its bar or diamond is not on the bottom line.
-  const low = Math.max(0, lowest - Math.max(high - lowest, 1) * 0.25);
-  // The soft data color for the 4 weeks before, with the dot of the average in the text color on it (3:1 or more), and
-  // the contrast color for the diamonds of this week.
-  const bar = 'var(--data-soft)';
-  const dot = 'var(--on-surface)';
-  return (
-    <ChartCard title={title} description={description}>
-      <Scroller columns={labels.length}>
-        <ValueRow values={marks} format={format} />
-        <RangeBars
-          ranges={ranges}
-          high={Math.max(high, low + 1)}
-          low={low}
-          label={spokenValues(title, labels, marks, format)}
-          titles={labels}
-          format={format}
-          bar={bar}
-          dot={dot}
-          marks={marks}
-          rangeName={rangeLabel}
-          markName={markLabel}
-        />
-        <Labels labels={labels} all />
-      </Scroller>
-      <Legend
-        parts={[
-          { label: rangeLabel, color: bar, values: [] },
-          { label: 'Average', color: 'var(--on-surface)', values: [] },
-          { label: markLabel, color: 'var(--data-contrast)', values: [] },
-        ]}
-      />
-    </ChartCard>
-  );
-}
-
 /** The largest width of the row labels of a {@link ChangeTable}, in CSS pixels. */
 const ROW_LABEL_WIDTH = 112;
 
 /** The lowest share of the full color in a cell of a {@link ChangeTable} with a change, so that a small change shows. */
 const MIN_CHANGE_FILL = 0.2;
 
-/**
- * The highest share of the full color in a day of the score calendar or a cell of a {@link ChangeTable}, so that the
- * number on it stays readable.
- */
-export const MAX_FILL = 0.7;
+/** The highest share of the full color in a cell of a {@link ChangeTable}, so that the number on it stays readable. */
+const MAX_FILL = 0.7;
 
 /**
- * The CSS color of a cell: `share` (0 to 1) of `color` on the empty cell color. The colors mix in Oklab.
+ * The CSS color of a cell: `share` (0 to 1) of `color` on the grey of a cell without change. The colors mix in Oklab.
  * @param {string} color
  * @param {number} share
  * @returns {string}
  */
-export function cellFill(color, share) {
-  return `color-mix(in oklab, var(--cell-empty), ${color} ${Math.round(share * 10000) / 100}%)`;
+function changeFill(color, share) {
+  return `color-mix(in oklab, var(--cell-value), ${color} ${Math.round(share * 10000) / 100}%)`;
 }
 
 /**
  * A table of numbers: one row for each of `rows`, one column for each of `columns`. A row is a label and one value for
  * each column. The color of a cell shows the change from the cell on its left (see `stepChanges`): the cell color for
  * more, the contrast color for less. A larger change has a stronger color, up to the largest change of the table. A
- * cell without change has the empty color: a cell of the first column, a cell with the same value as the cell on its
+ * cell without change is grey (`--cell-value`): a cell of the first column, a cell with the same value as the cell on its
  * left, and a cell with no value on it or on its left. A null value shows "–". The legend names the 2 colors `upLabel`
  * and `downLabel`. If `rows` is empty, the card says that there are no values. Each cell has a tooltip and a name for
  * screen readers with its row, its column, its value and its change.
@@ -134,13 +54,23 @@ export function cellFill(color, share) {
  * @param {string} props.upLabel
  * @param {string} props.downLabel
  * @param {(value: number) => string} [props.format] Default: at most 1 decimal.
+ * @param {ComponentChildren} [props.action] A control in the title row. See `ChartCard`. Default: null.
  * @returns {JSX.Element}
  */
-export function ChangeTable({ title, description, columns, rows, upLabel, downLabel, format = defaultFormat }) {
+export function ChangeTable({
+  title,
+  description,
+  columns,
+  rows,
+  upLabel,
+  downLabel,
+  format = defaultFormat,
+  action = null,
+}) {
   const [measure, width] = useElementWidth();
   if (rows.length === 0) {
     return (
-      <ChartCard title={title} description={description}>
+      <ChartCard title={title} description={description} action={action}>
         <NoValues />
       </ChartCard>
     );
@@ -152,7 +82,7 @@ export function ChangeTable({ title, description, columns, rows, upLabel, downLa
   // Narrow cards: a smaller label column, so that the numbers fit in their cells.
   const labelWidth = width > 0 ? Math.min(ROW_LABEL_WIDTH, width * 0.3) : ROW_LABEL_WIDTH;
   return (
-    <ChartCard title={title} description={description}>
+    <ChartCard title={title} description={description} action={action}>
       <div ref={measure}>
         <table class="change-table" aria-label={title}>
           <thead>
@@ -175,8 +105,8 @@ export function ChangeTable({ title, description, columns, rows, upLabel, downLa
                   const change = changes[r][i];
                   const fill =
                     change == null || change === 0 || largest === 0
-                      ? 'var(--cell-empty)'
-                      : cellFill(
+                      ? 'var(--cell-value)'
+                      : changeFill(
                           change > 0 ? up : down,
                           MIN_CHANGE_FILL + (MAX_FILL - MIN_CHANGE_FILL) * (Math.abs(change) / largest),
                         );

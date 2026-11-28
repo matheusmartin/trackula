@@ -50,7 +50,7 @@ Rules:
 
 ## Day cell
 
-The day cell is the same component in the Days table, in the calendars and on the Score calendar. Its fill shows the
+The day cell is the same component in the Days table, in the calendars and in the Days card of the Score screen. Its fill shows the
 points of the day, so you can see your goals at a glance.
 
 | State | Look | Example |
@@ -122,8 +122,7 @@ One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
 - Cards go in a grid: `repeat(auto-fill, minmax(var(--card-min-width), 1fr))`, with `--card-min-width` 340 px. So a
   phone shows 1 column and a desktop 2 or 3 columns. A small chart does not fill a wide card: the grid gives it a
   narrow column.
-- Each part of a screen is a card with a title and one sentence that tells what it shows. Also the calendars. Now
-  "Score by month" is a heading without a card.
+- Each part of a screen is a card with a title and one sentence that tells what it shows. Also the calendars.
 - The period panel (P9 of the canvas): the span chips (1W to 5Y and All), the dates with arrows, and the day strip:
   one bar for each day of all data, a lighter bar on a Saturday or a Sunday, a box on the period. A strip too narrow
   for days (less than 1.5 px a day) shows weeks. When the page scrolls past the panel, a thin row with the span, the
@@ -154,8 +153,8 @@ the others with the redraw of their screens: the Days screen made `DayCell`, the
 | `Chip` | filter (one or more selected) | `GroupChips`, the kind and goal chips of the form |
 | `Card` | with title, description and content | the chart cards, the calendar headings, the tiles' frame |
 | `KeyNumbers` | — | `KeyNumbers` in `ChartParts.jsx` (done) |
-| `DayCell` | see "Day cell" | the cells of `HabitTable` and `MonthCalendar` (done: `DayCell` and `ScoreCell` in `DayCell.jsx`), and of `ScoreCalendar` |
-| `Calendar` | editable, read-only | `MonthCalendar` (done: the Days card of the metric detail, with `useDayCells` in `DayCells.jsx`), `ScoreCalendar` |
+| `DayCell` | see "Day cell" | the cells of `HabitTable`, `MonthCalendar` and `ScoreCalendar` (done: `DayCell` and `ScoreCell` in `DayCell.jsx`) |
+| `Calendar` | editable, read-only | `MonthCalendar` and `ScoreCalendar` (done: both are a `MonthsCard` in `MonthCalendar.jsx`; the cells of the metric come from `useDayCells`) |
 | `PeriodBar` | — | `WindowBar` (done in phase 2: `Period.jsx`). Since the detail redraw: P9 of the canvas, with `DayStrip` |
 | `Notice` | info, warning, error | `Notice`, the sheet warnings |
 | `Snackbar` | with Undo, with Try again | new |

@@ -13,6 +13,16 @@
   margin: 0;
 }
 
+/* The title and a control in one row. The control goes below the title if the card is narrow. */
+.chart-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-block-end: var(--space-1);
+}
+
 /* The text of the chart labels: the smallest text of the app, without letter spacing. */
 .chart-label {
   font-size: var(--small-text);
@@ -294,18 +304,15 @@
   list-style: none;
 }
 
-/* RangeBars: a bar with round ends from the lowest to the highest value, the average as a dot, and a diamond for a
-   mark. The element sets the colors of the bar and the dot. */
+/* RangeBars: a bar with round ends from the lowest to the highest value, and the average as a dot. */
 .range-bar {
+  stroke: var(--cell);
   stroke-width: 10px;
   stroke-linecap: round;
 }
 
-.range-mark {
-  fill: var(--data-contrast);
-  stroke: var(--surface-container);
-  stroke-width: 1.5px;
-  stroke-linejoin: round;
+.range-dot {
+  fill: var(--surface-container-lowest);
 }
 
 /*
