@@ -120,7 +120,7 @@ export function cellFill(color, share) {
 /**
  * A table of numbers: one row for each of `rows`, one column for each of `columns`. A row is a label and one value for
  * each column. The color of a cell shows the change from the cell on its left (see `stepChanges`): the cell color for
- * more, the tertiary color for less. A larger change has a stronger color, up to the largest change of the table. A
+ * more, the worse color for less. A larger change has a stronger color, up to the largest change of the table. A
  * cell without change has the empty color: a cell of the first column, a cell with the same value as the cell on its
  * left, and a cell with no value on it or on its left. A null value shows "–". The legend names the 2 colors `upLabel`
  * and `downLabel`. If `rows` is empty, the card says that there are no values. Each cell has a tooltip and a name for
@@ -147,7 +147,7 @@ export function ChangeTable({ title, description, columns, rows, upLabel, downLa
     );
   }
   const up = 'var(--cell)';
-  const down = 'var(--tertiary)';
+  const down = 'var(--worse)';
   const changes = rows.map(([, values]) => stepChanges(values));
   const largest = Math.max(0, ...changes.flat().map((c) => Math.abs(c ?? 0)));
   // Narrow cards: a smaller label column, so that the numbers fit in their cells.

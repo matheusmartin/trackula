@@ -390,6 +390,17 @@ export function goalSummary(metric) {
 }
 
 /**
+ * The kind, the unit and the goal of `metric`, for the title of its detail screen. Examples: "Number · kg · goal at
+ * most 80 from 83", "Yes/no · goal yes".
+ * @param {Metric} metric
+ * @returns {string}
+ */
+export function detailSummary(metric) {
+  const unit = metric instanceof NumberMetric ? metric.unit : null;
+  return [kindOf(metric).label, unit, `goal ${goalSummary(metric)}`].filter((part) => part !== null).join(' · ');
+}
+
+/**
  * Examples of the points of `goal`, for the metrics form. `unit` goes after each value. Examples for `at least 8`
  * (from 0) with the unit glasses: "8 glasses or more: 1 point", "4 glasses: 0.5 points", "0 glasses: 0 points".
  * @param {NumberGoal} goal

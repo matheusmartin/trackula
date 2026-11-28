@@ -1,17 +1,21 @@
-/* MonthCalendar.jsx: the heading, the month bar with its arrows, and one or two months. */
+/* MonthCalendar.jsx: the Days card of the detail screen. The month bar with its arrows, 1 to 3 months side by side,
+   the editor and the legend. */
 .month-calendar {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  min-inline-size: 0;
 }
 
-.month-calendar-heading {
-  margin: 0;
+.month-calendar-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
 .month-calendar-bar {
   display: flex;
   align-items: center;
+  margin-block-start: calc(-1 * var(--space-2));
 }
 
 .month-calendar-title {
@@ -20,14 +24,51 @@
   text-align: center;
 }
 
-/* One month, or two months side by side. A side swipe goes to the page code, and a vertical swipe scrolls. */
+/* The months side by side. A side swipe goes to the page code, and a vertical swipe scrolls. */
 .month-calendar-months {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-3);
+  display: flex;
+  justify-content: center;
+  gap: var(--space-6);
   touch-action: pan-y;
 }
 
-.month-calendar-two {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+/* A month is 7 cells of 40 px wide, or less on a narrow phone. */
+.month-days {
+  display: flex;
+  flex: 0 1 calc(7 * 40px + 6 * var(--space-1));
+  flex-direction: column;
+  gap: var(--space-2);
+  min-inline-size: 0;
+}
+
+.month-days-title {
+  text-align: center;
+}
+
+.month-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.month-days-weekday {
+  text-align: center;
+  color: var(--on-surface-variant);
+}
+
+.month-days-day {
+  display: flex;
+  justify-content: center;
+}
+
+/* A cell fills its column, up to 40 px. */
+.month-days-day > .day-cell {
+  inline-size: 100%;
+  max-inline-size: 40px;
+  block-size: auto;
+  aspect-ratio: 1;
+}
+
+.month-calendar .cell-legend {
+  justify-content: center;
 }

@@ -68,7 +68,7 @@
 
   /*
    * The colors of the app that Material Design 3 does not have.
-   * - --cell, --on-cell: the fill of a day with a value: table cells, calendars, heatmap and bars. The same in both
+   * - --cell, --on-cell: the fill of a day with a value: table cells, calendars and bars. The same in both
    *   themes. --cell-image: the deep orange gradient on the cells and the score bars. --cell-empty: a day with no
    *   value.
    * - --action-start, --action-end: a darker logo gradient for the main buttons, with --on-action text (5:1 or more).

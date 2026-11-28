@@ -19,7 +19,7 @@ Each color has one role, the same on all screens. The table gives the light and 
 | Selected | `--primary-container` | `#ffdfd4` | `#7a2a14` | The selected item of the navigation and of the chips. | Data. |
 | Data | `--cell-image`, `--cell`, `--on-cell` | `#c3540a` → `#b5470a`, `#bd4e0a`, white | the same | The day cells (`--cell-image`), the bars, lines and dots of the charts (`--cell`), a done tile, the score, a change for the better. | Text. |
 | No points | `--cell-value` | `#e2e6eb` | `#323c49` | A day cell with a value and 0 points. | — |
-| Worse | `--worse` | `#5b6b82` | `#9fb0c6` | A change for the worse in the score tables. | Other data. |
+| Worse | `--worse` | `#5b6b82` | `#9fb0c6` | The second color of the data: a change for the worse in the score tables, the `no` days of a yes/no metric, a bar below 0. | The main data. |
 | Warning | `--warning`, `--warning-container` | `#b45309`, `#fde7cf` | `#f0a35a`, `#4d2c0a` | Sheet warnings, the warning sign of a tile over a limit. | Day cells, charts. |
 | Error | `--error`, `--error-container` | `#ba1a1a`, `#ffdad6` | `#ffb4ab`, `#93000a` | A failed write or load, an invalid field. | Data. |
 | Neutral | `--surface…`, `--on-surface…`, `--outline…` | slate grey | slate blue | Pages, cards, text, borders. | — |
@@ -32,6 +32,8 @@ Rules:
 - **Decision (owner, 2026-11-28):** the data color is the deep orange of the brand gradient (`#c3540a` → `#b5470a`),
   not its red: red on all data was too strong. Option B of the color mocks. An orange this dark keeps white text at
   4.5:1 or more.
+- The charts use no other orange next to the data: `--tertiary` (`#b45309`) is almost the data orange, so a second
+  data color is `--worse`.
 - A score bar of a Saturday or a Sunday is lighter (50% opacity), so that the weeks show.
 - The score has no own theme: it uses the Data role, as each day cell does.
 - The current day has no special color and no ring. It is the last column of the table, or its day number in a
@@ -83,7 +85,8 @@ One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
 | `.label-large` | 14 / 20 px | 500 | Buttons and chips. |
 | `.label-medium` | 12 / 16 px | 500 | The labels of the navigation. Text in a day cell. |
 
-- No other font size, except the ruler and the logo of the sign-in screen.
+- No other font size, except the ruler, the logo of the sign-in screen, and the day number in a cell of a month
+  calendar (10 / 12 px, weight 400).
 - Numbers that line up in columns use `font-variant-numeric: tabular-nums`: tables, cells, key numbers and axes.
 - Text starts with a capital letter, and the other words are in lowercase ("Add metric", not "Add Metric").
 
@@ -116,7 +119,7 @@ One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
   phone shows 1 column and a desktop 2 or 3 columns. A small chart does not fill a wide card: the grid gives it a
   narrow column.
 - Each part of a screen is a card with a title and one sentence that tells what it shows. Also the calendars. Now
-  "Edit days" and "Score by month" are headings without a card.
+  "Score by month" is a heading without a card.
 - The bar of a screen (for example the period bar) stays at the top while the page scrolls.
 
 | Screen | Narrow | Wide |
@@ -124,14 +127,16 @@ One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
 | Today | Number tiles in 1 column. Yes/no and count tiles in 2 columns. | Number tiles in 2 columns. Yes/no and count tiles in 4 to 6 columns (`--tile-min-width` 160 px). A ruler is not wider than its tile. |
 | Days, table | One card. Its first row has the score bars, each bar in the column of its day, so that a bar is exactly above the cells of its day. Then the day headers and one row for each metric. 5 days. | The same card, with as many days as the width holds, up to 14. |
 | Days, calendars | The score bars first, in one card, as in the table. Then 1 calendar card for each metric. | The same, with the card grid: 2 or 3 calendars in each row, all of the same size. |
-| Score, metric detail | The period bar, the key numbers in 2 columns, then the cards in 1 column. | The period bar in one row, the key numbers in one row, then the card grid. |
+| Score, metric detail | The period bar, the key numbers in 2 columns, then the cards in 1 column. | The period bar in one row, the key numbers in one row, then the card grid. The last small card of a row that is not full fills the row. |
+| Metric detail, Days card | One month, with arrows to change it. Each cell shows its day number and its value. | Up to 3 months side by side, each with its name. A tap on a bar over time shows its month in the card. |
 | Metrics | The list. A tap opens the form as a screen. | The list on the left and the form on the right. |
 
 ## Components
 
 The shared components. Each one replaces the parts in the right column. Phases 2 and 3 made `PeriodBar`, `Notice`,
 `Snackbar` (with Undo), `Button`, `Dialog`, `KeyNumbers` (in `ChartParts.jsx`) and a first `TextField`. Phase 4 makes
-the others with the redraw of their screens: the Days screen made `DayCell`.
+the others with the redraw of their screens: the Days screen made `DayCell`, the metric detail made the first
+`Calendar`.
 
 | Component | Variants | Replaces |
 |---|---|---|
@@ -141,7 +146,7 @@ the others with the redraw of their screens: the Days screen made `DayCell`.
 | `Card` | with title, description and content | the chart cards, the calendar headings, the tiles' frame |
 | `KeyNumbers` | — | `KeyNumbers` in `ChartParts.jsx` (done) |
 | `DayCell` | see "Day cell" | the cells of `HabitTable` and `MonthCalendar` (done: `DayCell` and `ScoreCell` in `DayCell.jsx`), and of `ScoreCalendar` |
-| `Calendar` | editable, read-only | `MonthCalendar`, `ScoreCalendar` |
+| `Calendar` | editable, read-only | `MonthCalendar` (done: the Days card of the metric detail, with `useDayCells` in `DayCells.jsx`), `ScoreCalendar` |
 | `PeriodBar` | — | `WindowBar` (done in phase 2: `Period.jsx`) |
 | `Notice` | info, warning, error | `Notice`, the sheet warnings |
 | `Snackbar` | with Undo, with Try again | new |

@@ -24,7 +24,7 @@ import './MetricCharts.css';
 /** @import { Day } from '../../model/Day.js' */
 /** @import { Metric, NumberMetric } from '../../model/Metric.js' */
 /** @import { CountStats, DayValue, NumberStats, YesNoStats } from '../../model/Stats.js' */
-/** @import { ZoomWindow } from '../../model/Zoom.js' */
+/** @import { ZoomBar, ZoomWindow } from '../../model/Zoom.js' */
 /** @import { ChartItem } from './ChartParts.jsx' */
 
 /**
@@ -33,25 +33,45 @@ import './MetricCharts.css';
  *
  * - `values`: the value of each day with a value. For yes/no metrics: 1 for yes and 0 for no, as the rate bars expect.
  * - `states`: the yes/no states of a yes/no metric: true for `yes`, false for `no`. Empty for other metrics.
+ * - `onBar`: a click on a bar over time calls it with the bar. Example: the calendar shows the month of the bar.
  * @param {object} props
  * @param {Metric} props.metric
  * @param {ZoomWindow} props.window
  * @param {Map<Day, number>} props.values
  * @param {Map<Day, boolean>} props.states
+ * @param {((bar: ZoomBar) => void) | null} [props.onBar] Default: null, no clicks.
  * @returns {JSX.Element}
  */
-export function MetricCharts({ metric, window, values, states }) {
+export function MetricCharts({ metric, window, values, states, onBar = null }) {
   /** @type {JSX.Element} */
   let content;
   if (values.size === 0) {
     // No value on any day: one card that tells what to do, not many empty charts.
     content = <NoData score={false} />;
   } else if (metric instanceof YesNoMetric) {
-    content = <YesNoCharts window={window} values={values} stats={yesNoStats(states, window.days, window.to)} />;
+    content = (
+      <YesNoCharts window={window} values={values} stats={yesNoStats(states, window.days, window.to)} onBar={onBar} />
+    );
   } else if (metric.isCount) {
-    content = <CountCharts metric={metric} window={window} values={values} stats={countStats(values, window.days)} />;
+    content = (
+      <CountCharts
+        metric={metric}
+        window={window}
+        values={values}
+        stats={countStats(values, window.days)}
+        onBar={onBar}
+      />
+    );
   } else {
-    content = <NumberCharts metric={metric} window={window} values={values} stats={numberStats(values, window.days)} />;
+    content = (
+      <NumberCharts
+        metric={metric}
+        window={window}
+        values={values}
+        stats={numberStats(values, window.days)}
+        onBar={onBar}
+      />
+    );
   }
   return <div class="metric-charts">{content}</div>;
 }
@@ -85,6 +105,9 @@ export function unitName(window) {
   return window.unit.toLowerCase();
 }
 
+/** The sentence of a bar chart that shows a month in the calendar on a click. */
+const BAR_TAP = 'Tap a bar to show its month in the calendar.';
+
 /**
  * The options of {@link timeBarItem}.
  * @typedef {object} TimeBarOptions
@@ -93,6 +116,8 @@ export function unitName(window) {
  * @property {boolean} [showsRange] Default: false.
  * @property {number | null} [max] Fixes the top of the scale, for example 100 for percentages. Default: null.
  * @property {(value: number) => string} [format] The text of a value. Default: at most 1 decimal.
+ * @property {((bar: ZoomBar) => void) | null} [onBar] A click on a bar calls it. The description then tells it.
+ *   Default: null, no clicks.
  */
 
 /**
@@ -111,7 +136,7 @@ export function timeBarItem(
   window,
   values,
   aggregate,
-  { fixedScale = false, showsRange = false, max = null, format = (v) => formatNumber(v) } = {},
+  { fixedScale = false, showsRange = false, max = null, format = (v) => formatNumber(v), onBar = null } = {},
 ) {
   return {
     key: title,
@@ -125,12 +150,13 @@ export function timeBarItem(
       return (
         <TimeBars
           title={title}
-          description={description}
+          description={onBar == null ? description : `${description} ${BAR_TAP}`}
           bars={firstInView < 0 ? [] : bars.slice(firstInView, firstInView + starts.length)}
           barUnit={window.unit}
           format={format}
           max={max ?? (fixedScale && all.length > 0 ? Math.max(...all) : null)}
           showsRange={showsRange}
+          onBar={onBar}
         />
       );
     },
@@ -142,9 +168,10 @@ export function timeBarItem(
  * @param {ZoomWindow} props.window
  * @param {Map<Day, number>} props.values
  * @param {YesNoStats} props.stats
+ * @param {((bar: ZoomBar) => void) | null} props.onBar
  * @returns {JSX.Element}
  */
-function YesNoCharts({ window, values, stats }) {
+function YesNoCharts({ window, values, stats, onBar }) {
   return (
     <>
       <KeyNumbers
@@ -165,7 +192,7 @@ function YesNoCharts({ window, values, stats }) {
             window,
             values,
             Aggregate.RATE,
-            { max: 1, format: formatPercent },
+            { max: 1, format: formatPercent, onBar },
           ),
           {
             key: 'strength',
@@ -192,7 +219,7 @@ function YesNoCharts({ window, values, stats }) {
                 center={formatPercent(stats.rate)}
                 parts={[
                   { label: 'Yes', value: stats.yes, color: 'var(--cell)' },
-                  { label: 'No', value: stats.no, color: 'var(--tertiary)' },
+                  { label: 'No', value: stats.no, color: 'var(--worse)' },
                   { label: 'No value', value: stats.none, color: 'var(--cell-empty)' },
                 ]}
               />
@@ -257,9 +284,10 @@ function withMetricUnit(value, metric, decimals = 1) {
  * @param {ZoomWindow} props.window
  * @param {Map<Day, number>} props.values
  * @param {CountStats} props.stats
+ * @param {((bar: ZoomBar) => void) | null} props.onBar
  * @returns {JSX.Element}
  */
-function CountCharts({ metric, window, values, stats }) {
+function CountCharts({ metric, window, values, stats, onBar }) {
   const best = stats.best;
   const average = stats.average;
   return (
@@ -279,6 +307,7 @@ function CountCharts({ metric, window, values, stats }) {
         items={[
           timeBarItem('Totals', `The total of each ${unitName(window)}.`, window, values, Aggregate.SUM, {
             fixedScale: true,
+            onBar,
           }),
           {
             key: 'running',
@@ -352,9 +381,10 @@ function dayLabel(label, dayValue) {
  * @param {ZoomWindow} props.window
  * @param {Map<Day, number>} props.values
  * @param {NumberStats} props.stats
+ * @param {((bar: ZoomBar) => void) | null} props.onBar
  * @returns {JSX.Element}
  */
-function NumberCharts({ metric, window, values, stats }) {
+function NumberCharts({ metric, window, values, stats, onBar }) {
   const average = stats.average;
   return (
     <>
@@ -376,7 +406,7 @@ function NumberCharts({ metric, window, values, stats }) {
             window,
             values,
             Aggregate.AVERAGE,
-            { showsRange: true },
+            { showsRange: true, onBar },
           ),
           {
             key: 'values',

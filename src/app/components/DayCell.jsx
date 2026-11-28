@@ -21,7 +21,8 @@ import './DayCell.css';
  *
  * A number or count cell shows its value. A yes/no cell has no text. The tooltip and the name for screen readers give
  * the metric, the day, the value and the points. With `countInput`, the cell is a count cell: it is not disabled during
- * a write, because taps queue and show at once. The cell of the open editor has a ring around it.
+ * a write, because taps queue and show at once. The cell of the open editor has a ring around it. With `showsDay`, the
+ * day number is above the value, for a month calendar.
  * @param {object} props
  * @param {Metric} props.metric
  * @param {Day} props.day
@@ -33,13 +34,32 @@ import './DayCell.css';
  * @param {CountInput<MetricDay> | null} props.countInput
  * @param {(sign: number) => void} props.onAdd
  * @param {() => void} props.onClick
+ * @param {boolean} [props.showsDay] Default: false.
  * @returns {JSX.Element}
  */
-export function DayCell({ metric, day, today, value, points, selected, enabled, countInput, onAdd, onClick }) {
+export function DayCell({
+  metric,
+  day,
+  today,
+  value,
+  points,
+  selected,
+  enabled,
+  countInput,
+  onAdd,
+  onClick,
+  showsDay = false,
+}) {
   if (day.isAfter(today)) return <span class="day-cell day-cell-after" aria-hidden="true" />;
   const shown = value == null ? null : (points ?? pointsOfValue(metric, value));
   const description = `${metric.name}, ${shortDay(day)}: ${valueText(metric, value, shown)}${hint(metric)}`;
-  const classes = ['day-cell', ...fillClasses(shown), selected ? 'day-cell-selected' : null].filter(Boolean);
+  const classes = [
+    'day-cell',
+    ...fillClasses(shown),
+    selected ? 'day-cell-selected' : null,
+    showsDay ? 'day-cell-with-day' : null,
+  ].filter(Boolean);
+  const text = metric instanceof NumberMetric && value != null ? formatCompact(value) : null;
   const input = countInput == null ? { onClick } : countInputProps(countInput, metricDayKey(metric.id, day), onAdd);
   return (
     <button
@@ -51,7 +71,12 @@ export function DayCell({ metric, day, today, value, points, selected, enabled, 
       aria-label={description}
       {...input}
     >
-      {metric instanceof NumberMetric && value != null ? formatCompact(value) : null}
+      {showsDay && (
+        <span class="day-cell-day" aria-hidden="true">
+          {day.day}
+        </span>
+      )}
+      {text}
     </button>
   );
 }

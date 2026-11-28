@@ -1,8 +1,9 @@
 // The time window of the metric detail screen: bars over time, from the first value to today. A zoom step sets the
 // span in view and the size of one bar. All charts of the screen show the same window.
-import { Day, daysBetween } from './Day.js';
+import { Day, addMonths, daysBetween, monthOf } from './Day.js';
 import { NumberMetric } from './Metric.js';
 
+/** @import { MonthKey } from './Day.js' */
 /** @import { Metric } from './Metric.js' */
 
 /**
@@ -130,6 +131,26 @@ export function nextBarStart(start, unit) {
       return Day.of(start.year, start.month + 1, 1);
     case BarUnit.QUARTER:
       return Day.of(start.year, start.month + 3, 1);
+  }
+}
+
+/**
+ * The month of a calendar that shows the bar that starts on `start`: the month of a day or of a month, the month with
+ * the most days of a week (the month of its Thursday), and the last month of a quarter. A calendar of 3 months that
+ * ends at the last month shows the full quarter.
+ * @param {Day} start
+ * @param {BarUnit} unit
+ * @returns {MonthKey}
+ */
+export function barMonth(start, unit) {
+  switch (unit) {
+    case BarUnit.DAY:
+    case BarUnit.MONTH:
+      return monthOf(start);
+    case BarUnit.WEEK:
+      return monthOf(start.addDays(3));
+    case BarUnit.QUARTER:
+      return addMonths(monthOf(start), 2);
   }
 }
 

@@ -61,7 +61,7 @@ async function showPage(start = MainView.DAYS) {
  */
 async function openDetail(name) {
   fireEvent.click(await screen.findByRole('button', { name: `Show all data of ${name}` }, { timeout: TIMEOUT }));
-  await screen.findByText('Edit days', {}, { timeout: TIMEOUT });
+  await screen.findByRole('heading', { name: 'Days', level: 3 }, { timeout: TIMEOUT });
 }
 
 /**
@@ -103,11 +103,11 @@ describe('MetricDetail', () => {
     expect(detail).toBe(true);
     expect(screen.getByText('Done rate')).toBeTruthy();
     expect(screen.getByText('Strength (%)')).toBeTruthy();
-    expect(screen.getByText('Done days')).toBeTruthy();
+    expect(screen.getByText('Weekday pattern')).toBeTruthy();
 
     fireEvent.click(button('Back'));
     await waitFor(() => expect(detail).toBe(false));
-    expect(screen.queryByText('Edit days')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Days', level: 3 })).toBeNull();
   });
 
   test('the detail screen of a number and of a count has their charts', async () => {
@@ -205,18 +205,30 @@ describe('MetricDetail', () => {
     expect(screen.getByText(formatDateRange(Day.of(2026, 8, 24), Day.of(2026, 9, 27)))).toBeTruthy();
   });
 
-  test('a heatmap tap shows its month and a move of the window goes back to the window end', async () => {
+  test('a tap on a bar shows its month in the calendar and a move of the window goes back to the window end', async () => {
     await weightAtOneMonth();
-    // The heatmap of 1 month starts on Monday 2026-08-31, in the top left corner.
-    const heatmap = screen.getByRole('img', { name: `Days from 2026-08-31 to ${today}` });
-    fireEvent.click(/** @type {Element} */ (heatmap.querySelector('rect')));
-    expect(hasText('August 2026')).toBe(true);
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
+    // The first bar is the week of Monday 2026-08-31. Its Thursday is in September.
+    const chart = /** @type {HTMLElement} */ (
+      screen.getByRole('heading', { name: 'Averages and range' }).parentElement
+    );
+    expect(chart.textContent).toContain('Tap a bar to show its month in the calendar.');
+    fireEvent.click(/** @type {Element} */ (chart.querySelector('.chart-column-target')));
+    expect(hasText('September 2026')).toBe(true);
     expect(hasText('October 2026')).toBe(false);
+    expect(scroll).toHaveBeenCalledTimes(1);
 
     fireEvent.click(button('Earlier'));
     // The window now ends on 2026-08-30: the calendar shows its month.
     expect(hasText('August 2026')).toBe(true);
     expect(button('Next month').disabled).toBe(false);
+  });
+
+  test('the title shows the kind, the unit and the goal', async () => {
+    await showPage();
+    await openDetail('Weight');
+    expect(screen.getByRole('heading', { name: 'Weight', level: 2 })).toBeTruthy();
+    expect(hasText('^Number · kg · goal ')).toBe(true);
   });
 
   test('a swipe on the calendar shows the month before but not a month after this month', async () => {

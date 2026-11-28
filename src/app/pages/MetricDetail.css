@@ -12,10 +12,16 @@
   gap: var(--space-2);
 }
 
+/* The name and the line with the kind, the unit and the goal. */
+.metric-detail-titles {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
 /* The name: at most 2 lines. */
 .metric-detail-title {
-  flex: 1;
-  min-inline-size: 0;
   margin: 0;
   overflow: hidden;
   overflow-wrap: anywhere;
@@ -23,6 +29,18 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+}
+
+.metric-detail-summary {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--on-surface-variant);
+}
+
+/* A scroll to the Days card keeps it below the app bar and the period bar: 2 rows of 48 px on a phone. */
+.metric-detail-days {
+  scroll-margin-block: calc(var(--app-bar-height) + 2 * var(--touch-target) + var(--space-5)) var(--space-4);
 }
 
 /* The window bar stays below the app bar while the page scrolls. A band in the page color around it hides the charts
@@ -88,7 +106,7 @@
   margin-block-start: -8px;
 }
 
-/* The charts and the heatmap. A side drag of a finger goes to the page code, and a vertical drag scrolls the page. */
+/* The charts. A side drag of a finger goes to the page code, and a vertical drag scrolls the page. */
 .charts-area {
   display: flex;
   flex-direction: column;

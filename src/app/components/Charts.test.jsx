@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/preact';
+import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { Day, daysBetween } from '../../model/Day.js';
 import { BarUnit } from '../../model/Zoom.js';
@@ -137,6 +137,35 @@ describe('Charts', () => {
       'Week of Sep 28, 2026: 81.5 to 82.5',
       'Week of Sep 28, 2026: average 82',
     ]);
+  });
+
+  test('a click on the column of a bar over time calls onBar with the bar, also on the range bars', () => {
+    const bars = [
+      { start: Day.of(2026, 9, 28), value: 82, low: 81.5, high: 82.5 },
+      { start: Day.of(2026, 10, 5), value: null, low: null, high: null },
+    ];
+    for (const showsRange of [false, true]) {
+      /** @type {Day[]} */
+      const clicked = [];
+      const { container, unmount } = render(
+        <TimeBars
+          title="Averages"
+          description="Weeks."
+          bars={bars}
+          barUnit={BarUnit.WEEK}
+          showsRange={showsRange}
+          onBar={(bar) => clicked.push(bar.start)}
+        />,
+      );
+      const targets = container.querySelectorAll('.chart-column-target');
+      expect(targets).toHaveLength(2);
+      // A column without a value also has a target, with a tooltip.
+      expect(targets[1].textContent).toBe('Week of Oct 5, 2026: no value');
+      fireEvent.click(targets[1]);
+      fireEvent.click(/** @type {Element} */ (container.querySelector(showsRange ? '.range-bar' : '.chart-bar')));
+      expect(clicked).toEqual([Day.of(2026, 10, 5), Day.of(2026, 9, 28)]);
+      unmount();
+    }
   });
 
   test('a line chart gives its first, last, lowest and highest value to screen readers', () => {

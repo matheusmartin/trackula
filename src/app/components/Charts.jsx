@@ -30,6 +30,8 @@ import './Charts.css';
  *
  * Negative values: the 0 line goes up, and their bars go down from it, in the second color. Example: the change of a
  * weekday average. Each bar has a tooltip: its entry of `titles` and its value.
+ *
+ * With `onColumn`, a click on a column calls it with the index of the column. See {@link ColumnTarget}.
  * @param {object} props
  * @param {Bar[]} props.bars
  * @param {string[]} props.titles
@@ -37,9 +39,10 @@ import './Charts.css';
  * @param {number | null} props.max
  * @param {(value: number) => string} props.format
  * @param {boolean} props.showValues
+ * @param {((index: number) => void) | null} [props.onColumn] Default: null, no clicks.
  * @returns {JSX.Element}
  */
-function BarRows({ bars, titles, label, max, format, showValues }) {
+function BarRows({ bars, titles, label, max, format, showValues, onColumn = null }) {
   const values = bars.flatMap((b) => (b.value == null ? [] : [b.value]));
   const above = max ?? Math.max(0, ...values);
   const below = Math.max(0, ...values.map((v) => -v));
@@ -51,7 +54,7 @@ function BarRows({ bars, titles, label, max, format, showValues }) {
     <>
       {showValues && <ValueRow values={bars.map((b) => b.value)} format={format} />}
       <svg
-        class="chart-plot"
+        class={onColumn == null ? 'chart-plot' : 'chart-plot chart-plot-taps'}
         role="img"
         aria-label={spokenValues(
           label,
@@ -60,6 +63,16 @@ function BarRows({ bars, titles, label, max, format, showValues }) {
           format,
         )}
       >
+        {onColumn != null &&
+          bars.map((b, i) => (
+            <ColumnTarget
+              key={`target-${i}`}
+              index={i}
+              count={bars.length}
+              title={`${titles[i]}: ${b.value == null ? 'no value' : format(b.value)}`}
+              onColumn={onColumn}
+            />
+          ))}
         {bars.map((b, i) => {
           if (b.value == null) return null;
           const height = Math.max(0.4, (Math.abs(b.value) / scale) * PLOT_UNITS);
@@ -72,6 +85,7 @@ function BarRows({ bars, titles, label, max, format, showValues }) {
               y={coordinate(top * PLOT_SCALE)}
               width={percent(7, total)}
               height={coordinate(height * PLOT_SCALE)}
+              onClick={onColumn == null ? undefined : () => onColumn(i)}
             >
               <title>{`${titles[i]}: ${format(b.value)}`}</title>
             </rect>
@@ -79,6 +93,34 @@ function BarRows({ bars, titles, label, max, format, showValues }) {
         })}
       </svg>
     </>
+  );
+}
+
+/**
+ * The click area of a column of a chart: the full height of the plot and the width of the column, below the marks. A
+ * click on the column or on its marks calls `onColumn`. A click after a drag does nothing: see `ChartsArea`.
+ *
+ * The columns are not in the order of the keyboard focus. The control that a click on a column changes also has
+ * buttons. Example: a click on a bar over time shows its month in the calendar, and the calendar has month arrows.
+ * @param {object} props
+ * @param {number} props.index
+ * @param {number} props.count The number of columns.
+ * @param {string} props.title The tooltip.
+ * @param {(index: number) => void} props.onColumn
+ * @returns {JSX.Element}
+ */
+function ColumnTarget({ index, count, title, onColumn }) {
+  return (
+    <rect
+      class="chart-column-target"
+      x={percent(index * COLUMN_UNITS, count * COLUMN_UNITS)}
+      y="0"
+      width={percent(COLUMN_UNITS, count * COLUMN_UNITS)}
+      height="100%"
+      onClick={() => onColumn(index)}
+    >
+      <title>{title}</title>
+    </rect>
   );
 }
 
@@ -396,7 +438,8 @@ export function DonutChart({ title, description, parts, center }) {
  * - Values show above the bars when 13 bars or fewer are in view.
  * - With `showsRange`, each bar goes from the lowest to the highest value, and a dot shows the average.
  *
- * Each bar has a tooltip with the name of its week, month or quarter and its value.
+ * Each bar has a tooltip with the name of its week, month or quarter and its value. With `onBar`, a click on the
+ * column of a bar calls it with the bar.
  * @param {object} props
  * @param {string} props.title
  * @param {string} props.description
@@ -405,6 +448,7 @@ export function DonutChart({ title, description, parts, center }) {
  * @param {(value: number) => string} [props.format] Default: at most 1 decimal.
  * @param {number | null} [props.max] Default: null.
  * @param {boolean} [props.showsRange] Default: false.
+ * @param {((bar: ZoomBar) => void) | null} [props.onBar] Default: null, no clicks.
  * @returns {JSX.Element}
  */
 export function TimeBars({
@@ -415,6 +459,7 @@ export function TimeBars({
   format = defaultFormat,
   max = null,
   showsRange = false,
+  onBar = null,
 }) {
   const highs = bars.flatMap((b) => {
     const v = showsRange ? b.high : b.value;
@@ -435,6 +480,7 @@ export function TimeBars({
   const low = Math.min(...lows);
   const labels = bars.map((b) => barLabel(b.start, barUnit));
   const titles = bars.map((b) => barTitle(b.start, barUnit));
+  const onColumn = onBar == null ? null : (/** @type {number} */ i) => onBar(bars[i]);
   return (
     <ChartCard title={title} description={description}>
       <div class="chart-columns" style={{ maxInlineSize: `${MAX_COLUMN_WIDTH * bars.length}px` }}>
@@ -451,6 +497,7 @@ export function TimeBars({
             )}
             titles={titles}
             format={format}
+            onColumn={onColumn}
           />
         ) : (
           <BarRows
@@ -460,6 +507,7 @@ export function TimeBars({
             max={high}
             format={format}
             showValues={bars.length <= MAX_BARS_WITH_VALUES}
+            onColumn={onColumn}
           />
         )}
         <Labels labels={bars.map((b, i) => barLabel(b.start, barUnit, i === 0))} />
@@ -483,7 +531,7 @@ function toRange(bar) {
  * in the CSS color `dot`. A null range has no bar. With `marks`, a diamond in the cell color shows the mark of each
  * column, also in a column without a range. A null mark has no diamond. The scale goes from `low` (bottom) to `high`
  * (top). Each bar, dot and diamond has a tooltip: its entry of `titles`, the name of the range or the mark, and its
- * value.
+ * value. With `onColumn`, a click on a column calls it with the index of the column. See {@link ColumnTarget}.
  *
  * The default colors have a contrast of 3:1 or more in both themes: the bar on the card, and the dot on the bar. A
  * diamond has a thin frame in the card color, so that it stays apart from a bar below it.
@@ -499,6 +547,7 @@ function toRange(bar) {
  * @param {(number | null)[]} [props.marks] Default: no marks.
  * @param {string | null} [props.rangeName] The name of a bar and its dot in their tooltips. Default: null, no name.
  * @param {string | null} [props.markName] The name of a mark in its tooltip. Default: null, no name.
+ * @param {((index: number) => void) | null} [props.onColumn] Default: null, no clicks.
  * @returns {JSX.Element}
  */
 export function RangeBars({
@@ -513,6 +562,7 @@ export function RangeBars({
   marks = [],
   rangeName = null,
   markName = null,
+  onColumn = null,
 }) {
   const y = yScale(high, low);
   const total = ranges.length * COLUMN_UNITS;
@@ -529,11 +579,25 @@ export function RangeBars({
    */
   const tip = (i, name) => (name == null ? titles[i] : `${titles[i]}, ${name}`);
   return (
-    <svg class="chart-plot" role="img" aria-label={label}>
+    <svg class={onColumn == null ? 'chart-plot' : 'chart-plot chart-plot-taps'} role="img" aria-label={label}>
+      {onColumn != null &&
+        ranges.map((r, i) => (
+          <ColumnTarget
+            key={`target-${i}`}
+            index={i}
+            count={ranges.length}
+            title={
+              r == null
+                ? `${tip(i, rangeName)}: no value`
+                : `${tip(i, rangeName)}: ${format(r.low)} to ${format(r.high)}, average ${format(r.average)}`
+            }
+            onColumn={onColumn}
+          />
+        ))}
       {ranges.map((r, i) => {
         if (r == null) return null;
         return (
-          <g key={i}>
+          <g key={i} onClick={onColumn == null ? undefined : () => onColumn(i)}>
             {/* A stroke with round ends that keeps its width. */}
             <line
               class="range-bar"

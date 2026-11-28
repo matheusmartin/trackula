@@ -1,19 +1,12 @@
 import { Fragment } from 'preact';
-import { useMemo, useRef, useState } from 'preact/hooks';
 import { weekRows } from '../../model/Day.js';
 import { formatNumber, shortDay, weekdayNames, weekLabels } from '../../model/Format.js';
-import { metricDayKey, parseMetricDay } from '../../model/LogEntry.js';
 import { DayLayout, tableDayCount } from '../../model/MainView.js';
-import { NumberMetric, YesNoMetric } from '../../model/Metric.js';
 import { goalSummary } from '../../model/MetricDraft.js';
-import { pointsByMetric } from '../../model/Score.js';
-import { metricValues, nearestDay } from '../../model/Summary.js';
 import { AppCard } from './AppCard.jsx';
-import { useCountInput } from './CountInputModifier.js';
-import { DayCell } from './DayCell.jsx';
+import { useDayCells } from './DayCells.jsx';
 import { useElementWidth } from './ElementWidth.js';
 import { MetricIcon } from './MetricIcon.jsx';
-import { NumberEditor } from './NumberEditor.jsx';
 import { outset } from './Outset.js';
 import './HabitTable.css';
 
@@ -21,7 +14,7 @@ import './HabitTable.css';
 /** @import { Day } from '../../model/Day.js' */
 /** @import { CountStep, LogTable, MetricDay } from '../../model/LogEntry.js' */
 /** @import { DayLayout as Layout } from '../../model/MainView.js' */
-/** @import { Metric } from '../../model/Metric.js' */
+/** @import { Metric, NumberMetric } from '../../model/Metric.js' */
 
 /** The size of a day cell and the space between two cells, in CSS pixels. See "Day cell" in docs/design.md. */
 const CELL = 40;
@@ -58,10 +51,7 @@ export function tableDays(width) {
  * - Calendars: the score bars of the days first, in one card, then one calendar card for each metric, in the card
  *   grid. On a wide screen, all calendar cards have the same size.
  *
- * The cells (see {@link DayCell}):
- * - Yes/no: a click writes `yes`, or `no` if the day is `yes`.
- * - Count: see `CountInput`. A count has no reset: it goes to empty with subtractions.
- * - Number: a click opens the {@link NumberEditor} for that metric and day, below the metric. A second click closes it.
+ * The cells and their inputs: see `useDayCells`. The editor of a number metric opens below the metric.
  *
  * A score bar of a Saturday or a Sunday is lighter. Today is not over: without a value on today, today has no score
  * bar.
@@ -79,13 +69,11 @@ export function tableDays(width) {
  * @param {((metric: Metric) => void) | null} [props.onOpen] Opens the detail screen of a metric. Null: the metric names
  *   are not links.
  * @param {Map<Day, number> | null} [props.scores] The score of each day (see `dayScores`), for the score bars of the
- *   table and the score calendar. Null: no score.
+ *   table and of the calendars. Null: no score.
  * @param {string} [props.scoreTitle] The name of the score. Example: "Score · Habits". Default: "Score".
  * @param {(() => void) | null} [props.onScore] Opens the Score screen. Null: the score name is not a link.
- * @param {boolean} [props.showsTitle] True if each calendar shows the metric name. Default: true.
  * @param {((metric: Metric, values: Map<Day, number>) => ComponentChildren) | null} [props.calendarExtra] More content
  *   below each calendar, for example a chart of the metric. The table has none.
- * @param {number | null} [props.calendarColumns] A fixed number of calendar columns. Null: the card grid.
  * @returns {JSX.Element}
  */
 export function HabitTable({
@@ -102,107 +90,27 @@ export function HabitTable({
   scores = null,
   scoreTitle = 'Score',
   onScore = null,
-  showsTitle = true,
   calendarExtra = null,
-  calendarColumns = null,
 }) {
-  // The metric and day open in the editor.
-  const [editing, setEditing] = useState(/** @type {MetricDay | null} */ (null));
-  const countInput = useCountInput();
   const [measure, width] = useElementWidth();
-  // The latest count function: a touch tap runs after a wait.
-  const latestOnCount = useRef(onCount);
-  latestOnCount.current = onCount;
-  // The values of yes/no metrics hold 0 for `no`: a `no` day is a value with 0 points, not an empty day.
-  const valuesById = useMemo(
-    () => new Map(metrics.map((m) => [m.id, metricValues(m, log, pending)])),
-    [metrics, log, pending],
-  );
-  // The points of each day with a value, as the score has them. A goal with a trend gets its points from the trend.
-  const points = useMemo(() => pointsByMetric(metrics, log, today, pending), [metrics, log, today, pending]);
-  const open = editing == null ? null : parseMetricDay(editing);
+  const { valuesOf, cell, editorOf, todayOpen } = useDayCells({
+    metrics,
+    log,
+    today,
+    busy,
+    onRecord,
+    pending,
+    onCount,
+  });
 
   /**
-   * @param {Metric} m
-   * @param {Day} d
-   * @param {Map<Day, number>} values
-   */
-  function click(m, d, values) {
-    if (m instanceof YesNoMetric) {
-      onRecord(m, d, values.get(d) === 1 ? 0 : 1);
-    } else if (!m.isCount) {
-      const cell = metricDayKey(m.id, d);
-      setEditing(editing === cell ? null : cell);
-    }
-  }
-
-  /**
-   * @param {Metric} m
-   * @param {Day} d
-   * @param {Map<Day, number>} values
-   * @returns {JSX.Element}
-   */
-  const cell = (m, d, values) => (
-    <DayCell
-      key={d.toString()}
-      metric={m}
-      day={d}
-      today={today}
-      value={values.get(d) ?? null}
-      points={points.get(m.id)?.get(d) ?? null}
-      selected={editing === metricDayKey(m.id, d)}
-      enabled={!(busy && m instanceof YesNoMetric)}
-      countInput={m instanceof NumberMetric && m.isCount ? countInput : null}
-      onAdd={(sign) => {
-        if (m instanceof NumberMetric) latestOnCount.current(m, d, { delta: sign * m.step });
-      }}
-      onClick={() => click(m, d, values)}
-    />
-  );
-
-  /**
-   * The editor of a `number` metric. An empty day starts at the value of the nearest other day.
-   * @param {NumberMetric} m
-   * @param {Day} d
-   * @param {Map<Day, number>} values
-   * @returns {JSX.Element}
-   */
-  const editor = (m, d, values) => {
-    const near = nearestDay(values.keys(), d);
-    return (
-      <NumberEditor
-        key={`${m.id} ${d}`}
-        metric={m}
-        label={`${m.name} · ${d === today ? 'today' : shortDay(d)}`}
-        current={values.get(d) ?? null}
-        start={near == null ? null : (values.get(near) ?? null)}
-        busy={busy}
-        onCommit={(value) => onRecord(m, d, value)}
-        onClose={() => setEditing(null)}
-      />
-    );
-  };
-
-  /**
-   * The editor of `m` if it is open.
-   * @param {Metric} m
-   * @param {Map<Day, number>} values
-   * @returns {JSX.Element | null}
-   */
-  const openEditor = (m, values) =>
-    m instanceof NumberMetric && open != null && open.metricId === m.id ? editor(m, open.day, values) : null;
-
-  // Today is not over: without a value on today, today has no score yet.
-  const todayOpen = !metrics.some((m) => valuesById.get(m.id)?.has(today));
-  /**
+   * The score of `d`. Null if it has no score, also for today without a value.
    * @param {Day} d
    * @returns {number | null}
    */
   const scoreOf = (d) => (d === today && todayOpen ? null : (scores?.get(d) ?? null));
 
   if (layout === DayLayout.CALENDARS) {
-    const columns =
-      calendarColumns == null ? null : { gridTemplateColumns: `repeat(${calendarColumns}, minmax(0, 1fr))` };
     // The scores show above the bars only if each column has the space for them.
     const roomy = (width - 2 * CARD_PADDING + CELL_GAP) / days.length - CELL_GAP >= VALUE_COLUMN;
     return (
@@ -225,18 +133,15 @@ export function HabitTable({
             </div>
           </AppCard>
         )}
-        <div class="habit-calendars" style={columns ?? undefined}>
-          {metrics.map((m) => {
-            const values = /** @type {Map<Day, number>} */ (valuesById.get(m.id));
-            return (
-              <AppCard key={m.id} class="habit-calendar">
-                {showsTitle && <MetricName metric={m} onOpen={onOpen} withGoal />}
-                <MonthGrid days={days} cell={(d) => cell(m, d, values)} />
-                {calendarExtra?.(m, values)}
-                {openEditor(m, values)}
-              </AppCard>
-            );
-          })}
+        <div class="habit-calendars">
+          {metrics.map((m) => (
+            <AppCard key={m.id} class="habit-calendar">
+              <MetricName metric={m} onOpen={onOpen} withGoal />
+              <MonthGrid days={days} cell={(d) => cell(m, d)} />
+              {calendarExtra?.(m, valuesOf(m))}
+              {editorOf(m)}
+            </AppCard>
+          ))}
         </div>
       </div>
     );
@@ -285,8 +190,7 @@ export function HabitTable({
             </thead>
             <tbody>
               {metrics.map((m) => {
-                const values = /** @type {Map<Day, number>} */ (valuesById.get(m.id));
-                const shownEditor = openEditor(m, values);
+                const shownEditor = editorOf(m);
                 return (
                   <Fragment key={m.id}>
                     <tr class="habit-table-row">
@@ -294,7 +198,7 @@ export function HabitTable({
                         <MetricName metric={m} onOpen={onOpen} withGoal={withGoal} />
                       </th>
                       {days.map((d) => (
-                        <td key={d.toString()}>{cell(m, d, values)}</td>
+                        <td key={d.toString()}>{cell(m, d)}</td>
                       ))}
                     </tr>
                     {shownEditor != null && (
@@ -315,7 +219,7 @@ export function HabitTable({
 }
 
 /**
- * The name of the score at the start of the score bars and on the score calendar. With `withUnit`, the unit of the
+ * The name of the score at the start of the score bars of the table, and above the score bars of the calendars. With `withUnit`, the unit of the
  * score below the name. With `onScore`, a link to the Score screen.
  * @param {object} props
  * @param {string} props.title

@@ -177,7 +177,7 @@ export function PeriodBar({ period, values, aggregate, fromZero, wide }) {
 
 /**
  * `children` with side drags and side wheel moves that move the window by bars. A drag starts only after the touch
- * slop, so that a tap on a heatmap day still works. A vertical drag of a finger scrolls the page.
+ * slop, so that a tap on a bar still works. A vertical drag of a finger scrolls the page.
  * @param {object} props
  * @param {Period} props.period
  * @param {ComponentChildren} props.children
@@ -190,7 +190,7 @@ export function ChartsArea({ period, children }) {
   const latest = useRef({ window, moveTo });
   latest.current = { window, moveTo };
   const drag = useRef(/** @type {ChartDrag | null} */ (null));
-  // True after a drag, so that the click at its end does not tap a heatmap day.
+  // True after a drag, so that the click at its end does not tap a bar.
   const dragged = useRef(false);
   const [dragging, setDragging] = useState(false);
 

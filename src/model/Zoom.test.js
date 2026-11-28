@@ -6,6 +6,7 @@ import {
   BarUnit,
   ZoomStep,
   ZoomWindow,
+  barMonth,
   barStart,
   barStarts,
   defaultStepIndex,
@@ -34,6 +35,15 @@ describe('Zoom', () => {
     expect(barStart(d, BarUnit.QUARTER)).toBe(Day.of(2026, 7, 1));
     expect(nextBarStart(Day.of(2026, 12, 1), BarUnit.MONTH)).toBe(Day.of(2027, 1, 1));
     expect(nextBarStart(Day.of(2026, 10, 1), BarUnit.QUARTER)).toBe(Day.of(2027, 1, 1));
+  });
+
+  test('barMonth is the month of the bar in a calendar', () => {
+    expect(barMonth(Day.of(2026, 8, 13), BarUnit.DAY)).toEqual({ year: 2026, month: 8 });
+    // The week of Monday Sep 28 has 3 days in September and 4 days in October.
+    expect(barMonth(mon, BarUnit.WEEK)).toEqual({ year: 2026, month: 10 });
+    expect(barMonth(Day.of(2026, 8, 31), BarUnit.WEEK)).toEqual({ year: 2026, month: 9 });
+    expect(barMonth(Day.of(2026, 8, 1), BarUnit.MONTH)).toEqual({ year: 2026, month: 8 });
+    expect(barMonth(Day.of(2026, 10, 1), BarUnit.QUARTER)).toEqual({ year: 2026, month: 12 });
   });
 
   test('barStarts covers first to today', () => {

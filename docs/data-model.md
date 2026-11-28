@@ -232,8 +232,7 @@ Rules:
     up to its average. The colors have the soft tone of the strongest cells of the tables and the calendar, so that
     they match the other charts. A thin gap separates the parts.
   - "Score by month": a month calendar with the score of each day. A darker day has a higher score: 100 has the most
-    color. It is read-only. It shows the month of the end of the period, and its arrows show the other months. The
-    "Score" view has no day heatmap: the calendar shows the same days, with their scores.
+    color. It is read-only. It shows the month of the end of the period, and its arrows show the other months.
 - The group filter of the app (the `group` column) also applies to the score. With a group selected, the chart and
   the "Score" view show the group score: the average of the points of the metrics of that group only. The title shows
   the group, for example "Score · Habits". The `Score` column always has the score of all metrics.

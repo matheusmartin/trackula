@@ -16,7 +16,7 @@ import {
   formatTrimmed,
   formatValue,
   formatValueChange,
-  monthPairTitle,
+  monthRangeTitle,
   monthTitle,
   shortDay,
   shortMonth,
@@ -106,10 +106,11 @@ describe('Format', () => {
     expect(formatDateRange(Day.of(2025, 11, 3), Day.of(2026, 2, 1))).toBe('Nov 3, 2025 – Feb 1, 2026');
   });
 
-  test('monthTitle and monthPairTitle', () => {
+  test('monthTitle and monthRangeTitle', () => {
     expect(monthTitle({ year: 2026, month: 10 })).toBe('October 2026');
-    expect(monthPairTitle({ year: 2026, month: 9 }, { year: 2026, month: 10 })).toBe('September – October 2026');
-    expect(monthPairTitle({ year: 2025, month: 12 }, { year: 2026, month: 1 })).toBe('December 2025 – January 2026');
+    expect(monthRangeTitle({ year: 2026, month: 10 }, { year: 2026, month: 10 })).toBe('October 2026');
+    expect(monthRangeTitle({ year: 2026, month: 9 }, { year: 2026, month: 11 })).toBe('September – November 2026');
+    expect(monthRangeTitle({ year: 2025, month: 12 }, { year: 2026, month: 1 })).toBe('December 2025 – January 2026');
   });
 
   test('weekLabels show the month on the first row and when it changes', () => {

@@ -237,16 +237,17 @@ export function monthTitle(month) {
 }
 
 /**
- * The names of `first` and the month after it, `second`. Examples: "September – October 2026", or
+ * The name of the months from `first` to `last`. Examples: "October 2026", "September – November 2026", or
  * "December 2025 – January 2026" across a year.
  * @param {MonthKey} first
- * @param {MonthKey} second
+ * @param {MonthKey} last
  * @returns {string}
  */
-export function monthPairTitle(first, second) {
-  return first.year === second.year
-    ? `${monthNames[first.month - 1]} – ${monthTitle(second)}`
-    : `${monthTitle(first)} – ${monthTitle(second)}`;
+export function monthRangeTitle(first, last) {
+  if (first.year === last.year && first.month === last.month) return monthTitle(last);
+  return first.year === last.year
+    ? `${monthNames[first.month - 1]} – ${monthTitle(last)}`
+    : `${monthTitle(first)} – ${monthTitle(last)}`;
 }
 
 /**

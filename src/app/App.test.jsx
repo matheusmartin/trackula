@@ -96,7 +96,7 @@ describe('App', () => {
     const platform = new FakePlatform({ savedSpreadsheetId: 'sheet-1', hash: '#/metric/weight' });
     render(<App platform={platform} />);
     click('Sign in with Google');
-    await screen.findByText('Edit days', {}, { timeout: TIMEOUT });
+    await screen.findByRole('heading', { name: 'Days', level: 3 }, { timeout: TIMEOUT });
     expect(screen.queryByRole('navigation', { name: 'Views' })).toBeNull();
 
     click('Back');
