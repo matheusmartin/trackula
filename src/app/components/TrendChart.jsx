@@ -30,7 +30,7 @@ function coordinate(value) {
 
 /**
  * A small chart of one number metric or of the score over `days`, with the first and last day below it. The chart
- * stretches to the card width, in `color`: the theme primary color by default.
+ * stretches to the card width, in `color`: the data color (`--cell`) by default.
  *
  * - Line (default): the Y axis goes from the lowest to the highest value, or from 0 with `fromZero`. Lines and dots
  *   keep their size.
@@ -46,7 +46,7 @@ function coordinate(value) {
  * @param {boolean} [props.showsBars] Default: false.
  * @param {boolean} [props.fromZero] Default: false.
  * @param {boolean} [props.showsValues] Default: false.
- * @param {string | null} [props.color] A CSS color. Null: the theme primary color.
+ * @param {string | null} [props.color] A CSS color. Null: the data color (`--cell`).
  * @returns {JSX.Element | null}
  */
 export function TrendChart({

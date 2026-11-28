@@ -1,10 +1,10 @@
 /* TrendChart.jsx: the Y axis labels on the left, the plot, and the first and last day below it. The chart color is
-   the text color of .trend-chart: the theme primary color, or the color of the color prop. */
+   the text color of .trend-chart: the data color, or the color of the color prop. */
 .trend-chart {
   display: flex;
   gap: var(--space-2);
   padding-block-start: var(--space-3);
-  color: var(--primary);
+  color: var(--cell);
 }
 
 /* The labels of the axes: the smallest text of the app. The chart texts have no space above and below:

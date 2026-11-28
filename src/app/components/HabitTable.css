@@ -7,16 +7,14 @@
   padding: var(--space-3);
 }
 
-.habit-table-head,
-.habit-calendar-head {
+.habit-table-head {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-1) 0;
 }
 
-.habit-table-text,
-.habit-calendar-text {
+.habit-table-text {
   color: var(--on-surface-variant);
 }
 
@@ -61,6 +59,44 @@
   inline-size: 100%;
   border-radius: var(--radius-s);
   background-image: var(--cell-image);
+}
+
+/* A Saturday or a Sunday: a lighter bar, so that the weeks show. */
+.score-bar-weekend {
+  opacity: 0.5;
+}
+
+/* The calendars layout: the score bars of the days in one card, then the calendar cards. */
+.habit-calendars-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-inline-size: 0;
+}
+
+.habit-scores-card {
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.habit-scores {
+  display: grid;
+  align-items: end;
+  gap: 0 var(--space-1);
+}
+
+.score-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-inline-size: 0;
+  padding-block-start: var(--space-1);
+  border-block-start: 1px solid var(--outline-variant);
+  white-space: nowrap;
+}
+
+.score-day-number {
+  font-variant-numeric: tabular-nums;
 }
 
 /* The name of the score. */
@@ -129,12 +165,20 @@
   border-radius: 4px;
 }
 
-/* The calendars: the card grid. Each card has the height of its content. */
+/* The calendars: the card grid. On a phone, each card has the height of its content. On a wide screen, all cards have
+   the same size, also the cards without a chart. */
 .habit-calendars {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(var(--card-min-width), 100%), 1fr));
   align-items: start;
   gap: var(--space-3);
+}
+
+@media (min-width: 840px) {
+  .habit-calendars {
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+  }
 }
 
 .habit-calendar {

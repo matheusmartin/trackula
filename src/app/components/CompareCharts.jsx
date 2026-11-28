@@ -60,8 +60,8 @@ export function RangeBarChart({
   const lowest = Math.min(...values);
   // Space below the lowest value, so that its bar or diamond is not on the bottom line.
   const low = Math.max(0, lowest - Math.max(high - lowest, 1) * 0.25);
-  // A grey bar, not the primary color: in the score view, that is the green of the diamonds. The grey has a contrast
-  // of 3:1 or more on the card, and the dot on the grey, in both themes.
+  // A grey bar, not the data color: the data color is for the diamonds of this week. The grey has a contrast of 3:1
+  // or more on the card, and the dot on the grey, in both themes.
   const bar = 'var(--outline)';
   const dot = 'var(--surface-container-lowest)';
   return (

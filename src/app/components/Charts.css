@@ -214,7 +214,7 @@
 
 .line-chart-line {
   fill: none;
-  stroke: var(--primary);
+  stroke: var(--cell);
   stroke-width: 2px;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -222,7 +222,7 @@
 }
 
 .line-chart-dot {
-  fill: var(--primary);
+  fill: var(--cell);
 }
 
 /* The dots below a trend line: the cell color. */

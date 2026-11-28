@@ -10,7 +10,7 @@ import { pointsByMetric } from '../../model/Score.js';
 import { metricValues, nearestDay } from '../../model/Summary.js';
 import { AppCard } from './AppCard.jsx';
 import { useCountInput } from './CountInputModifier.js';
-import { DayCell, ScoreCell } from './DayCell.jsx';
+import { DayCell } from './DayCell.jsx';
 import { useElementWidth } from './ElementWidth.js';
 import { MetricIcon } from './MetricIcon.jsx';
 import { NumberEditor } from './NumberEditor.jsx';
@@ -37,6 +37,9 @@ const CARD_PADDING = 12;
 /** The height of the bar of a score of 100%, in CSS pixels. */
 const BAR_HEIGHT = 72;
 
+/** The smallest width of a score bar column that holds the score above the bar, for example "64.3". */
+const VALUE_COLUMN = 30;
+
 /**
  * The number of days that a table of `width` CSS pixels holds: 5 on a phone, up to 14 on a wide screen. See
  * `tableDayCount`.
@@ -52,14 +55,16 @@ export function tableDays(width) {
  *
  * - Table: one card. Its first row has the score bars, each bar above the cells of its day. Then the day headers, and
  *   one row for each metric, today on the right. A legend tells the cell colors.
- * - Calendars: the score calendar first, then one calendar card for each metric, in the card grid.
+ * - Calendars: the score bars of the days first, in one card, then one calendar card for each metric, in the card
+ *   grid. On a wide screen, all calendar cards have the same size.
  *
  * The cells (see {@link DayCell}):
  * - Yes/no: a click writes `yes`, or `no` if the day is `yes`.
  * - Count: see `CountInput`. A count has no reset: it goes to empty with subtractions.
  * - Number: a click opens the {@link NumberEditor} for that metric and day, below the metric. A second click closes it.
  *
- * Today is not over: without a value on today, today has no score bar.
+ * A score bar of a Saturday or a Sunday is lighter. Today is not over: without a value on today, today has no score
+ * bar.
  * @param {object} props
  * @param {Metric[]} props.metrics
  * @param {LogTable} props.log
@@ -198,30 +203,41 @@ export function HabitTable({
   if (layout === DayLayout.CALENDARS) {
     const columns =
       calendarColumns == null ? null : { gridTemplateColumns: `repeat(${calendarColumns}, minmax(0, 1fr))` };
+    // The scores show above the bars only if each column has the space for them.
+    const roomy = (width - 2 * CARD_PADDING + CELL_GAP) / days.length - CELL_GAP >= VALUE_COLUMN;
     return (
-      <div class="habit-calendars" style={columns ?? undefined}>
+      <div ref={measure} class="habit-calendars-view">
         {scores != null && (
-          <AppCard class="habit-calendar">
-            <div class="habit-calendar-head">
+          <AppCard class="habit-scores-card">
+            <div class="habit-table-head">
               <ScoreName title={scoreTitle} onScore={onScore} withUnit={false} />
-              <p class="habit-calendar-text body-small">
-                The score of each day, in % of the points. More points give a stronger color.
+              <p class="habit-table-text body-small">
+                The score of each day, in % of the points, as in the table. A weekend day is lighter.
               </p>
             </div>
-            <MonthGrid days={days} cell={(d) => <ScoreCell day={d} today={today} score={scoreOf(d)} />} />
+            <div class="habit-scores" style={{ gridTemplateColumns: `repeat(${days.length}, minmax(0, 1fr))` }}>
+              {days.map((d) => (
+                <ScoreBar key={d.toString()} day={d} score={scoreOf(d)} withValue={roomy} />
+              ))}
+              {days.map((d) => (
+                <ScoreDay key={d.toString()} day={d} full={roomy} first={d === days[0]} />
+              ))}
+            </div>
           </AppCard>
         )}
-        {metrics.map((m) => {
-          const values = /** @type {Map<Day, number>} */ (valuesById.get(m.id));
-          return (
-            <AppCard key={m.id} class="habit-calendar">
-              {showsTitle && <MetricName metric={m} onOpen={onOpen} withGoal />}
-              <MonthGrid days={days} cell={(d) => cell(m, d, values)} />
-              {calendarExtra?.(m, values)}
-              {openEditor(m, values)}
-            </AppCard>
-          );
-        })}
+        <div class="habit-calendars" style={columns ?? undefined}>
+          {metrics.map((m) => {
+            const values = /** @type {Map<Day, number>} */ (valuesById.get(m.id));
+            return (
+              <AppCard key={m.id} class="habit-calendar">
+                {showsTitle && <MetricName metric={m} onOpen={onOpen} withGoal />}
+                <MonthGrid days={days} cell={(d) => cell(m, d, values)} />
+                {calendarExtra?.(m, values)}
+                {openEditor(m, values)}
+              </AppCard>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -330,20 +346,59 @@ function ScoreName({ title, onScore, withUnit = true }) {
 }
 
 /**
- * The bar of the score of a day, with the score above it. No score: no bar.
+ * The bar of the score of a day, with the score above it if `withValue`. The bar of a Saturday or a Sunday is lighter,
+ * so that the weeks show. No score: no bar.
  * @param {object} props
  * @param {Day} props.day
  * @param {number | null} props.score From 0 to 100.
+ * @param {boolean} [props.withValue] Default: true.
  * @returns {JSX.Element}
  */
-function ScoreBar({ day, score }) {
+function ScoreBar({ day, score, withValue = true }) {
   if (score == null) return <div class="score-bar-box" />;
   const text = `${shortDay(day)}: score ${formatNumber(score)}%`;
   return (
     <div class="score-bar-box" role="img" title={text} aria-label={text}>
-      <span class="score-bar-value label-medium">{formatNumber(score)}</span>
-      <span class="score-bar" style={{ blockSize: `${Math.max(2, Math.round((score / 100) * BAR_HEIGHT))}px` }} />
+      {withValue && <span class="score-bar-value label-medium">{formatNumber(score)}</span>}
+      <span
+        class={isWeekend(day) ? 'score-bar score-bar-weekend' : 'score-bar'}
+        style={{ blockSize: `${Math.max(2, Math.round((score / 100) * BAR_HEIGHT))}px` }}
+      />
     </div>
+  );
+}
+
+/**
+ * True if `day` is a Saturday or a Sunday.
+ * @param {Day} day
+ * @returns {boolean}
+ */
+function isWeekend(day) {
+  return day.weekday >= 6;
+}
+
+/**
+ * The day below a score bar of the calendars layout. With `full`, the weekday and the day number. Else only the day
+ * number of the first day and of each Monday, because the columns are narrow.
+ * @param {object} props
+ * @param {Day} props.day
+ * @param {boolean} props.full
+ * @param {boolean} props.first
+ * @returns {JSX.Element}
+ */
+function ScoreDay({ day, full, first }) {
+  if (!full) {
+    return (
+      <span class="score-day" aria-hidden="true">
+        {first || day.weekday === 1 ? <span class="score-day-number label-medium">{day.day}</span> : null}
+      </span>
+    );
+  }
+  return (
+    <span class="score-day" aria-hidden="true">
+      <span class="body-small day-header-weekday">{weekdayNames[day.weekday - 1]}</span>
+      <span class="score-day-number label-medium">{day.day}</span>
+    </span>
   );
 }
 

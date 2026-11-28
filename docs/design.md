@@ -17,7 +17,7 @@ Each color has one role, the same on all screens. The table gives the light and 
 | Main action | `--action-start`, `--action-end` | `#c2410c` → `#9f1239` | the same | The one main button of a screen. Example: "Add metric". | Other buttons. |
 | Accent | `--primary` | `#b8321a` | `#ff8c66` | Links, text buttons, the focus ring. | Data, warnings. |
 | Selected | `--primary-container` | `#ffdfd4` | `#7a2a14` | The selected item of the navigation and of the chips. | Data. |
-| Data | `--cell-image`, `--cell`, `--on-cell` | `#ca4a09` → `#e41648`, `#da3625`, white | the same | The day cells (`--cell-image`), the bars, lines and dots of the charts (`--cell`), a done tile, the score, a change for the better. | Text. |
+| Data | `--cell-image`, `--cell`, `--on-cell` | `#c3540a` → `#b5470a`, `#bd4e0a`, white | the same | The day cells (`--cell-image`), the bars, lines and dots of the charts (`--cell`), a done tile, the score, a change for the better. | Text. |
 | No points | `--cell-value` | `#e2e6eb` | `#323c49` | A day cell with a value and 0 points. | — |
 | Worse | `--worse` | `#5b6b82` | `#9fb0c6` | A change for the worse in the score tables. | Other data. |
 | Warning | `--warning`, `--warning-container` | `#b45309`, `#fde7cf` | `#f0a35a`, `#4d2c0a` | Sheet warnings, the warning sign of a tile over a limit. | Day cells, charts. |
@@ -29,6 +29,10 @@ Rules:
 
 - **Decision (owner):** the data has the color of the brand. The day cells, the bars of the charts and the score all
   use it, in the same way. Example: a done day and a day with a score of 100% are the same full brand cell.
+- **Decision (owner, 2026-11-28):** the data color is the deep orange of the brand gradient (`#c3540a` → `#b5470a`),
+  not its red: red on all data was too strong. Option B of the color mocks. An orange this dark keeps white text at
+  4.5:1 or more.
+- A score bar of a Saturday or a Sunday is lighter (50% opacity), so that the weeks show.
 - The score has no own theme: it uses the Data role, as each day cell does.
 - The current day has no special color and no ring. It is the last column of the table, or its day number in a
   calendar.
@@ -119,7 +123,7 @@ One font: Roboto, with the weights 400, 500 and 700. The app serves it itself.
 |---|---|---|
 | Today | Number tiles in 1 column. Yes/no and count tiles in 2 columns. | Number tiles in 2 columns. Yes/no and count tiles in 4 to 6 columns (`--tile-min-width` 160 px). A ruler is not wider than its tile. |
 | Days, table | One card. Its first row has the score bars, each bar in the column of its day, so that a bar is exactly above the cells of its day. Then the day headers and one row for each metric. 5 days. | The same card, with as many days as the width holds, up to 14. |
-| Days, calendars | The score calendar first, then 1 calendar card for each metric. | The card grid: 2 or 3 calendars in each row. |
+| Days, calendars | The score bars first, in one card, as in the table. Then 1 calendar card for each metric. | The same, with the card grid: 2 or 3 calendars in each row, all of the same size. |
 | Score, metric detail | The period bar, the key numbers in 2 columns, then the cards in 1 column. | The period bar in one row, the key numbers in one row, then the card grid. |
 | Metrics | The list. A tap opens the form as a screen. | The list on the left and the form on the right. |
 
